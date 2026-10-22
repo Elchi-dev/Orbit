@@ -746,7 +746,7 @@ body.dragging iframe { pointer-events: none; }
 .lane.busy .lane-icon { color: var(--lav); background: rgba(184, 166, 255, 0.12); }
 .lane-title { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
 .lane-agent { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--star-3); }
-.lane-name { font-size: 14px; font-weight: 600; color: var(--star); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lane-name { font-size: 14px; font-weight: 600; color: var(--star); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
 .lane-state { display: inline-flex; align-items: center; gap: 6px; flex: none; font-size: 12px; color: var(--star-3); }
 .lane-state i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .lane-state.busy { color: var(--lav); }
@@ -761,10 +761,11 @@ body.dragging iframe { pointer-events: none; }
 .lane-report ul { padding-left: 18px; }
 .lane-task { overflow: hidden; font-size: 13px; color: var(--star-3); }
 .lane-task p { margin: 4px 0 0; white-space: pre-wrap; }
-.lane-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.lane-meta { display: inline-flex; align-items: center; gap: 10px; min-width: 0; font-size: 12px; color: var(--star-3); font-variant-numeric: tabular-nums; }
+.lane-foot { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: auto; }
+.lane-meta { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 12px; color: var(--star-3); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
 .lane-branch { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
-.lane-actions { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.lane-actions { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.lane-right { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
 .lane-open { gap: 4px; }
 .lane-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--lav), transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: lane-sweep 1.6s var(--glide) infinite; }
 @keyframes lane-sweep { from { background-position: -40% 0; } to { background-position: 140% 0; } }
@@ -892,8 +893,9 @@ mark.doc-mark::after { content: attr(data-n); display: inline-grid; place-items:
 .bi.from { outline: 2px dashed var(--peach); outline-offset: 3px; }
 .bi-note { color: #26221a; padding: 14px 16px; box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.6), inset 0 -24px 30px -30px rgba(0, 0, 0, 0.35); font-size: 15px; line-height: 1.45; }
 .bi-note-text { white-space: pre-wrap; overflow: hidden; height: 100%; }
-.bi-text { color: var(--star); font-size: 15px; overflow: hidden; height: 100%; }
-.bi-text .md p:first-child { margin-top: 0; }
+.bi-text { color: var(--star); font-size: 15px; }
+.bic-text { overflow: hidden; height: 100%; }
+.bic-text .md p:first-child { margin-top: 0; }
 .bi-placeholder { opacity: 0.45; font-style: italic; }
 .bi-edit { width: 100%; height: 100%; resize: none; border: 0; background: transparent; color: inherit; font: inherit; line-height: inherit; padding: 0; outline: none; }
 .bi-text .bi-edit { background: rgba(255, 255, 255, 0.04); }
@@ -903,15 +905,15 @@ mark.doc-mark::after { content: attr(data-n); display: inline-grid; place-items:
 .bi-check label { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; cursor: pointer; }
 .bi-check input { accent-color: var(--peach); margin-top: 3px; }
 .bi-check .done { text-decoration: line-through; color: var(--star-3); }
-.bi-image { margin: 0; height: 100%; display: flex; flex-direction: column; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); }
-.bi-image img { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #0b0b14; pointer-events: none; }
-.bi-image figcaption { padding: 5px 9px; font-size: 12.5px; color: var(--star-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bi-link, .bi-file { display: flex; align-items: flex-start; gap: 10px; width: 100%; height: 100%; padding: 12px 14px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; border-radius: 6px; color: var(--star); text-decoration: none; text-align: left; }
-.bi-link span, .bi-file span { display: flex; flex-direction: column; min-width: 0; }
-.bi-link strong, .bi-file strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bi-link small, .bi-file small { color: var(--star-3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bi-link em { margin-top: 4px; color: var(--star-2); font-size: 12.5px; font-style: normal; }
-.bi-link svg, .bi-file svg { flex: none; margin-top: 2px; color: var(--lav); }
+.bic-image { margin: 0; height: 100%; display: flex; flex-direction: column; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.bic-image img { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #0b0b14; pointer-events: none; }
+.bic-image figcaption { padding: 5px 9px; font-size: 12.5px; color: var(--star-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bic-link, .bic-file { display: flex; align-items: flex-start; gap: 10px; width: 100%; height: 100%; padding: 12px 14px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; border-radius: 6px; color: var(--star); text-decoration: none; text-align: left; }
+.bic-link span, .bic-file span { display: flex; flex-direction: column; min-width: 0; }
+.bic-link strong, .bic-file strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bic-link small, .bic-file small { color: var(--star-3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bic-link em { margin-top: 4px; color: var(--star-2); font-size: 12.5px; font-style: normal; }
+.bic-link svg, .bic-file svg { flex: none; margin-top: 2px; color: var(--lav); }
 .bi-frame { border: 1.5px dashed var(--line-2); background: rgba(255, 255, 255, 0.015); border-radius: 14px; overflow: visible; }
 .bi-frame-title { position: absolute; left: 14px; top: 12px; font: 650 14px var(--sans); color: var(--star-2); }
 .bi-resize { position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--lav) 50%); border-bottom-right-radius: 6px; }

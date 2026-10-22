@@ -86,7 +86,7 @@ function ItemBody({ ws, it, editing, onDone, onChange }: { ws: Workspace; it: Bo
     case "note":
       return <div className="bi-note-text">{it.text || <span className="bi-placeholder">Double-click to write</span>}</div>;
     case "text":
-      return <div className="bi-text">{it.text ? <Markdown text={it.text} /> : <span className="bi-placeholder">Double-click to write</span>}</div>;
+      return <div className="bic-text">{it.text ? <Markdown text={it.text} /> : <span className="bi-placeholder">Double-click to write</span>}</div>;
     case "checklist":
       return (
         <div className="bi-check">
@@ -105,7 +105,7 @@ function ItemBody({ ws, it, editing, onDone, onChange }: { ws: Workspace; it: Bo
       );
     case "image":
       return (
-        <figure className="bi-image">
+        <figure className="bic-image">
           <img src={imageUrl(ws.id, it.src)} alt={it.title ?? ""} draggable={false} />
           {it.title && <figcaption>{it.title}</figcaption>}
         </figure>
@@ -116,7 +116,7 @@ function ItemBody({ ws, it, editing, onDone, onChange }: { ws: Workspace; it: Bo
         host = new URL(it.url ?? "").hostname;
       } catch {}
       return (
-        <a className="bi-link" href={it.url} target="_blank" rel="noreferrer" onPointerDown={(e) => e.stopPropagation()}>
+        <a className="bic-link" href={it.url} target="_blank" rel="noreferrer" onPointerDown={(e) => e.stopPropagation()}>
           <Link2 size={16} />
           <span>
             <strong>{it.title || host}</strong>
@@ -128,7 +128,7 @@ function ItemBody({ ws, it, editing, onDone, onChange }: { ws: Workspace; it: Bo
     }
     case "file":
       return (
-        <button className="btn bi-file" onPointerDown={(e) => e.stopPropagation()} onClick={() => it.path && openInEditor(ws.id, it.path)}>
+        <button className="btn bic-file" onPointerDown={(e) => e.stopPropagation()} onClick={() => it.path && openInEditor(ws.id, it.path)}>
           <FileCode2 size={16} />
           <span>
             <strong>{it.title || it.path?.split("/").pop()}</strong>
