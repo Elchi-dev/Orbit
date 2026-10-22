@@ -64,6 +64,10 @@ Orbit when you ask:
 - **Tours.** Ori walks you around the sky or a workspace with a spotlight.
   The first visit to each offers it once.
 
+| | | |
+| --- | --- | --- |
+| ![The setup wizard: Ori asks who says yes](docs/images/welcome.webp) | ![Ask Ori: topics and the tour, from the corner of the sky](docs/images/ask-ori.webp) | ![The sky tour: a spotlight on where you start](docs/images/tour.webp) |
+
 All fifteen poses, and how to use them: [docs/ORI.md](docs/ORI.md).
 
 ---
