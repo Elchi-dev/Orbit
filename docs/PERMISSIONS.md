@@ -53,6 +53,7 @@ The pattern is matched against the whole action:
 | shell | the command, as written: `rm -rf ./build/cache` |
 | `write_file`, `edit_file` | `write ` and the absolute path: `write /home/me/app/src/a.ts` |
 | `fetch_url` | `fetch ` and the URL: `fetch https://api.example.com/v1` |
+| `screenshot` of another site | `fetch ` and the URL, so fetch rules apply; your own pages are read-only |
 | an MCP tool | `mcp `, the server, the tool and its arguments as JSON with shell operators taken out: `mcp linear create_issue {"title":"..."}` |
 
 `*` matches any text **except shell operators** (`;`, `&`, `|`, backtick,
@@ -89,7 +90,9 @@ Only actions no rule decided get here.
 | **Manual** | You decide every one. |
 | **Auto** | The judge decides. When it is unsure, you decide. |
 | **Rules** | Blocked. For runs nobody is watching. |
+| **Full** | Allowed, unless it reaches outside the workspace folder (a path or a write there), escalates (`sudo`, `dd`, `mkfs`, `shutdown` and the like) or is a guarded command from the catalog. Those go to the judge, and an unsure judge means no. Nobody is asked. |
 
+A profile with **hands off** (Autopilot) runs every request like a mission.
 Missions run unattended, with stricter versions of the same steps: Manual
 becomes Rules, a rule that says **ask** means no, and in Auto mode a judge that
 is unsure means no. Nothing ever waits for an answer.

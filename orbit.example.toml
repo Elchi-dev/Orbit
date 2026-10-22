@@ -31,8 +31,10 @@ thinking_display = "summarized"
 
 [permissions]
 # Mode for new workspaces: "manual" (you approve), "auto" (the judge approves
-# safe actions and asks you about the rest) or "rules" (only rules decide,
-# everything else is blocked; for unattended runs).
+# safe actions and asks you about the rest), "rules" (only rules decide,
+# everything else is blocked; for unattended runs) or "full" (Claude decides;
+# only actions that reach outside the folder or escalate go to the judge, and
+# an unsure judge means no). A profile can set its own.
 default_mode = "manual"
 # Read-only actions (file reads, ls, cat, rg, git status, git log...) run
 # without a rule, a judge or a question. Turn this off to gate them too.
@@ -101,6 +103,23 @@ command_timeout_s = 300
 [workspaces]
 # Where new workspaces get their folder when you don't pick one.
 home = "~/orbit-workspaces"
+# The profile new workspaces start as: pair, terminal, autopilot, frontend,
+# research, or one of yours.
+default_profile = "pair"
+
+# Profiles. Change a built-in by its id, or add your own. Fields left out keep
+# the built-in's value (for a new profile, Pair's). tools empty means all;
+# otherwise names, with * for a prefix ("ui_*", "mcp__github__*").
+[profiles.terminal]
+effort = "low"
+
+[profiles.reviewer]
+name = "Reviewer"
+description = "Reads the diff and comments; never changes anything."
+icon = "shield"
+mode = "rules"
+tools = ["read_file", "grep", "glob", "list_dir", "plan"]
+prompt = "Review the changes on this branch for bugs, risks and missing tests. Quote the lines."
 
 [profile]
 # Sent with every message in every workspace.

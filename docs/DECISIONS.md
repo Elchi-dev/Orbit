@@ -126,3 +126,26 @@ says what was refused, and a rule fixes it for next time.
 The extension never calls the API. It opens a local link, and Orbit puts the
 selection into the composer of the right workspace, where nothing is sent until
 you press Enter. One place holds the key, the gate and the history.
+
+## Profiles instead of one right way to work (2026-10-22)
+
+People want different things from the same agent: a careful pair, a terminal,
+an autopilot that builds a project alone, a frontend studio, a research desk.
+Rather than one workflow with switches everywhere, a profile bundles the few
+settings that make the difference (approvals, who is asked, tools, layout,
+effort, preview, instructions). The built-ins are ordinary profiles you can
+change, and `orbit.toml` adds new ones, so the shape is configuration, not code.
+
+## Full autonomy still has a floor (2026-10-22)
+
+"Decide everything yourself" should not mean "delete my home folder if it
+seems right". Full mode lets everything inside the workspace through and sends
+only what reaches outside it, escalates or is catalogued as destructive to the
+judge, which can say no but never waits for you. Block rules still win.
+
+## The preview is another origin (2026-10-22)
+
+A page Claude builds runs real scripts. Served from Orbit's own origin it could
+call the API with your session. The preview has its own read-only server on
+another port, and the API accepts only Orbit's exact origin, which also closed
+the older gap where any local page could.

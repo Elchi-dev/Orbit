@@ -116,6 +116,43 @@ rows. Each row says who let it through: **read-only**, **your rule**,
 
 ---
 
+## One app, shaped for the job
+
+![Picking a profile when launching a workspace](docs/images/profiles.webp)
+
+Every workspace runs under a **profile**: who approves, which tools Claude gets,
+how the conversation looks and what Claude is told. Five come built in, and
+each can be changed or copied into your own (Settings, Profiles, or
+`[profiles.<id>]` in `orbit.toml`).
+
+| Profile | For | How it works |
+| --- | --- | --- |
+| **Pair** | working side by side | you approve what changes your machine |
+| **Terminal** | people who live in a terminal | dense, keyboard first, `Bash(npm test)` rows with output, like Claude Code in the browser |
+| **Autopilot** | "build me this" and walk away | **Full** mode: it plans, decides and builds on its own and never asks; only actions that reach outside the folder or escalate go to the judge, and unsure means no |
+| **Frontend** | interfaces | a live preview next to the conversation, screenshots at phone and desktop width |
+| **Research** | reading and writing up | web search on, no shell, nothing on your machine changes |
+
+![The Terminal profile: commands and output inline, a plan above the prompt](docs/images/terminal.webp)
+
+---
+
+## Build interfaces while you watch
+
+| | |
+| --- | --- |
+| ![The page appearing in the preview while Claude writes it](docs/images/live.webp) | ![The finished page at phone width, with the screenshots Claude took to check it](docs/images/preview.webp) |
+| While Claude writes an HTML file, the preview draws it as it arrives. | Then the real page, reloading by itself on every change. Claude checks its work with screenshots; you switch widths, or drop a screenshot into your message. |
+
+- **The preview** shows a file, a folder or a dev server (Vite, Next and the
+  rest are picked up from their output), on its own port, so a page being
+  built can never reach Orbit.
+- **Screenshots** come from the Chrome, Edge or Brave you already have, in
+  half a second, with the page's console errors. `/shot <url>` captures any
+  site into your message, for "make it look like this".
+
+---
+
 ## Works with what you already use
 
 - **The 100 programs developers use most**, from git, Docker and kubectl to
@@ -195,6 +232,8 @@ bun install && bun run build            # binaries in release/
 | **Git and review** | A git panel (branches, diffs, stage, commit, pull, push) and a review of every file Claude changed, kept or put back one by one. |
 | **Missions** | Requests that run on a schedule or from a local webhook, unattended, with a report and a notification. |
 | **Context** | Project instruction files, skills, MCP servers, the 100 known programs, smart compaction of older history. |
+| **Profiles** | Pair, Terminal, Autopilot, Frontend and Research, or your own: approvals, tools, layout, effort and instructions per kind of work. A plan checklist Claude keeps while it works. |
+| **Preview** | Live preview of files and dev servers, the page drawn while it is written, widths from phone to laptop, screenshots for you and for Claude. |
 | **Sharing** | Export to Markdown, or save a workspace as one HTML page that opens anywhere. |
 
 Everything lives in one SQLite file in `~/.orbit`, next to `orbit.toml`. The
@@ -237,8 +276,9 @@ and web search, the persistent shell, all file tools, the gate with read-only
 detection for the shell and the 100 known programs, rules, three modes and the
 judge, approvals with "Always allow", the undo journal, review and kill switch,
 budgets, compaction, missions, MCP servers, the git panel, skills and project
-instructions, the editor links and extension, the whole interface, single
-binaries for five platforms and the installers.
+instructions, the editor links and extension, profiles and Full mode, the plan,
+the live preview and screenshots, the whole interface, single binaries for five
+platforms and the installers.
 
 Not yet: long sessions against the live API (everything above was driven by
 the mock model, test servers and unit tests), web search and MCP against real
@@ -246,9 +286,11 @@ services, the extension inside a real editor, dictation with a real
 microphone, the 3D sky in Firefox (checked with the flat fallback only),
 Windows beyond building the binary.
 
-The test bar: 104 tests named after what they protect, including the rule
+The test bar: 124 tests named after what they protect, including the rule
 that once let an allow rule be stretched with `;`, flags that turn a read-only
-command into a write, and a mission that must refuse instead of waiting. CI
+command into a write, a mission that must refuse instead of waiting, a page on
+another local port that must not reach the API, and a preview that must not
+serve anything outside its folder. CI
 starts a real server and drives it end to end over HTTP and WebSocket, checks
 that the compatibility page matches the catalog, and runs the extension
 against a stand-in editor. Every screen was checked with data at desktop width

@@ -42,6 +42,10 @@ browser only ever talks to it.
 | `server/git.ts` | The git panel: status, diffs, stage, commit, branches, push and pull, commit messages from the scribe |
 | `server/review.ts`, `server/diff.ts` | Reviewing Claude's changes per file, and the line diff behind it |
 | `server/missions.ts` | Missions: schedules, webhooks and unattended runs |
+| `server/profiles.ts` | The built-in profiles and the ones from `orbit.toml` |
+| `server/preview.ts` | The preview server on its own port: workspace files under a random token, reload events, dev server detection |
+| `server/screenshot.ts` | Headless screenshots through an installed Chrome-family browser, with console messages |
+| `server/origin.ts` | Which origin may call the API: only Orbit's own |
 
 ### One turn
 
@@ -140,6 +144,20 @@ The server pushes one stream of events to every open tab: `message`,
 Planet labels are ordinary buttons laid over the canvas and moved every frame
 to sit under their planet, so they can be clicked, focused with Tab and read
 by a screen reader.
+
+## The preview
+
+The preview runs a second, read-only server on loopback (the next port, 7778
+by default). Workspace files are served under a random token per workspace,
+HTML gets a few lines that reload the page when a file in the folder changes,
+and nothing outside the folder is served. Because it is another origin, and
+the API accepts only its own, a page being built can't use your session. A dev
+server is shown at its own address. While Claude streams a `write_file` for an
+HTML file, the interface reads the half-arrived content out of the tool input
+and draws it without its scripts; the real page takes over once it is written.
+
+Screenshots start the installed browser headless with a window of the asked
+width, let timers and requests settle, and read console messages from its log.
 
 ## Editors
 

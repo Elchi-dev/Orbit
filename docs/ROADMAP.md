@@ -12,24 +12,32 @@ server), saving a workspace as one HTML page, dictation, the git panel, MCP
 servers, the editor extension and `orbit <folder>`, and the catalog of 100
 programs. See the [changelog](../CHANGELOG.md).
 
-## 0.3: use it every day
+## Done in 0.3
+
+Profiles (Pair, Terminal, Autopilot, Frontend, Research, your own), Full
+mode, the terminal layout, the plan, the live preview with pages drawn while
+they are written, and screenshots for you and for Claude.
+
+## 0.4: use it every day
 
 - **Long-session hardening.** Run it against the live API for days of real
   work and fix what breaks. The mock model and the tests cover the paths, not
   the surprises. This is the most important item on the list.
+- **Pick an element in the preview** and talk about it ("make this
+  bigger"), and a performance and accessibility check next to screenshots.
 - **Hunk by hunk review.** Review already keeps or undoes whole files; some
   changes want a finer cut.
 - **Secrets for MCP servers** from Orbit's encrypted store instead of
   `orbit.toml`.
 
-## 0.4: memory and knowledge
+## 0.5: memory and knowledge
 
 - **Knowledge files per workspace.** A docs folder indexed locally, searched by
   a tool instead of pasted into every request.
 - **Automatic memory.** Facts from past workspaces offered to the memory shelf,
   each one editable, with answers saying which memories they used.
 
-## 0.5: watching it work
+## 0.6: watching it work
 
 - **Replay.** Scrub a timeline to watch a finished run happen again, commands
   and file changes included.

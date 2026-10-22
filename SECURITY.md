@@ -16,7 +16,14 @@ answer within a week.
 Opening the page sets a random session cookie (`HttpOnly`, `SameSite=Strict`);
 every API call and the WebSocket require it. Requests whose `Host` is not
 localhost are refused, which stops DNS rebinding, and requests whose `Origin`
-is another site are refused.
+is anything but Orbit's own page are refused, including pages on other local
+ports: cookies are not tied to a port, so a dev server's page would otherwise
+share the session (fixed in 0.3.0; before, any localhost origin was accepted).
+
+**Pages Claude builds.** The live preview serves them from a separate,
+read-only server on another port, under a random token per workspace, and
+never outside the workspace folder. Being another origin, they can't call
+Orbit's API. A page drawn while it is being written runs no scripts at all.
 
 **Actions you did not want.** Every action passes the gate
 ([docs/PERMISSIONS.md](docs/PERMISSIONS.md)): read-only detection, your rules,

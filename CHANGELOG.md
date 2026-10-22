@@ -1,6 +1,29 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-10-22)
+
+Orbit takes the shape of the work: a careful pair, a terminal, an autopilot,
+a frontend studio or a research desk.
+
+### Added
+
+- **Profiles**: Pair, Terminal, Autopilot, Frontend and Research, picked at
+  launch and switched in a workspace's header. A profile sets the approval
+  mode, whether anyone is asked, the tools, the layout, effort, web search,
+  the preview, a step limit and instructions. Change any of them, copy them
+  into your own, and choose the default, in Settings or `orbit.toml`.
+- **Full mode**: Claude decides on its own. Work inside the workspace folder
+  goes through at once; actions that reach outside it, escalate, or are
+  guarded commands from the catalog go to the judge, where unsure means no.
+- **Terminal layout**, like a terminal agent: `❯` requests, `Name(argument)`
+  tool rows with the first lines of output, monospace throughout.
+- **Plan**: a checklist Claude keeps while it works, above the composer.
+- **Live preview** of files and dev servers next to the conversation, on its
+  own port and origin, reloading on every change; an HTML file is drawn while
+  Claude writes it; phone, tablet, laptop and full widths; a draggable divider.
+- **Screenshots** through the Chrome-family browser already installed, with
+  console messages: a tool for Claude to check its work (other sites pass the
+  gate like a fetch), a camera button and `/shot` for you.
 
 ### Security
 
