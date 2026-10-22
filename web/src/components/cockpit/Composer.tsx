@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowUp, FileText, Gauge, Globe, Image as ImageIcon, Paperclip, Square, X } from "lucide-react";
 import { useStore } from "../../lib/store";
 import type { Workspace } from "../../lib/types";
+import { api } from "../../lib/api";
+import { BUILTINS, expand, runSlash, type SlashItem } from "../../lib/slash";
 
 interface Attachment {
   id: number;
@@ -64,12 +66,53 @@ export function Composer({ ws }: { ws: Workspace }) {
       setWeb(false);
     }
   }, [webKey]);
-  const toggleWeb = () => {
-    setWeb(!web);
+  const setWebOn = (on: boolean) => {
+    setWeb(on);
     try {
-      localStorage.setItem(webKey, web ? "0" : "1");
+      localStorage.setItem(webKey, on ? "1" : "0");
     } catch {}
   };
+  const toggleWeb = () => setWebOn(!web);
+
+  // slash commands: built-ins, saved prompts (.claude/commands, ~/.orbit/prompts) and skills
+  const [custom, setCustom] = useState<SlashItem[]>([]);
+  const [pick, setPick] = useState(0);
+  useEffect(() => {
+    api
+      .get<{ commands: { name: string; description: string; body: string }[]; skills: { name: string; description: string }[] }>(`/api/workspaces/${ws.id}/context`)
+      .then((c) =>
+        setCustom([
+          ...c.commands.map((x) => ({ name: x.name, hint: x.description, kind: "prompt" as const, body: x.body })),
+          ...c.skills.map((x) => ({ name: x.name, hint: `Skill: ${x.description}`, kind: "skill" as const })),
+        ]),
+      )
+      .catch(() => setCustom([]));
+  }, [ws.id]);
+  const slash = text.startsWith("/") && !text.includes("\n") ? text.slice(1) : null;
+  const [slashName, ...slashRest] = (slash ?? "").split(" ");
+  const slashArgs = slashRest.join(" ").trim();
+  const typingArgs = slash !== null && slash.includes(" ");
+  const all = [...BUILTINS, ...custom.filter((c) => !BUILTINS.some((b) => b.name === c.name))];
+  const matches = slash === null ? [] : typingArgs ? all.filter((i) => i.name === slashName) : all.filter((i) => i.name.startsWith(slashName.toLowerCase())).slice(0, 40);
+  useEffect(() => setPick(0), [slashName]);
+
+  async function choose(item: SlashItem, args: string) {
+    if (item.kind === "prompt") {
+      setText(expand(item.body ?? "", args));
+      requestAnimationFrame(() => ta.current?.focus());
+      return;
+    }
+    if (item.kind === "skill") {
+      setText(`Use the ${item.name} skill${args ? `: ${args}` : "."}`);
+      return;
+    }
+    if (item.args && !args && !typingArgs) {
+      setText(`/${item.name} `);
+      return;
+    }
+    setText("");
+    await runSlash(item.name, args, { ws, setText, web, setWeb: setWebOn, setEffort });
+  }
 
   useEffect(() => {
     ta.current?.focus();
@@ -148,6 +191,38 @@ export function Composer({ ws }: { ws: Workspace }) {
           </motion.div>
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {matches.length > 0 && (
+          <motion.ul
+            className="slash-menu"
+            role="listbox"
+            aria-label="Commands"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.15 }}
+          >
+            {matches.map((m, i) => (
+              <li key={m.kind + m.name} role="option" aria-selected={i === pick}>
+                <button
+                  type="button"
+                  className={`slash-item ${i === pick ? "on" : ""}`}
+                  onMouseEnter={() => setPick(i)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    choose(m, slashArgs);
+                  }}
+                >
+                  <span className="slash-name mono">/{m.name}</span>
+                  {m.args && <span className="slash-args mono">{m.args}</span>}
+                  <span className="slash-hint">{m.hint}</span>
+                  {m.kind !== "action" && <span className="slash-kind">{m.kind === "skill" ? "skill" : "prompt"}</span>}
+                </button>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
       <form
         className="composer glass"
         onSubmit={(e) => {
@@ -166,6 +241,28 @@ export function Composer({ ws }: { ws: Workspace }) {
           placeholder={running ? "Claude is working. You can type the next message." : "Tell Claude what to do next"}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
+            if (matches.length) {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                setPick((p) => (p + (e.key === "ArrowDown" ? 1 : matches.length - 1)) % matches.length);
+                return;
+              }
+              if (e.key === "Tab") {
+                e.preventDefault();
+                setText(`/${matches[pick].name} `);
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                choose(matches[pick], slashArgs);
+                return;
+              }
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setText("");
+                return;
+              }
+            }
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               submit();

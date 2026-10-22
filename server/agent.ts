@@ -86,7 +86,7 @@ function systemPrompt(ws: WorkspaceRow) {
         .join("\n")}`,
     );
   if (pins.length) parts.push(`Memory shelf (facts pinned in this workspace):\n${pins.map((p) => `- ${p.text}`).join("\n")}`);
-  if (ws.summary.trim()) parts.push(`Summary of earlier work in this workspace (the history was cleared):\n${ws.summary.trim()}`);
+  if (ws.summary.trim()) parts.push(`Summary of earlier work in this workspace (older messages were folded into it):\n${ws.summary.trim()}`);
   return parts.join("\n\n");
 }
 
@@ -385,44 +385,81 @@ export async function runTurn(wsId: string, userContent: any[], opts: { effort?:
 }
 
 /** Clear history. Optionally ask the scribe for a summary first so the agent keeps the thread. */
+function transcriptOf(rows: { role: string; content: string }[]) {
+  return rows
+    .map((r) => {
+      const c = JSON.parse(r.content) as any[];
+      return c
+        .map((b) =>
+          b.type === "text"
+            ? `${r.role}: ${b.text}`
+            : b.type === "tool_use"
+              ? `assistant ran ${b.name}: ${JSON.stringify(b.input).slice(0, 200)}`
+              : b.type === "tool_result"
+                ? `result: ${String(typeof b.content === "string" ? b.content : "").slice(0, 300)}`
+                : b.type === "server_tool_use"
+                  ? `assistant searched the web for: ${b.input?.query ?? ""}`
+                  : "",
+        )
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n")
+    .slice(-120_000);
+}
+
+async function summarize(wsId: string, transcript: string, earlier = ""): Promise<string> {
+  if (!transcript.trim()) return "";
+  try {
+    const c = config();
+    const r = await complete({
+      model: c.models.scribe,
+      system:
+        "Summarize this agent session so the agent can continue without the history. Keep: the goal, decisions, files changed, commands that matter, open questions and next steps. Plain bullet points, under 300 words." +
+        (earlier ? " An earlier summary is given first; fold it in rather than repeating it." : ""),
+      messages: [{ role: "user", content: [{ type: "text", text: earlier ? `Earlier summary:\n${earlier}\n\nSession since then:\n${transcript}` : transcript }] }],
+      max_tokens: 2000,
+      effort: "low",
+    });
+    recordUsage(wsId, null, "scribe", c.models.scribe, r.usage);
+    return r.text.trim();
+  } catch {
+    return "";
+  }
+}
+
+const estimate = (rows: { content: string }[]) => Math.round(rows.reduce((n, r) => n + r.content.length, 0) / 3.7);
+
+/**
+ * Smart compaction: fold everything before the last few requests into the
+ * workspace summary and keep those requests, with their tool calls, word for word.
+ */
+export async function compact(wsId: string, keepTurns = 3) {
+  if (running.has(wsId)) throw new Error("Wait until this run finishes");
+  const rows = listMessages(wsId);
+  const prompts = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.role === "user" && (JSON.parse(r.content) as any[]).some((b) => b.type !== "tool_result"));
+  if (prompts.length <= keepTurns) return { compacted: 0, before: estimate(rows), after: estimate(rows), summary: "" };
+  const cut = prompts[prompts.length - keepTurns].i;
+  const older = rows.slice(0, cut);
+  const ws = getWorkspace(wsId)!;
+  const summary = await summarize(wsId, transcriptOf(older), ws.summary);
+  if (!summary) throw new Error("The summary couldn't be written, so nothing was removed");
+  const ids = older.map((r) => r.id);
+  const marks = ids.map(() => "?").join(",");
+  db.run(`DELETE FROM tool_calls WHERE workspace_id = ? AND message_id IN (${marks})`, [wsId, ...ids]);
+  db.run(`DELETE FROM search WHERE message_id IN (${marks})`, ids);
+  db.run(`DELETE FROM messages WHERE id IN (${marks})`, ids);
+  db.run("UPDATE workspaces SET summary = ? WHERE id = ?", [summary, wsId]);
+  const rest = listMessages(wsId);
+  const result = { compacted: older.length, before: estimate(rows) + Math.round(ws.summary.length / 3.7), after: estimate(rest) + Math.round(summary.length / 3.7), summary };
+  broadcast("compacted", { workspaceId: wsId, ...result });
+  return result;
+}
+
 export async function clearHistory(wsId: string, keepSummary: boolean) {
   stop(wsId);
   let summary = "";
-  if (keepSummary) {
-    const transcript = listMessages(wsId)
-      .map((r) => {
-        const c = JSON.parse(r.content) as any[];
-        return c
-          .map((b) =>
-            b.type === "text"
-              ? `${r.role}: ${b.text}`
-              : b.type === "tool_use"
-                ? `assistant ran ${b.name}: ${JSON.stringify(b.input).slice(0, 200)}`
-                : b.type === "tool_result"
-                  ? `result: ${String(typeof b.content === "string" ? b.content : "").slice(0, 300)}`
-                  : "",
-          )
-          .filter(Boolean)
-          .join("\n");
-      })
-      .join("\n")
-      .slice(-120_000);
-    if (transcript.trim()) {
-      try {
-        const c = config();
-        const r = await complete({
-          model: c.models.scribe,
-          system:
-            "Summarize this agent session so the agent can continue later without the history. Keep: the goal, decisions, files changed, commands that matter, open questions and next steps. Plain bullet points, under 300 words.",
-          messages: [{ role: "user", content: [{ type: "text", text: transcript }] }],
-          max_tokens: 2000,
-          effort: "low",
-        });
-        recordUsage(wsId, null, "scribe", c.models.scribe, r.usage);
-        summary = r.text.trim();
-      } catch {}
-    }
-  }
+  if (keepSummary) summary = await summarize(wsId, transcriptOf(listMessages(wsId)));
   const freed = workspaceStats(wsId).last_ctx;
   db.run("DELETE FROM messages WHERE workspace_id = ?", [wsId]);
   db.run("DELETE FROM search WHERE workspace_id = ?", [wsId]);

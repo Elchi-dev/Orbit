@@ -85,3 +85,29 @@ describe("web search history", () => {
     expect(flattenWeb(plain)).toBe(plain);
   });
 });
+
+describe("smart compaction", () => {
+  test("folds everything before the last requests into the summary and keeps the rest word for word", async () => {
+    process.env.ORBIT_MOCK = "1";
+    const { compact } = await import("./agent");
+    const { listMessages } = await import("./db");
+    const ws = workspace();
+    for (let i = 1; i <= 5; i++) {
+      insertMessage(ws, "user", [{ type: "text", text: `request ${i}` }]);
+      insertMessage(ws, "assistant", [{ type: "tool_use", id: `toolu_${i}`, name: "bash", input: { command: "ls" } }]);
+      insertMessage(ws, "user", [{ type: "tool_result", tool_use_id: `toolu_${i}`, content: "a\nb" }]);
+      insertMessage(ws, "assistant", [{ type: "text", text: `answer ${i}` }]);
+    }
+    const r = await compact(ws, 2);
+    expect(r.compacted).toBe(12);
+    expect(r.after).toBeLessThan(r.before + 50);
+    const rest = listMessages(ws).map((m) => JSON.parse(m.content)[0]);
+    expect(rest[0]).toEqual({ type: "text", text: "request 4" });
+    expect(rest).toHaveLength(8);
+    expect(db.query<{ summary: string }, [string]>("SELECT summary FROM workspaces WHERE id = ?").get(ws)!.summary).not.toBe("");
+    expect(buildMessages(ws)[0].role).toBe("user");
+    // nothing older than the kept requests: a second call has nothing to fold
+    expect((await compact(ws, 2)).compacted).toBe(0);
+    delete process.env.ORBIT_MOCK;
+  });
+});

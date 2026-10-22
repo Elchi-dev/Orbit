@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, Download, Eraser, Gauge, Layers, Scale, Timer, Wallet, Zap } from "lucide-react";
+import { ChevronDown, Download, Eraser, FoldVertical, Gauge, Layers, Scale, Timer, Wallet, Zap } from "lucide-react";
 import { useStore } from "../../lib/store";
 import { api } from "../../lib/api";
+import { runSlash } from "../../lib/slash";
 import type { Detail, Workspace } from "../../lib/types";
 import { modelName, money, tokens } from "../../lib/format";
 
@@ -103,8 +104,19 @@ export function Hud({ ws, detail }: { ws: Workspace; detail?: Detail }) {
                 </motion.div>
               ) : (
                 <>
-                  <button className="btn b-outline sz-m" onClick={() => setConfirmClear(true)} disabled={ws.running}>
-                    <Eraser size={16} /> Clear history
+                  <button
+                    className="btn b-outline sz-m"
+                    disabled={ws.running}
+                    data-tip="Fold older messages into a summary, keep the last 3 requests"
+                    onClick={() => {
+                      setOpen(false);
+                      runSlash("compact", "", { ws, setText: () => {}, web: false, setWeb: () => {}, setEffort: () => {} });
+                    }}
+                  >
+                    <FoldVertical size={16} /> Compact
+                  </button>
+                  <button className="btn b-ghost sz-m" onClick={() => setConfirmClear(true)} disabled={ws.running}>
+                    <Eraser size={16} /> Clear
                   </button>
                   <a className="btn b-ghost sz-m" href={`/api/workspaces/${ws.id}/export`} download>
                     <Download size={16} /> Export

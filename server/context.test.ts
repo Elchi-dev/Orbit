@@ -48,3 +48,19 @@ describe("skills", () => {
     expect(loadSkill(proj, "nope").isError).toBe(true);
   });
 });
+
+describe("saved prompts", () => {
+  test("markdown files become commands, project first", async () => {
+    const { findCommands } = await import("./context");
+    const proj = mkdtempSync(join(tmpdir(), "orbit-cmd-"));
+    mkdirSync(join(proj, ".claude", "commands"), { recursive: true });
+    writeFileSync(join(proj, ".claude", "commands", "review.md"), "---\ndescription: Review the diff\n---\nReview $ARGUMENTS for bugs.");
+    mkdirSync(join(ORBIT_DIR, "prompts"), { recursive: true });
+    writeFileSync(join(ORBIT_DIR, "prompts", "review.md"), "Personal review.");
+    writeFileSync(join(ORBIT_DIR, "prompts", "standup.md"), "# Write my standup\nFrom today's commits.");
+    const cmds = findCommands(proj);
+    const review = cmds.find((c) => c.name === "review")!;
+    expect(review).toMatchObject({ description: "Review the diff", body: "Review $ARGUMENTS for bugs.", source: "project" });
+    expect(cmds.find((c) => c.name === "standup")!.description).toBe("Write my standup");
+  });
+});

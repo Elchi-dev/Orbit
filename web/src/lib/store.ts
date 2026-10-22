@@ -211,6 +211,15 @@ export const useStore = create<Store>((set, get) => ({
       case "file_changed":
         if (s.details[wsId!]) get().loadDetail(wsId!);
         break;
+      case "compacted":
+        get().loadDetail(wsId!);
+        get().toast({
+          title: e.compacted ? `Folded ${e.compacted} older messages into the summary` : "Nothing older to fold",
+          body: e.compacted ? `About ${Math.round(e.before / 1000)}k tokens of history down to ${Math.round(e.after / 1000)}k.` : undefined,
+          tone: "good",
+          workspaceId: wsId,
+        });
+        break;
       case "cleared":
         patchDetail(wsId!, (d) => ({ ...d, messages: [], calls: {} }));
         set({ lastUsage: { ...s.lastUsage, [wsId!]: undefined as any } });

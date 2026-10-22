@@ -6,7 +6,7 @@ import { db, now, uid, getWorkspace, listMessages, workspaceStats, costSince, st
 import { apiKey, setSecret, deleteSecret } from "./secrets";
 import { validateKey, isMock } from "./anthropic";
 import { addClient, removeClient, broadcast } from "./hub";
-import { runTurn, stop, kill, isRunning, clearHistory, runningIds, lastRate } from "./agent";
+import { runTurn, stop, kill, isRunning, clearHistory, compact, runningIds, lastRate } from "./agent";
 import { resolveApproval, pendingApprovals, allRules, addRule } from "./gate";
 import { dropShell } from "./shell";
 import {
@@ -24,7 +24,7 @@ import {
   pull as gitPull,
   init as gitInit,
 } from "./git";
-import { findSkills, projectInstructions } from "./context";
+import { findCommands, findSkills, projectInstructions } from "./context";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
@@ -414,9 +414,18 @@ async function api(req: Request, url: URL): Promise<Response> {
     return json({
       files: c.context.project_files ? projectInstructions(w.cwd).map((f) => ({ path: f.path, chars: f.text.length, cut: f.cut })) : [],
       skills: findSkills(w.cwd).map((s) => ({ name: s.name, description: s.description, source: s.source, dir: s.dir })),
+      commands: findCommands(w.cwd),
     });
   }
 
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/compact$/)) && m === "POST") {
+    if (!getWorkspace(match[1])) return bad("No such workspace", 404);
+    try {
+      return json(await compact(match[1], Number((await body()).keep) || 3));
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/clear$/)) && m === "POST") {
     const { keepSummary } = await body();
     return json(await clearHistory(match[1], !!keepSummary));

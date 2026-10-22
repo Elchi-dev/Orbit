@@ -130,3 +130,45 @@ export function loadSkill(cwd: string, name: string): { content: string; isError
     content: `Skill folder: ${s.dir}\n${files.length ? `Other files in it (read them with read_file when the instructions point to them):\n${files.map((f) => `- ${f}`).join("\n")}\n` : ""}\n${body}`,
   };
 }
+
+// ---------- saved prompts as slash commands ----------
+export interface Command {
+  name: string;
+  description: string;
+  body: string;
+  source: "project" | "orbit" | "claude";
+}
+
+/**
+ * Markdown files become /commands: the project's .claude/commands and .orbit/prompts,
+ * then ~/.orbit/prompts and ~/.claude/commands. $ARGUMENTS in the body is replaced by
+ * what follows the command, the same convention other tools use.
+ */
+export function findCommands(cwd?: string): Command[] {
+  const dirs: { dir: string; source: Command["source"] }[] = [];
+  if (cwd) dirs.push({ dir: join(cwd, ".claude", "commands"), source: "project" }, { dir: join(cwd, ".orbit", "prompts"), source: "project" });
+  dirs.push({ dir: join(ORBIT_DIR, "prompts"), source: "orbit" }, { dir: join(homedir(), ".claude", "commands"), source: "claude" });
+  const seen = new Set<string>();
+  const out: Command[] = [];
+  for (const { dir, source } of dirs) {
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const f of entries.sort()) {
+      if (!f.endsWith(".md")) continue;
+      const name = f.slice(0, -3).replace(/[^\w.-]/g, "-");
+      if (seen.has(name)) continue;
+      try {
+        const text = readFileSync(join(dir, f), "utf8").slice(0, 40_000);
+        const fm = frontmatter(text);
+        const body = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "").trim();
+        seen.add(name);
+        out.push({ name, description: fm.description || body.split("\n").find((l) => l.trim())?.replace(/^#+\s*/, "").slice(0, 120) || "", body, source });
+      } catch {}
+    }
+  }
+  return out;
+}
