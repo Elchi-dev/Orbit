@@ -23,13 +23,15 @@ case "$(uname -m)" in
 esac
 
 asset="orbit-$os-$arch"
-if [ "$VERSION" = "latest" ]; then
-  base="https://github.com/$REPO/releases/latest/download"
-else
-  base="https://github.com/$REPO/releases/download/$VERSION"
-fi
-
 command -v curl >/dev/null 2>&1 || fail "curl is required"
+
+# GitHub's releases/latest skips pre-releases, and every Orbit release is one while it is alpha,
+# so the newest tag comes from the API instead.
+if [ "$VERSION" = "latest" ]; then
+  VERSION="$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=1" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)"
+  [ -n "$VERSION" ] || fail "could not find a release of $REPO"
+fi
+base="https://github.com/$REPO/releases/download/$VERSION"
 mkdir -p "$DIR"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

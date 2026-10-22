@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The installers failed with "could not download" while every release is a
+  pre-release, because GitHub's `releases/latest` skips pre-releases. They now
+  ask the API for the newest release.
+
 ## 0.1.0 (2026-10-22)
 
 The first release.

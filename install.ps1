@@ -6,7 +6,12 @@ $Version = if ($env:ORBIT_VERSION) { $env:ORBIT_VERSION } else { "latest" }
 $Dir = if ($env:ORBIT_INSTALL_DIR) { $env:ORBIT_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "Programs\Orbit" }
 
 $Asset = "orbit-windows-x64.exe"
-$Base = if ($Version -eq "latest") { "https://github.com/$Repo/releases/latest/download" } else { "https://github.com/$Repo/releases/download/$Version" }
+# GitHub's releases/latest skips pre-releases, so the newest tag comes from the API.
+if ($Version -eq "latest") {
+  $Version = (Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases?per_page=1" -UseBasicParsing)[0].tag_name
+  if (-not $Version) { throw "could not find a release of $Repo" }
+}
+$Base = "https://github.com/$Repo/releases/download/$Version"
 
 Write-Host "`n  Installing Orbit ($Asset, $Version)`n"
 New-Item -ItemType Directory -Force -Path $Dir | Out-Null
