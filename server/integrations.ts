@@ -57,9 +57,12 @@ export async function probeVersions(): Promise<Record<string, string>> {
       const t = setTimeout(() => proc.kill(), 2500);
       const [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
       clearTimeout(t);
-      // drop addresses (a proxy notice can mention 127.0.0.1), prefer the number after "version"
-      const text = (out + "\n" + err).replace(/\b\d+\.\d+\.\d+\.\d+\b/g, "");
-      const m = text.match(/version\D{0,3}(\d+\.\d+(?:\.\d+)?)/i) ?? text.match(/(\d+\.\d+(?:\.\d+)?)/);
+      // skip notices like Java's "Picked up JAVA_TOOL_OPTIONS ...", which are full of addresses; prefer the number after "version"
+      const text = (out + "\n" + err)
+        .split("\n")
+        .filter((l) => !/^Picked up |proxy/i.test(l))
+        .join("\n");
+      const m = text.match(/version\D{0,3}(\d+\.\d+(?:\.\d+)?)/i) ?? text.replace(/\b\d+\.\d+\.\d+\.\d+\b/g, "").match(/(\d+\.\d+(?:\.\d+)?)/);
       versions.set(a.id, m ? m[1] : "");
       return;
     } catch {

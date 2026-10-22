@@ -311,13 +311,19 @@ function LabelProjector({ positions, layer }: { positions: Map<string, { v: THRE
 }
 
 function CameraIntro() {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const t = useRef(0);
   useFrame((_, dt) => {
     if (t.current >= 1) return;
     t.current = Math.min(1, t.current + dt * 0.45);
     const e = 1 - Math.pow(1 - t.current, 3);
-    camera.position.set(0, 28 - e * 15, 36 - e * 17);
+    // on a tall, narrow screen look down more steeply and from further away, so the
+    // orbits spread over the height instead of running off the sides
+    const aspect = size.width / Math.max(1, size.height);
+    const tall = Math.min(1, Math.max(0, (1 / aspect - 0.8) / 1.2));
+    const el = (39.4 + 22 * tall) * (Math.PI / 180);
+    const dist = 24.6 * (1 + 0.55 * tall) * (1.92 - 0.92 * e);
+    camera.position.set(0, TARGET[1] + Math.sin(el) * dist, Math.cos(el) * dist);
     camera.lookAt(TARGET[0], TARGET[1], TARGET[2]);
   });
   return null;
@@ -353,7 +359,7 @@ export function OrreryScene({ workspaces, onSelect, motion }: { workspaces: Work
       ))}
       <CameraIntro />
       <LabelProjector positions={positions} layer={layer} />
-      <OrbitControls target={TARGET} enablePan={false} enableDamping dampingFactor={0.08} minDistance={6} maxDistance={48} maxPolarAngle={Math.PI * 0.47} rotateSpeed={0.5} zoomSpeed={0.7} />
+      <OrbitControls target={TARGET} enablePan={false} enableDamping dampingFactor={0.08} minDistance={6} maxDistance={60} maxPolarAngle={Math.PI * 0.47} rotateSpeed={0.5} zoomSpeed={0.7} />
     </Canvas>
       <div className="label-layer" ref={layer}>
         {layout.map(({ ws }) => (
