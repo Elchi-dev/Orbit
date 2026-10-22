@@ -47,7 +47,7 @@ function readFile(f: File): Promise<Attachment | null> {
 
 export function Composer({ ws }: { ws: Workspace }) {
   const send = useStore((s) => s.send);
-  const defaultEffort = useStore((s) => s.server?.config.models.effort ?? "medium");
+  const defaultEffort = useStore((s) => s.server?.profiles.find((p) => p.id === ws.profile)?.effort || s.server?.config.models.effort || "medium");
   const [text, setText] = useState("");
   const [files, setFiles] = useState<Attachment[]>([]);
   const [effort, setEffort] = useState<string>("");
@@ -60,12 +60,14 @@ export function Composer({ ws }: { ws: Workspace }) {
   const webKey = `orbit.web.${ws.id}`;
   const [web, setWeb] = useState(false);
   useEffect(() => {
+    const fallback = !!useStore.getState().server?.profiles.find((p) => p.id === ws.profile)?.web;
     try {
-      setWeb(localStorage.getItem(webKey) === "1");
+      const v = localStorage.getItem(webKey);
+      setWeb(v === null ? fallback : v === "1");
     } catch {
-      setWeb(false);
+      setWeb(fallback);
     }
-  }, [webKey]);
+  }, [webKey, ws.profile]);
   const setWebOn = (on: boolean) => {
     setWeb(on);
     try {

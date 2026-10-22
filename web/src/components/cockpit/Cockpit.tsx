@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, EyeOff, Folder, Pencil, Sparkles, SquareArrowOutUpRight } from "lucide-react";
 import { useStore } from "../../lib/store";
+import { ProfilePicker } from "../profiles/ProfilePicker";
 import { openInEditor } from "../../lib/open";
 import { shortPath, tokens } from "../../lib/format";
 import { Logo } from "../Logo";
@@ -119,6 +120,7 @@ export function Cockpit({ id }: { id: string }) {
           )}
         </nav>
         <div className="cockpit-actions">
+          <ProfilePicker value={ws.profile} compact onChange={(p) => patch(ws.id, { profile: p.id, mode: p.mode } as any)} />
           <ModeSwitch value={ws.mode} onChange={(mode) => patch(ws.id, { mode })} compact />
           <Hud ws={ws} detail={detail} />
         </div>

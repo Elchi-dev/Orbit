@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bot, Boxes, Info, Plug, KeyRound, LayoutTemplate, ListChecks, Plus, Save, ShieldCheck, Trash2, UserRound, Wallet, X } from "lucide-react";
+import { Bot, Boxes, Info, Layers, Plug, KeyRound, LayoutTemplate, ListChecks, Plus, Save, ShieldCheck, Trash2, UserRound, Wallet, X } from "lucide-react";
 import { useStore } from "../lib/store";
 import { api } from "../lib/api";
 import type { Config, Rule } from "../lib/types";
 import { ModeSwitch } from "./cockpit/ModeSwitch";
 import { IntegrationsPage } from "./Integrations";
 import { McpPage } from "./McpPage";
+import { ProfilesPage } from "./profiles/ProfilesPage";
 
 const TABS = [
   { id: "key", label: "API key", Icon: KeyRound },
   { id: "models", label: "Models", Icon: Bot },
   { id: "approvals", label: "Approvals", Icon: ShieldCheck },
   { id: "rules", label: "Rules", Icon: ListChecks },
+  { id: "profiles", label: "Profiles", Icon: Layers },
   { id: "integrations", label: "Integrations", Icon: Plug },
   { id: "mcp", label: "MCP servers", Icon: Boxes },
   { id: "you", label: "About you", Icon: UserRound },
@@ -102,6 +104,7 @@ export function Settings() {
           </button>
           <AnimatePresence mode="wait">
             <motion.div key={tab} className="set-page" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }}>
+              {tab === "profiles" && <ProfilesPage draft={draft} setDraft={setDraft} />}
               {tab === "mcp" && <McpPage draft={draft} setServers={(servers) => setDraft({ ...draft, mcp: { servers } })} />}
               {tab === "integrations" && <IntegrationsPage draft={draft} set={(v) => set("integrations", v)} setCtx={(v) => set("context", v)} setSkills={(v) => set("skills", v)} />}
               {tab === "key" && (

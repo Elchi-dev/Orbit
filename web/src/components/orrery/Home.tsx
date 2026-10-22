@@ -22,6 +22,7 @@ import { ago, money, shortPath, tokens } from "../../lib/format";
 import type { Mode } from "../../lib/types";
 import { Logo } from "../Logo";
 import { ModeSwitch } from "../cockpit/ModeSwitch";
+import { ProfilePicker } from "../profiles/ProfilePicker";
 import { FolderPicker } from "../FolderPicker";
 import { FlatOrrery, hasWebGL } from "./FlatOrrery";
 
@@ -58,6 +59,18 @@ export function Home() {
   const [cwd, setCwd] = useState("");
   const [incognito, setIncognito] = useState(false);
   const [mode, setMode] = useState<Mode>(server?.config.permissions.default_mode ?? "manual");
+  // the profile for the next workspace, remembered in this browser
+  const [profile, setProfile] = useState<string>(() => {
+    try {
+      return localStorage.getItem("orbit.profile") || server?.config.workspaces.default_profile || "pair";
+    } catch {
+      return server?.config.workspaces.default_profile || "pair";
+    }
+  });
+  useEffect(() => {
+    const p = server?.profiles.find((x) => x.id === profile);
+    if (p) setMode(p.mode);
+  }, [profile, server?.profiles]);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +95,7 @@ export function Home() {
     if (busy) return;
     setBusy(true);
     try {
-      const w = await createWorkspace({ cwd: cwd || undefined, incognito, mode });
+      const w = await createWorkspace({ cwd: cwd || undefined, incognito, mode, profile });
       setView({ kind: "ws", id: w.id });
       if (text.trim()) setTimeout(() => send({ type: "send", workspaceId: w.id, text: text.trim() }), 120);
       setText("");
@@ -282,6 +295,16 @@ export function Home() {
             >
               {opts ? <ChevronUp size={18} /> : <FolderOpen size={18} />}
             </button>
+            <ProfilePicker
+              value={profile}
+              up
+              onChange={(p) => {
+                setProfile(p.id);
+                try {
+                  localStorage.setItem("orbit.profile", p.id);
+                } catch {}
+              }}
+            />
             {incognito && (
               <span className="chip chip-ro" title="Incognito">
                 <EyeOff /> incognito

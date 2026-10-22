@@ -40,7 +40,7 @@ interface Store {
   loadServer: () => Promise<void>;
   loadWorkspaces: () => Promise<void>;
   loadDetail: (id: string) => Promise<void>;
-  createWorkspace: (opts?: { title?: string; cwd?: string; incognito?: boolean; mode?: string }) => Promise<Workspace>;
+  createWorkspace: (opts?: { title?: string; cwd?: string; incognito?: boolean; mode?: string; profile?: string }) => Promise<Workspace>;
   patchWorkspace: (id: string, patch: Partial<Workspace>) => Promise<void>;
   handle: (e: any) => void;
 }

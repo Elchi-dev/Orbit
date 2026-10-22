@@ -19,6 +19,7 @@ export interface Workspace {
   titled: number;
   archived: number;
   incognito: number;
+  profile: string;
   created_at: number;
   updated_at: number;
   stats: { tokens: number; cost: number; last_ctx: number };
@@ -128,12 +129,13 @@ export interface Config {
   ui: { motion: "full" | "calm" | "off"; sound: boolean; house_style: boolean };
   budget: { daily_usd: number; workspace_usd: number };
   safety: { undo_journal: boolean; undo_max_bytes: number; command_timeout_s: number };
-  workspaces: { home: string };
+  workspaces: { home: string; default_profile: string };
   profile: { about: string; instructions: string };
   integrations: { editor: string; briefing: boolean };
   mcp: { servers: Record<string, McpServer> };
   context: { project_files: boolean };
   skills: { enabled: boolean; dirs: string[] };
+  profiles: Record<string, Partial<Profile>>;
   pricing: Record<string, { input: number; output: number; cache_write: number; cache_read: number; context: number }>;
 }
 
@@ -149,6 +151,7 @@ export interface UsageEvent {
 }
 
 export interface ServerState {
+  profiles: Profile[];
   version: string;
   mock: boolean;
   hasKey: boolean;
@@ -198,4 +201,22 @@ export interface McpStatus {
   tools: { name: string; description?: string; readOnly: boolean }[];
   transport: "stdio" | "http";
   serverName?: string;
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  layout: "log" | "terminal";
+  mode: Mode;
+  hands_off: boolean;
+  tools: string[];
+  web: boolean;
+  effort: string;
+  preview: boolean;
+  plan: boolean;
+  prompt: string;
+  max_steps: number;
+  builtin?: boolean;
 }
