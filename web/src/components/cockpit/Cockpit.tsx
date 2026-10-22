@@ -6,7 +6,7 @@ import { ProfilePicker } from "../profiles/ProfilePicker";
 import { PlanBar } from "./PlanBar";
 import { AgentIcon, HelperBar } from "./Helpers";
 import { agentLabel } from "../../lib/helpers";
-import { PreviewPane } from "./Preview";
+import { SidePanel } from "./SidePanel";
 import { openInEditor } from "../../lib/open";
 import { shortPath, tokens } from "../../lib/format";
 import { Logo } from "../Logo";
@@ -79,6 +79,7 @@ export function Cockpit({ id }: { id: string }) {
   const detail = useStore((s) => s.details[id]);
   const server = useStore((s) => s.server);
   const previewOpen = useStore((s) => s.previewOpen[id]);
+  const panelTab = useStore((s) => s.panelTab[id]);
   const hasPreview = useStore((s) => !!s.previews[id]?.url);
   // how much of the width the conversation takes when the preview is open
   const [split, setSplit] = useState<number>(() => {
@@ -135,7 +136,7 @@ export function Cockpit({ id }: { id: string }) {
   const parent = ws.parent_id ? workspaces[ws.parent_id] : undefined;
 
   return (
-    <div className={`cockpit layout-${layout}`}>
+    <div className={`cockpit layout-${layout} ${showPreview ? "has-panel" : ""}`} style={showPreview ? ({ "--split": `${split}%` } as any) : undefined}>
       <header className="cockpit-top">
         <nav className="crumbs" aria-label="Location">
           <button className="btn b-ghost home-btn" onClick={() => setView({ kind: "orrery" })} data-tip="Back to the Orrery" data-tip-side="bottom" aria-label="Back to all workspaces">
@@ -191,7 +192,7 @@ export function Cockpit({ id }: { id: string }) {
         )}
       </AnimatePresence>
 
-      <main className={`cockpit-main ${showPreview ? "split" : ""}`} style={showPreview ? ({ "--split": `${split}%` } as any) : undefined}>
+      <main className={`cockpit-main ${showPreview ? "split" : ""}`}>
         <div className="work">
           {detail ? <Stream ws={ws} detail={detail} /> : <div className="loading">Loading…</div>}
           {ws.parent_id && <HelperBar ws={ws} />}
@@ -204,7 +205,7 @@ export function Cockpit({ id }: { id: string }) {
               className="split-handle"
               role="separator"
               aria-orientation="vertical"
-              aria-label="Resize the preview"
+              aria-label="Resize the panel"
               tabIndex={0}
               onPointerDown={startDrag}
               onKeyDown={(e) => {
@@ -212,7 +213,7 @@ export function Cockpit({ id }: { id: string }) {
                 if (e.key === "ArrowRight") setSplit((v) => Math.min(72, v + 3));
               }}
             />
-            <PreviewPane ws={ws} onClose={() => useStore.getState().setPreviewOpen(ws.id, false)} />
+            <SidePanel ws={ws} tab={panelTab ?? "preview"} />
           </>
         )}
       </main>

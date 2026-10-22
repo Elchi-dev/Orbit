@@ -30,6 +30,10 @@ import {
   TextSearch,
   Type,
   Wrench,
+  NotebookPen,
+  NotebookText,
+  MessageSquare,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react";
 import type { ToolCall } from "../../lib/types";
@@ -144,6 +148,12 @@ const TOOL_ICON: Record<string, LucideIcon> = {
   plan: ListTodo,
   preview_open: MonitorPlay,
   screenshot: Camera,
+  doc_write: NotebookPen,
+  doc_edit: NotebookPen,
+  doc_read: NotebookText,
+  doc_comment: MessageSquare,
+  whiteboard: LayoutDashboard,
+  whiteboard_read: LayoutDashboard,
 };
 
 const base = (p: string) => (p ? p.split(/[\\/]/).filter(Boolean).slice(-2).join("/") : "");
@@ -177,6 +187,20 @@ export function toolLabel(name: string, input: any): ReactNode {
       const d = items.filter((i) => i.status === "done").length;
       return <>Updated the plan, {d} of {items.length} done</>;
     }
+    case "doc_write":
+      return input?.id ? <>Rewrote the doc {code(String(input?.title ?? input.id))}</> : <>Wrote the doc {code(String(input?.title ?? "Untitled"))}</>;
+    case "doc_edit":
+      return <>Edited a doc</>;
+    case "doc_read":
+      return input?.id ? <>Read a doc and its comments</> : <>Listed the docs</>;
+    case "doc_comment":
+      return input?.resolve ? <>Answered and resolved a comment</> : input?.reply_to ? <>Answered a comment</> : <>Commented on a doc</>;
+    case "whiteboard": {
+      const n = Array.isArray(input?.ops) ? input.ops.length : 0;
+      return <>Updated the board{n ? `, ${n} ${n === 1 ? "change" : "changes"}` : ""}</>;
+    }
+    case "whiteboard_read":
+      return <>Looked at the board</>;
     case "preview_open":
       return <>Showed {code(input?.target ?? "")} in the preview</>;
     case "screenshot":

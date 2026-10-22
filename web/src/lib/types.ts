@@ -152,7 +152,7 @@ export interface Config {
     judge_notes: string;
     rules: { pattern: string; verdict: string; kind?: string }[];
   };
-  ui_tools: Record<"set_title" | "set_planet" | "notify" | "pin" | "show" | "widget" | "auto_title", boolean>;
+  ui_tools: Record<"set_title" | "set_planet" | "notify" | "pin" | "show" | "widget" | "auto_title" | "docs" | "whiteboard", boolean>;
   ui: { motion: "full" | "calm" | "off"; sound: boolean; house_style: boolean };
   budget: { daily_usd: number; workspace_usd: number };
   safety: { undo_journal: boolean; undo_max_bytes: number; command_timeout_s: number };
@@ -252,3 +252,58 @@ export interface PlanItem {
   text: string;
   status: "todo" | "doing" | "done" | "skipped";
 }
+
+export interface DocComment {
+  id: string;
+  doc_id: string;
+  parent_id: string | null;
+  author: "user" | "agent";
+  quote: string;
+  body: string;
+  resolved: number;
+  seen: number;
+  created_at: number;
+}
+export interface Doc {
+  id: string;
+  workspace_id: string;
+  title: string;
+  body: string;
+  version: number;
+  updated_by: "agent" | "user";
+  created_at: number;
+  updated_at: number;
+  comments?: DocComment[];
+  open?: number;
+}
+export type BoardKind = "note" | "text" | "checklist" | "image" | "link" | "file" | "frame";
+export interface BoardItem {
+  id: string;
+  kind: BoardKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  title?: string;
+  text?: string;
+  color?: string;
+  src?: string;
+  url?: string;
+  path?: string;
+  items?: { text: string; done: boolean }[];
+  by: "agent" | "user";
+  updated_at: number;
+}
+export interface BoardEdge {
+  id: string;
+  from: string;
+  to: string;
+  label?: string;
+  by: "agent" | "user";
+}
+export interface Board {
+  items: BoardItem[];
+  edges: BoardEdge[];
+  version: number;
+}
+export type PanelTab = "preview" | "docs" | "board";

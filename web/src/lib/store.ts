@@ -36,6 +36,17 @@ interface Store {
   previewOpen: Record<string, boolean>;
   /** messages waiting for the next step of a running workspace */
   queued: Record<string, number>;
+  /** the side panel: which tab, which doc, and what Claude changed that you haven't looked at */
+  panelTab: Record<string, import("./types").PanelTab>;
+  docs: Record<string, import("./types").Doc[]>;
+  docById: Record<string, import("./types").Doc>;
+  docSel: Record<string, string | null>;
+  boards: Record<string, import("./types").Board>;
+  fresh: Record<string, { docs?: boolean; board?: boolean; preview?: boolean }>;
+  openPanel: (wsId: string, tab: import("./types").PanelTab | null) => void;
+  selectDoc: (wsId: string, id: string | null) => void;
+  loadDocs: (wsId: string) => Promise<void>;
+  loadBoard: (wsId: string) => Promise<void>;
   setPreviewOpen: (wsId: string, open: boolean) => void;
   setIncoming: (wsId: string, text: string | null) => void;
   setView: (v: View) => void;
@@ -52,6 +63,8 @@ interface Store {
 }
 
 let toastId = 1;
+/** workspaces where you're editing something in the side panel, so Claude's changes don't switch tabs under you */
+export const panelLocks = new Set<string>();
 
 export const useStore = create<Store>((set, get) => ({
   server: null,
@@ -73,6 +86,29 @@ export const useStore = create<Store>((set, get) => ({
   previews: {},
   previewOpen: {},
   queued: {},
+  panelTab: {},
+  docs: {},
+  docById: {},
+  docSel: {},
+  boards: {},
+  fresh: {},
+  openPanel: (wsId, tab) => {
+    if (!tab) return set({ previewOpen: { ...get().previewOpen, [wsId]: false } });
+    set({
+      previewOpen: { ...get().previewOpen, [wsId]: true },
+      panelTab: { ...get().panelTab, [wsId]: tab },
+      fresh: { ...get().fresh, [wsId]: { ...get().fresh[wsId], [tab]: false } },
+    });
+  },
+  selectDoc: (wsId, id) => set({ docSel: { ...get().docSel, [wsId]: id } }),
+  loadDocs: async (wsId) => {
+    const list = await api.get<import("./types").Doc[]>(`/api/workspaces/${wsId}/docs`);
+    set({ docs: { ...get().docs, [wsId]: list } });
+  },
+  loadBoard: async (wsId) => {
+    const b = await api.get<import("./types").Board>(`/api/workspaces/${wsId}/board`);
+    set({ boards: { ...get().boards, [wsId]: b } });
+  },
   setPreviewOpen: (wsId, open) => set({ previewOpen: { ...get().previewOpen, [wsId]: open } }),
   setIncoming: (wsId, text) => {
     const drafts = { ...get().drafts };
@@ -152,6 +188,20 @@ export const useStore = create<Store>((set, get) => ({
       const pid = get().workspaces[id]?.parent_id;
       const p = pid ? get().workspaces[pid] : undefined;
       if (p?.helpers?.some((h) => h.id === id)) patchWs(pid!, { helpers: p.helpers.map((h) => (h.id === id ? { ...h, ...patch } : h)) });
+    };
+    // Claude put something in the side panel: show it if the panel was never closed here,
+    // otherwise mark the tab so it can be found
+    const reveal = (id: string, tab: "docs" | "board", then?: () => void) => {
+      const st = get();
+      const visible = st.previewOpen[id] && st.panelTab[id] === tab;
+      // follow Claude to where it's working, unless you closed the panel or are typing in it
+      if (visible || (st.previewOpen[id] !== false && !panelLocks.has(id))) {
+        if (!visible) st.openPanel(id, tab);
+        then?.();
+      } else {
+        set({ fresh: { ...st.fresh, [id]: { ...st.fresh[id], [tab]: true } } });
+        if (st.panelTab[id] !== tab) then?.();
+      }
     };
     switch (e.type) {
       case "hello":
@@ -240,6 +290,7 @@ export const useStore = create<Store>((set, get) => ({
           previews: { ...s.previews, [wsId!]: e.url ? { url: e.url, target: e.target, kind: e.kind, nonce: Date.now() } : null },
           // a page Claude opens shows up; closing the pane stays your call
           previewOpen: e.url && !cur ? { ...s.previewOpen, [wsId!]: true } : s.previewOpen,
+          panelTab: e.url && !cur ? { ...s.panelTab, [wsId!]: "preview" } : s.panelTab,
         });
         break;
       }
@@ -259,6 +310,21 @@ export const useStore = create<Store>((set, get) => ({
             .catch(() => {});
         break;
       }
+      case "doc": {
+        const d = e.doc as import("./types").Doc;
+        const list = (s.docs[wsId!] ?? []).filter((x) => x.id !== d.id);
+        const open = (d.comments ?? []).filter((c) => !c.parent_id && !c.resolved).length;
+        set({ docs: { ...s.docs, [wsId!]: [{ ...d, open }, ...list] }, docById: { ...s.docById, [d.id]: d } });
+        if (e.by === "agent") reveal(wsId!, "docs", () => set({ docSel: { ...get().docSel, [wsId!]: d.id } }));
+        break;
+      }
+      case "doc_deleted":
+        set({ docs: { ...s.docs, [wsId!]: (s.docs[wsId!] ?? []).filter((x) => x.id !== e.id) }, docSel: s.docSel[wsId!] === e.id ? { ...s.docSel, [wsId!]: null } : s.docSel });
+        break;
+      case "board":
+        set({ boards: { ...s.boards, [wsId!]: e.board } });
+        if (e.by === "agent") reveal(wsId!, "board");
+        break;
       case "queued":
         set({ queued: { ...s.queued, [wsId!]: e.count } });
         break;

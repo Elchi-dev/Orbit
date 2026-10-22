@@ -341,6 +341,8 @@ export function Settings() {
                   <Toggle label="Show charts and notes" value={draft.ui_tools.show} onChange={(v) => set("ui_tools", { show: v })} />
                   <Toggle label="Pin to memory" value={draft.ui_tools.pin} onChange={(v) => set("ui_tools", { pin: v })} />
                   <Toggle label="Send notifications" value={draft.ui_tools.notify} onChange={(v) => set("ui_tools", { notify: v })} />
+                  <Toggle label="Write docs with you" help="Markdown documents in the side panel that you both edit and comment on." value={draft.ui_tools.docs} onChange={(v) => set("ui_tools", { docs: v })} />
+                  <Toggle label="Use the whiteboard" help="A canvas in the side panel for notes, screenshots, options and flows." value={draft.ui_tools.whiteboard} onChange={(v) => set("ui_tools", { whiteboard: v })} />
                   <Toggle label="Build interactive widgets" help="Runs in a sandbox without network access." value={draft.ui_tools.widget} onChange={(v) => set("ui_tools", { widget: v })} />
                 </>
               )}

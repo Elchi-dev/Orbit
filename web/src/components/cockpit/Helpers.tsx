@@ -180,9 +180,11 @@ function Lane({ block, call, helper, parentId }: { block: any; call?: ToolCall; 
   );
 }
 
+const NONE: Helper[] = [];
+
 /** Helpers started together, side by side, each showing what it's doing and then what it found. */
 export function HelperLanes({ blocks, calls, parentId }: { blocks: any[]; calls: Record<string, ToolCall>; parentId: string }) {
-  const helpers = useStore((s) => s.workspaces[parentId]?.helpers ?? []);
+  const helpers = useStore((s) => s.workspaces[parentId]?.helpers) ?? NONE;
   return (
     <div className={`lanes n${Math.min(blocks.length, 3)}`}>
       {blocks.map((b) => {
