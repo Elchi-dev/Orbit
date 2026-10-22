@@ -109,6 +109,13 @@ CREATE TABLE IF NOT EXISTS missions (
 CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(text, message_id UNINDEXED, workspace_id UNINDEXED);
 `);
 
+// columns added after 0.1: add them to databases made before
+for (const sql of ["ALTER TABLE snapshots ADD COLUMN reviewed INTEGER NOT NULL DEFAULT 0"]) {
+  try {
+    db.exec(sql);
+  } catch {}
+}
+
 export const now = () => Date.now();
 export const uid = (p = "") => p + crypto.randomUUID().replace(/-/g, "").slice(0, 20);
 

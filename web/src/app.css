@@ -578,3 +578,10 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius
 .mis-sched .field { flex: 1 1 120px; }
 .mis-num { flex: 0 0 auto !important; padding-right: 10px; }
 .mis-num input { width: 92px; }
+
+/* review */
+.rev-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rev-add { color: var(--good); }
+.rev-del { color: var(--danger); }
+.git-dir .rev-add, .git-dir .rev-del { font-size: 12px; }
+.git-dir.num { direction: ltr; text-align: left; }

@@ -37,7 +37,7 @@ function Letter({ c }: { c: string }) {
   );
 }
 
-function DiffView({ text }: { text: string }) {
+export function DiffView({ text }: { text: string }) {
   if (!text.trim()) return <p className="muted small git-nodiff">No text changes (a binary file, or only the mode changed).</p>;
   const lines = text.split("\n").filter((l) => !/^(diff --git|index |--- |\+\+\+ |new file mode|deleted file mode|similarity|rename )/.test(l));
   return (

@@ -24,6 +24,7 @@ import {
   pull as gitPull,
   init as gitInit,
 } from "./git";
+import { keep, reviewList, revert, revertAll } from "./review";
 import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
@@ -420,6 +421,22 @@ async function api(req: Request, url: URL): Promise<Response> {
     });
   }
 
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/review(?:\/(keep|undo))?$/))) {
+    const w = getWorkspace(match[1]);
+    if (!w) return bad("No such workspace", 404);
+    try {
+      if (!match[2] && m === "GET") return json(reviewList(w.id));
+      if (m === "POST") {
+        const { path, all } = await body();
+        if (match[2] === "keep") keep(w.id, all ? undefined : String(path ?? ""));
+        else if (all) revertAll(w.id);
+        else revert(w.id, String(path ?? ""));
+        return json(reviewList(w.id));
+      }
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/missions$/))) {
     if (!getWorkspace(match[1])) return bad("No such workspace", 404);
     if (m === "GET") return json(listMissions(match[1]));

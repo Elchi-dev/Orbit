@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, BookOpen, CalendarClock, FileDiff, FileText, GitBranch, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
+import { Archive, BookOpen, CalendarClock, Check, FileDiff, FileText, GitBranch, Loader2, OctagonX, Pin, Plus, Settings2, SquareArrowOutUpRight, Terminal, Trash2, Undo2, X } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
 import { openInEditor } from "../../lib/open";
 import type { Detail, Workspace } from "../../lib/types";
 import { ago, shortPath } from "../../lib/format";
 import { FolderPicker } from "../FolderPicker";
-import { GitPanel, type GitState } from "./GitPanel";
+import { DiffView, GitPanel, type GitState } from "./GitPanel";
 import { MissionsPanel } from "./Missions";
 
 const DOCK: { id: Exclude<Drawer, null>; label: string; Icon: typeof Terminal }[] = [
   { id: "shell", label: "Shell", Icon: Terminal },
-  { id: "files", label: "Changed files", Icon: FileDiff },
+  { id: "files", label: "Review changes", Icon: FileDiff },
   { id: "git", label: "Git", Icon: GitBranch },
   { id: "missions", label: "Missions", Icon: CalendarClock },
   { id: "memory", label: "Memory shelf", Icon: Pin },
@@ -138,39 +138,116 @@ function ShellDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
   );
 }
 
+interface FileReview {
+  path: string;
+  status: "created" | "edited" | "deleted";
+  edits: number;
+  since: number;
+  added: number;
+  removed: number;
+  diff: string;
+  binary: boolean;
+}
+
+/** Every file Claude changed here, against how it was before; keep the change or put the file back. */
 function FilesDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
   const home = useStore((s) => s.server?.home);
-  const snaps = detail?.snapshots ?? [];
-  const pending = snaps.filter((s) => !s.restored);
-  async function undo() {
+  const toast = useStore((s) => s.toast);
+  const [files, setFiles] = useState<FileReview[] | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const base = `/api/workspaces/${ws.id}/review`;
+  const snapKey = (detail?.snapshots ?? []).map((s) => `${s.id}${s.restored}`).join(",");
+  useEffect(() => {
+    api.get<FileReview[]>(base).then(setFiles).catch(() => setFiles([]));
+  }, [base, snapKey, ws.running]);
+  const act = async (what: "keep" | "undo", body: object, done: string) => {
     try {
-      const r = await api.post<{ path: string }>(`/api/workspaces/${ws.id}/undo`);
-      useStore.getState().toast({ title: "Change undone", body: shortPath(r.path, home), tone: "good" });
+      setFiles(await api.post<FileReview[]>(`${base}/${what}`, body));
+      toast({ title: done, tone: "good" });
     } catch (e) {
-      useStore.getState().toast({ title: "Nothing to undo", body: (e as Error).message, tone: "info" });
+      toast({ title: "That didn't work", body: (e as Error).message, tone: "warn" });
     }
-  }
+  };
+  if (!files) return <Loader2 size={16} className="spin muted" />;
+  const short = (p: string) => (p.startsWith(ws.cwd) ? p.slice(ws.cwd.length).replace(/^[\\/]/, "") : shortPath(p, home));
   return (
     <>
-      <p className="muted small">Every file Claude writes or edits is saved first, so you can roll changes back one at a time.</p>
-      <button className="btn b-lav sz-m" onClick={undo} disabled={!pending.length}>
-        <Undo2 size={16} /> Undo the last change
-      </button>
-      <ul className="file-list">
-        {snaps.length === 0 && <li className="muted">No changes yet.</li>}
-        {snaps.map((s) => (
-          <li key={s.id} className={`row-react ${s.restored ? "restored" : ""}`}>
-            <FileDiff size={15} />
-            <span className="mono file-path" title={s.path}>
-              {shortPath(s.path, home)}
+      <p className="muted small">
+        Each file Claude changed, compared with how it was before its first change. Keep the change, or put the file back. Every version stays in the
+        undo journal.
+      </p>
+      {files.length === 0 ? (
+        <p className="muted">Nothing to review. Changes Claude makes show up here.</p>
+      ) : (
+        <>
+          <div className="rev-bar">
+            <span className="num muted small">
+              {files.length} {files.length === 1 ? "file" : "files"}, <span className="rev-add">+{files.reduce((n, f) => n + f.added, 0)}</span>{" "}
+              <span className="rev-del">−{files.reduce((n, f) => n + f.removed, 0)}</span>
             </span>
-            <span className="muted small">{s.restored ? "undone" : s.existed ? "edited" : "created"}</span>
-            <button className="btn b-ghost icon-btn sm file-open" aria-label="Open in editor" data-tip="Open in editor" onClick={() => openInEditor(ws.id, s.path)}>
-              <SquareArrowOutUpRight size={14} />
-            </button>
-          </li>
-        ))}
-      </ul>
+            <span className="grow" />
+            {confirmAll ? (
+              <>
+                <span className="small">Undo every change here?</span>
+                <button className="btn b-danger sz-s" onClick={() => act("undo", { all: true }, "Every file is back").then(() => setConfirmAll(false))}>
+                  Undo all
+                </button>
+                <button className="btn b-ghost sz-s" onClick={() => setConfirmAll(false)}>
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="btn b-ghost sz-s" onClick={() => setConfirmAll(true)} disabled={ws.running}>
+                  <Undo2 size={14} /> Undo all
+                </button>
+                <button className="btn b-lav sz-s" onClick={() => act("keep", { all: true }, "Kept every change")}>
+                  <Check size={14} /> Keep all
+                </button>
+              </>
+            )}
+          </div>
+          <ul className="git-list">
+            {files.map((f) => {
+              const name = short(f.path);
+              const isOpen = open === f.path;
+              return (
+                <li key={f.path} className={`git-file ${isOpen ? "open" : ""}`}>
+                  <div className="git-row">
+                    <button className="git-name" onClick={() => setOpen(isOpen ? null : f.path)} aria-expanded={isOpen} title={f.path}>
+                      <span className={`git-letter l-${f.status === "created" ? "N" : f.status === "deleted" ? "D" : "M"}`}>{f.status === "created" ? "N" : f.status === "deleted" ? "D" : "M"}</span>
+                      <span className="git-base">{name}</span>
+                      <span className="git-dir num">
+                        <span className="rev-add">+{f.added}</span> <span className="rev-del">−{f.removed}</span>
+                        {f.edits > 1 ? `, ${f.edits} edits` : ""}
+                      </span>
+                    </button>
+                    <span className="git-acts rev-acts">
+                      <button className="btn b-ghost icon-btn sm" aria-label="Open in editor" data-tip="Open" onClick={() => openInEditor(ws.id, f.path)} disabled={f.status === "deleted"}>
+                        <SquareArrowOutUpRight size={14} />
+                      </button>
+                      <button className="btn b-ghost icon-btn sm" aria-label="Undo this file" data-tip="Put it back" onClick={() => act("undo", { path: f.path }, `${name} is back`)} disabled={ws.running}>
+                        <Undo2 size={14} />
+                      </button>
+                      <button className="btn b-ghost icon-btn sm" aria-label="Keep this file" data-tip="Keep" onClick={() => act("keep", { path: f.path }, `Kept ${name}`)}>
+                        <Check size={15} />
+                      </button>
+                    </span>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div className="git-diff-wrap" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                        {f.binary ? <p className="muted small">A binary file; open it to compare.</p> : <DiffView text={f.diff} />}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </>
   );
 }
