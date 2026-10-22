@@ -5,32 +5,25 @@ import rehypeHighlight from "rehype-highlight";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AppWindow,
-  Ban,
   Bell,
   Brain,
   Check,
   ChevronDown,
   Copy,
-  Eye,
   FilePen,
   FilePlus2,
   FileText,
   FolderOpen,
   FolderSearch,
   Globe,
-  Hand,
-  LayoutTemplate,
-  ListChecks,
   Loader2,
   Orbit,
   PanelTop,
   Pin,
-  Scale,
   Terminal,
   TextSearch,
   Type,
   Wrench,
-  XCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { ToolCall } from "../../lib/types";
@@ -175,25 +168,26 @@ export function toolLabel(name: string, input: any): ReactNode {
   }
 }
 
-const VERDICT: Record<string, { label: string; cls: string; Icon: LucideIcon }> = {
-  readonly: { label: "Read-only", cls: "chip-ro", Icon: Eye },
-  rule: { label: "Your rule", cls: "chip-rule", Icon: ListChecks },
-  judge: { label: "Judge", cls: "chip-judge", Icon: Scale },
-  user: { label: "You", cls: "chip-user", Icon: Hand },
-  builtin: { label: "Interface", cls: "chip-ui", Icon: LayoutTemplate },
-  mode: { label: "Blocked", cls: "chip-deny", Icon: Ban },
+// who let an action through, said in words; colour only marks the two states that matter: you, and refused
+const VERDICT: Record<string, { label: string; tone: string }> = {
+  readonly: { label: "read-only", tone: "quiet" },
+  rule: { label: "your rule", tone: "quiet" },
+  judge: { label: "judge", tone: "lav" },
+  user: { label: "you", tone: "peach" },
+  builtin: { label: "interface", tone: "quiet" },
+  mode: { label: "blocked", tone: "bad" },
 };
 
-function VerdictChip({ call }: { call?: ToolCall }) {
-  if (!call) return <span className="chip chip-ro"><Loader2 className="spin" /> Preparing</span>;
-  if (call.status === "pending") return <span className="chip chip-wait"><Hand /> Waiting for you</span>;
-  if (call.status === "judging") return <span className="chip chip-judge"><Scale className="pulse-icon" /> Judge looking</span>;
-  if (call.status === "denied") return <span className="chip chip-deny"><XCircle /> Denied</span>;
-  if (call.status === "cancelled") return <span className="chip chip-deny"><Ban /> Stopped</span>;
-  const v = VERDICT[call.decided_by ?? ""] ?? { label: "Allowed", cls: "chip-ro", Icon: Check };
+function Verdict({ call }: { call?: ToolCall }) {
+  if (!call) return <span className="vd quiet"><Loader2 size={12} className="spin" /> preparing</span>;
+  if (call.status === "pending") return <span className="vd peach strong"><i /> waiting for you</span>;
+  if (call.status === "judging") return <span className="vd lav"><i className="pulse" /> judge looking</span>;
+  if (call.status === "denied") return <span className="vd bad"><i /> denied</span>;
+  if (call.status === "cancelled") return <span className="vd bad"><i /> stopped</span>;
+  const v = VERDICT[call.decided_by ?? ""] ?? { label: "allowed", tone: "quiet" };
   return (
-    <span className={`chip ${v.cls}`} title={call.reason ?? undefined}>
-      <v.Icon /> {v.label}
+    <span className={`vd ${v.tone}`} title={call.reason ?? undefined}>
+      <i /> {v.label}
     </span>
   );
 }
@@ -215,25 +209,19 @@ export function ToolCapsule({ block, call }: { block: { id?: string; name?: stri
   return (
     <div className={`cap ${call?.status ?? "pending"} ${failed ? "failed" : ""}`}>
       <button className="cap-row" onClick={() => setOpen(!open)} aria-expanded={showOpen}>
-        <VerdictChip call={call} />
         <span className="cap-icon">
-          <Icon size={16} />
+          {running ? <Loader2 size={15} className="spin" /> : <Icon size={15} />}
         </span>
         <span className="cap-label">{toolLabel(block.name ?? "", input)}</span>
+        <Verdict call={call} />
         <span className="cap-meta">
-          {running ? (
-            <span className="dots">
-              <i />
-              <i />
-              <i />
-            </span>
-          ) : failed ? (
-            <XCircle size={15} className="bad-text" />
+          {running ? null : failed ? (
+            <span className="bad-text">failed</span>
           ) : call?.duration_ms != null ? (
             ms(call.duration_ms)
           ) : null}
         </span>
-        <ChevronDown size={15} className={`chev ${showOpen ? "up" : ""}`} />
+        <ChevronDown size={14} className={`chev ${showOpen ? "up" : ""}`} />
       </button>
       <AnimatePresence initial={false}>
         {showOpen && (
@@ -308,9 +296,9 @@ function ToolInput({ name, input }: { name: string; input: any }) {
 // ---------- panels the AI draws ----------
 export function UiPanel({ input }: { input: any }) {
   return (
-    <motion.figure className="ui-panel glass" initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 240, damping: 24 }}>
+    <motion.figure className="ui-panel" initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 240, damping: 24 }}>
       <figcaption>
-        <PanelTop size={15} /> {input?.title}
+        {input?.title}
       </figcaption>
       {input?.kind === "chart" ? <Chart spec={input.content} /> : <Markdown text={String(input?.content ?? "")} />}
     </motion.figure>
@@ -349,14 +337,14 @@ function Chart({ spec }: { spec: string }) {
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Chart">
         {ticks.map((t, i) => (
           <g key={i}>
-            <line x1={L} x2={W - 6} y1={y(t)} y2={y(t)} stroke="rgba(184,166,255,.14)" />
-            <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="rgba(242,239,255,.6)">
+            <line x1={L} x2={W - 6} y1={y(t)} y2={y(t)} stroke="rgba(255,255,255,.07)" />
+            <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="rgba(236,235,244,.5)">
               {Math.abs(t) >= 1000 ? `${(t / 1000).toFixed(1)}k` : +t.toFixed(2)}
             </text>
           </g>
         ))}
         {s.labels.map((l, i) => (
-          <text key={l + i} x={L + bw * i + bw / 2} y={H - 12} textAnchor="middle" fontSize="11" fill="rgba(242,239,255,.65)">
+          <text key={l + i} x={L + bw * i + bw / 2} y={H - 12} textAnchor="middle" fontSize="11" fill="rgba(236,235,244,.55)">
             {l.length > 10 ? l.slice(0, 9) + "…" : l}
           </text>
         ))}
@@ -383,7 +371,7 @@ function Chart({ spec }: { spec: string }) {
                 const gw = (bw * 0.7) / s.series.length;
                 const x = L + bw * i + bw * 0.15 + gw * si;
                 return (
-                  <rect key={`${si}-${i}`} className="chart-bar" x={x} y={Math.min(y(v), y(0))} width={gw - 2} height={Math.abs(y(v) - y(0))} rx="5" fill={SERIES[si % SERIES.length]}>
+                  <rect key={`${si}-${i}`} className="chart-bar" x={x} y={Math.min(y(v), y(0))} width={gw - 2} height={Math.abs(y(v) - y(0))} rx="3" fill={SERIES[si % SERIES.length]}>
                     <title>{`${ser.name}: ${v}`}</title>
                   </rect>
                 );
@@ -408,9 +396,9 @@ const WIDGET_CSP = `<meta http-equiv="Content-Security-Policy" content="default-
 
 export function Widget({ input }: { input: any }) {
   return (
-    <motion.figure className="ui-panel glass" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.figure className="ui-panel" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <figcaption>
-        <AppWindow size={15} /> {input?.title}
+        {input?.title}
       </figcaption>
       <iframe className="widget-frame" sandbox="allow-scripts" srcDoc={WIDGET_CSP + String(input?.html ?? "")} title={input?.title ?? "Widget"} />
     </motion.figure>

@@ -9,7 +9,6 @@ import {
   FolderOpen,
   Info,
   LayoutList,
-  Rocket,
   Search,
   Settings2,
   SlidersHorizontal,
@@ -112,9 +111,9 @@ export function Home() {
       </div>
 
       <header className="home-top">
-        <div className="brand glass-soft pill">
+        <div className="brand">
           <Logo />
-          <span className="display brand-word">orbit</span>
+          <span className="wordmark brand-word">orbit</span>
           <span className="brand-meta">
             {list.length} {list.length === 1 ? "workspace" : "workspaces"}
             {approvals.length > 0 && <b className="need-text">, {approvals.length} need you</b>}
@@ -128,9 +127,9 @@ export function Home() {
             <LayoutList size={18} />
           </button>
           <div className="peek">
-            <button className="btn b-ghost sz-m pill glass-soft" aria-label="Spending">
+            <button className="btn b-ghost sz-m glass-soft" aria-label="Spending">
               <Wallet size={17} />
-              <span className="mono">{money(server?.today.cost)}</span>
+              <span className="num">{money(server?.today.cost)}</span>
             </button>
             <div className="peek-card glass panel">
               <dl className="kv">
@@ -215,7 +214,7 @@ export function Home() {
 
       <div className="home-bottom">
         <div className="peek legend-peek">
-          <button className="btn b-ghost sz-m pill glass-soft">
+          <button className="btn b-ghost sz-m glass-soft">
             <Info size={17} /> How to read the sky
           </button>
           <div className="peek-card up glass panel">
@@ -272,7 +271,7 @@ export function Home() {
               </motion.div>
             )}
           </AnimatePresence>
-          <form className="launch glass pill" onSubmit={launch}>
+          <form className="launch glass" onSubmit={launch}>
             <button
               type="button"
               className={`btn b-ghost icon-btn ${opts ? "on" : ""}`}
@@ -292,8 +291,8 @@ export function Home() {
               Start a new workspace
             </label>
             <input id="launch" ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="What are we working on?" autoComplete="off" />
-            <button type="submit" className="btn b-peach sz-l pill" disabled={busy}>
-              <Rocket size={18} /> <span className="launch-label">Launch</span>
+            <button type="submit" className="btn b-peach sz-l launch-go" disabled={busy}>
+              Launch
             </button>
           </form>
         </div>
@@ -315,7 +314,7 @@ export function Home() {
                 </span>
                 <span className="need-text-wrap">
                   <b>{workspaces[a.workspaceId]?.title ?? a.workspaceTitle} needs you</b>
-                  <span className="mono need-sub">{a.subject.slice(0, 48)}</span>
+                  <span className="need-sub">{a.subject.slice(0, 48)}</span>
                 </span>
               </motion.button>
             ))}

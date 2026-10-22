@@ -12,13 +12,13 @@ function Ring({ pct, size = 28 }: { pct: number; size?: number }) {
   const hot = pct > 0.8;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className="ctx-ring">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(242,239,255,.14)" strokeWidth="2.6" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="2.6" />
       <circle
         cx={size / 2}
         cy={size / 2}
         r={r}
         fill="none"
-        stroke={hot ? "#FFB199" : "#B8A6FF"}
+        stroke={hot ? "#FFB199" : "rgba(236,235,244,.75)"}
         strokeWidth="2.6"
         strokeLinecap="round"
         strokeDasharray={c}
@@ -61,7 +61,7 @@ export function Hud({ ws, detail }: { ws: Workspace; detail?: Detail }) {
 
   return (
     <div className="hud" ref={ref}>
-      <button className="btn hud-pill glass-soft pill" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="Usage and context">
+      <button className="btn hud-pill" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="Usage and context">
         <Ring pct={pct} />
         <span className="hud-model">{modelName(model)}</span>
         <span className={`hud-tps ${ws.running ? "live" : ""}`}>{tps ? `${Math.round(tps)} tok/s` : `${tokens(ctxUsed)} ctx`}</span>

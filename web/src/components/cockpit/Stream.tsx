@@ -4,7 +4,6 @@ import { ArrowDown, Check, Copy, FileText, Image as ImageIcon, RotateCcw } from 
 import { useStore } from "../../lib/store";
 import type { Block, Detail, Message, StreamBlock, Workspace } from "../../lib/types";
 import { Markdown, ThoughtTrail, ToolCapsule, UiPanel, Widget } from "./Blocks";
-import { modelName } from "../../lib/format";
 
 interface Turn {
   role: "user" | "assistant";
@@ -24,10 +23,6 @@ function toTurns(messages: Message[]): Turn[] {
     else turns.push({ role: m.role, id: m.id, blocks: [...m.content], created_at: m.created_at });
   }
   return turns;
-}
-
-function Avatar({ role }: { role: "user" | "assistant" }) {
-  return <span aria-hidden="true" className={`avatar ${role}`} />;
 }
 
 function CopyBtn({ text }: { text: string }) {
@@ -55,18 +50,14 @@ function UserTurn({ turn, onRetry }: { turn: Turn; onRetry: (text: string) => vo
     .join("\n");
   const attachments = turn.blocks.filter((b) => b.type === "image" || b.type === "document" || b.text?.startsWith("<attachment"));
   return (
-    <div className="msg user">
-      <Avatar role="user" />
-      <div className="msg-body">
-        <div className="msg-head">
-          <span className="who you">You</span>
-          <span className="acts">
-            <CopyBtn text={text} />
-            <button className="btn b-ghost icon-btn sm" data-tip="Send again" aria-label="Send again" onClick={() => onRetry(text)}>
-              <RotateCcw size={15} />
-            </button>
-          </span>
-        </div>
+    <div className="turn you">
+      <span className="acts">
+        <CopyBtn text={text} />
+        <button className="btn b-ghost icon-btn sm" data-tip="Send again" aria-label="Send again" onClick={() => onRetry(text)}>
+          <RotateCcw size={15} />
+        </button>
+      </span>
+      <div className="turn-body">
         {attachments.length > 0 && (
           <div className="attach-row">
             {attachments.map((a, i) =>
@@ -120,19 +111,15 @@ function AssistantBlocks({ blocks, detail, streaming }: { blocks: (Block | Strea
   );
 }
 
-function AssistantTurn({ turn, detail, model }: { turn: Turn; detail: Detail; model: string }) {
+function AssistantTurn({ turn, detail }: { turn: Turn; detail: Detail }) {
   const text = turn.blocks
     .filter((b) => b.type === "text")
     .map((b) => b.text)
     .join("\n\n");
   return (
-    <div className="msg assistant">
-      <Avatar role="assistant" />
-      <div className="msg-body">
-        <div className="msg-head">
-          <span className="who claude">{model}</span>
-          <span className="acts">{text && <CopyBtn text={text} />}</span>
-        </div>
+    <div className="turn claude">
+      <span className="acts">{text && <CopyBtn text={text} />}</span>
+      <div className="turn-body">
         <AssistantBlocks blocks={turn.blocks} detail={detail} />
       </div>
     </div>
@@ -145,7 +132,6 @@ export function Stream({ ws, detail }: { ws: Workspace; detail: Detail }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(true);
   const turns = useMemo(() => toTurns(detail.messages), [detail.messages]);
-  const model = modelName(ws.model || useStore.getState().server?.config.models.pilot) || "Claude";
 
   // keep pinned to the bottom unless the reader scrolled up
   useLayoutEffect(() => {
@@ -167,7 +153,7 @@ export function Stream({ ws, detail }: { ws: Workspace; detail: Detail }) {
     <div className="stream" ref={scroller}>
       <div className="stream-inner">
         {ws.summary && (
-          <details className="summary-card glass">
+          <details className="summary-card">
             <summary>Earlier work in this workspace was summarised</summary>
             <Markdown text={ws.summary} />
           </details>
@@ -187,18 +173,14 @@ export function Stream({ ws, detail }: { ws: Workspace; detail: Detail }) {
               {t.role === "user" ? (
                 <UserTurn turn={t} onRetry={(text) => send({ type: "send", workspaceId: ws.id, text })} />
               ) : (
-                <AssistantTurn turn={t} detail={detail} model={model} />
+                <AssistantTurn turn={t} detail={detail} />
               )}
             </motion.div>
           ))}
         </AnimatePresence>
         {showStream ? (
-          <div className="msg assistant live">
-            <Avatar role="assistant" />
-            <div className="msg-body">
-              <div className="msg-head">
-                <span className="who claude">{model}</span>
-              </div>
+          <div className="turn claude live" aria-live="polite">
+            <div className="turn-body">
               {stream?.blocks.length ? (
                 <AssistantBlocks blocks={stream.blocks.filter(Boolean)} detail={detail} streaming />
               ) : (
@@ -211,7 +193,7 @@ export function Stream({ ws, detail }: { ws: Workspace; detail: Detail }) {
       <AnimatePresence>
         {!stuck && (
           <motion.button
-            className="btn b-outline sz-s pill jump"
+            className="btn b-outline sz-s jump"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}

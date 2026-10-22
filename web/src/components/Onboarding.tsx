@@ -33,7 +33,7 @@ export function Onboarding() {
       </motion.div>
       <motion.form className="onboard-card glass panel" onSubmit={submit} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, type: "spring", stiffness: 200, damping: 22 }}>
         <div className="ob-brand">
-          <Logo size={26} /> <span className="display">orbit</span>
+          <Logo size={26} /> <span className="wordmark">orbit</span>
         </div>
         <h1 className="display">Connect Claude</h1>
         <p className="muted">Paste your Anthropic API key. It's checked once, encrypted and kept on this computer.</p>

@@ -97,8 +97,8 @@ export function Cockpit({ id }: { id: string }) {
   return (
     <div className="cockpit">
       <header className="cockpit-top">
-        <nav className="crumbs glass-soft pill" aria-label="Location">
-          <button className="btn b-ghost home-btn pill" onClick={() => setView({ kind: "orrery" })} data-tip="Back to the Orrery" data-tip-side="bottom" aria-label="Back to all workspaces">
+        <nav className="crumbs" aria-label="Location">
+          <button className="btn b-ghost home-btn" onClick={() => setView({ kind: "orrery" })} data-tip="Back to the Orrery" data-tip-side="bottom" aria-label="Back to all workspaces">
             <Logo />
           </button>
           <span className="planet-dot" style={{ background: ws.style?.color }} aria-hidden="true" />
@@ -108,8 +108,8 @@ export function Cockpit({ id }: { id: string }) {
               <EyeOff /> incognito
             </span>
           ) : null}
-          <button className="btn b-ghost sz-s pill cwd-btn" onClick={() => useStore.getState().setDrawer("workspace")} data-tip="Change folder" data-tip-side="bottom">
-            <Folder size={14} /> <span className="mono">{shortPath(ws.cwd, server?.home)}</span>
+          <button className="btn b-ghost sz-s cwd-btn" onClick={() => useStore.getState().setDrawer("workspace")} data-tip="Change folder" data-tip-side="bottom">
+            <Folder size={14} /> <span>{shortPath(ws.cwd, server?.home)}</span>
           </button>
         </nav>
         <div className="cockpit-actions">
