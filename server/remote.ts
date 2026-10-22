@@ -78,6 +78,13 @@ export async function setRelay(url: string, token?: string) {
   if (token) setSecret("remote.relay_token", token.trim());
   if (!clean) deleteSecret("remote.relay_token");
   reconnect();
+  await settled();
+}
+
+/** Waits a moment for a fresh connection to come up or fail, so the answer says which. */
+export async function settled(ms = 5000) {
+  const t = Date.now();
+  while (state === "connecting" && Date.now() - t < ms) await Bun.sleep(50);
 }
 
 // ---------- the relay connection ----------

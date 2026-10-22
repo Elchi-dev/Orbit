@@ -34,7 +34,7 @@ import { byHook, createMission, deleteMission, launch, listMissions, startSchedu
 import { findCommands, findSkills, projectInstructions } from "./context";
 import { builtinKnowledge, builtinSkills, deleteEntry, findKnowledge, normaliseKnowledge, normaliseSkill, readKnowledge, saveEntry, templates, NAME_RE, type LibKind } from "./library";
 import { generate, stopGeneration } from "./libgen";
-import { alertDevices, pairingLink, reconnect as reconnectRelay, removeDevice, setBridge, setRelay, startRemote, status as remoteStatus } from "./remote";
+import { alertDevices, pairingLink, reconnect as reconnectRelay, settled as settledRelay, removeDevice, setBridge, setRelay, startRemote, status as remoteStatus } from "./remote";
 import { clearFcm, setFcmAccount } from "./fcm";
 import { getProfile, listProfiles } from "./profiles";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
@@ -692,6 +692,7 @@ async function api(req: Request, url: URL): Promise<Response> {
   }
   if (p === "/api/remote/reconnect" && m === "POST") {
     reconnectRelay();
+    await settledRelay();
     return json(remoteStatus());
   }
   if (p === "/api/remote/pair" && m === "POST") {
