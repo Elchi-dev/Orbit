@@ -4,6 +4,7 @@ import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type R
 import { AnimatePresence, motion } from "motion/react";
 import {
   AlertCircle,
+  BookOpen,
   Archive,
   ChevronUp,
   EyeOff,
@@ -166,6 +167,9 @@ export function Home() {
               </dl>
             </div>
           </div>
+          <button className="btn b-ghost icon-btn glass-soft" data-tip="Library: skills and knowledge" data-tip-side="bottom" onClick={() => useStore.getState().openSettings("library")} aria-label="Library">
+            <BookOpen size={18} />
+          </button>
           <button data-tour="settings" className="btn b-ghost icon-btn glass-soft" data-tip="Settings" data-tip-side="bottom" onClick={() => setOverlay("settings")} aria-label="Settings">
             <Settings2 size={18} />
           </button>

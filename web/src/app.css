@@ -1075,3 +1075,69 @@ mark.doc-mark::after { content: attr(data-n); display: inline-grid; place-items:
 .lane, .doc-row, .welcome-choice, .ws-row { transition: transform var(--t-move) var(--spring), box-shadow var(--t-quick), background-color var(--t-quick); }
 @media (hover: hover) { .lane:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1px var(--line-2), 0 10px 24px -14px rgba(0, 0, 0, 0.8); } }
 .cockpit.has-panel .ask-ori { display: none; }
+
+/* ---------- the library ---------- */
+.lib { display: flex; flex-direction: column; gap: 14px; }
+.lib-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.lib-head > div { display: flex; flex-direction: column; gap: 6px; }
+.lib-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.seg-btn { position: relative; min-height: 32px; padding: 0 12px; border-radius: 7px; font-size: 13.5px; font-weight: 550; color: var(--star-3); display: inline-flex; gap: 7px; align-items: center; }
+.seg-btn > span, .seg-btn > small { position: relative; z-index: 1; }
+.seg-btn small { font-size: 11.5px; color: var(--star-3); font-variant-numeric: tabular-nums; }
+.seg-btn.on { color: var(--star); }
+.seg-btn:hover:not(.on) { color: var(--star-2); }
+.seg-hl { position: absolute; inset: 0; border-radius: 7px; background: var(--surface-3); }
+.lib-new { position: relative; }
+.menu { position: absolute; z-index: 20; display: flex; flex-direction: column; padding: 6px; gap: 1px; background: var(--surface); }
+.lib-menu { right: 0; top: calc(100% + 6px); width: 290px; }
+.menu-item { justify-content: flex-start; gap: 11px; padding: 8px 10px; border-radius: var(--r-s); text-align: left; min-height: 0; color: var(--star-2); }
+.menu-item:hover { background: var(--hover); color: var(--star); }
+.menu-item > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.menu-item b { font-weight: 550; font-size: 14px; color: var(--star); }
+.menu-item small { color: var(--star-3); font-size: 12.5px; }
+.menu-item svg { flex: none; color: var(--star-3); }
+.lib-ask b { color: var(--peach); }
+.menu-sep { height: 1px; background: var(--line); margin: 4px 6px; }
+.lib-search { max-width: none; }
+.lib-list { display: flex; flex-direction: column; gap: 4px; transition: opacity var(--t-quick) var(--ease-out); }
+.lib-list.off { opacity: 0.45; }
+.lib-list h3 { margin: 10px 0 4px !important; font-size: 12px !important; text-transform: uppercase; letter-spacing: 0.08em; color: var(--star-3) !important; }
+.lib-row { display: flex; align-items: center; gap: 12px; padding: 2px 2px 2px 0; border-radius: var(--r); transition: background var(--t-quick) var(--ease-out); }
+.lib-row:hover { background: var(--hover); }
+.lib-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 9px 12px; text-align: left; min-height: 0; border-radius: var(--r); }
+.lib-row-top { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.lib-row-top b { font-weight: 600; font-size: 14.5px; color: var(--star); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.45; }
+.lib-row.is-off .lib-row-main { opacity: 0.5; }
+.lib-row .switch { margin-right: 10px; flex: none; }
+.lib-src { font-size: 11.5px; padding: 1px 7px; }
+.src-orbit, .src-project { color: var(--peach); background: rgba(255, 177, 153, 0.1); }
+.src-claude { color: var(--lav-soft); }
+.lib-detail-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.btn:hover:not(:disabled) .nudge-left { transform: translateX(-2px); }
+.nudge-left { transition: transform var(--t-quick) var(--ease-out); }
+.lib-name { font-family: var(--mono); font-size: 18px !important; font-weight: 600 !important; }
+.lib-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.danger-hover:hover:not(:disabled) { color: var(--danger); }
+.lib-text { width: 100%; min-height: 420px; resize: vertical; padding: 14px 16px; border-radius: var(--r); border: 1px solid var(--line); background: rgba(0, 0, 0, 0.22); color: var(--star); font-family: var(--mono); font-size: 13px; line-height: 1.6; tab-size: 2; transition: border-color var(--t-quick) var(--ease-out), box-shadow var(--t-quick) var(--ease-out); }
+.lib-text:focus { outline: none; border-color: var(--lav); box-shadow: 0 0 0 3px rgba(181, 164, 255, 0.16); }
+.lib-read { padding: 4px 16px 12px; border-radius: var(--r); border: 1px solid var(--line); background: rgba(255, 255, 255, 0.015); max-height: 560px; overflow: auto; font-size: 14px; line-height: 1.6; }
+.lib-draft-note { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r); background: rgba(255, 177, 153, 0.06); border: 1px solid rgba(255, 177, 153, 0.18); }
+.lib-draft-note > div { display: flex; flex-direction: column; gap: 3px; }
+.lib-sources summary { cursor: pointer; color: var(--star-3); margin-top: 4px; }
+.lib-sources ul { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
+.lib-ori { display: flex; align-items: center; gap: 18px; }
+.lib-ori .bubble { display: flex; flex-direction: column; gap: 4px; }
+.lib-req { width: 100%; min-height: 110px; resize: vertical; padding: 12px 14px; border-radius: var(--r); border: 1px solid var(--line); background: rgba(0, 0, 0, 0.2); color: var(--star); font: inherit; font-size: 14.5px; line-height: 1.5; transition: border-color var(--t-quick) var(--ease-out), box-shadow var(--t-quick) var(--ease-out); }
+.lib-req:focus { outline: none; border-color: var(--lav); box-shadow: 0 0 0 3px rgba(181, 164, 255, 0.16); }
+.lib-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--star-3); }
+.lib-steps li { display: flex; gap: 8px; align-items: center; }
+.lib-steps li svg { flex: none; color: var(--good); }
+.lib-steps li.now { color: var(--star); }
+.lib-steps li.now svg { color: var(--lav-soft); }
+@media (max-width: 640px) {
+  .lib-head .ori { display: none; }
+  .lib-bar { flex-wrap: wrap; }
+  .lib-menu { width: min(290px, calc(100vw - 48px)); }
+  .lib-ori { flex-direction: column; align-items: flex-start; }
+}

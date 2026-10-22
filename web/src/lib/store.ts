@@ -25,6 +25,9 @@ interface Store {
   view: View;
   drawer: Drawer;
   overlay: null | "settings" | "palette";
+  /** which settings section opens next */
+  settingsTab: string | null;
+  openSettings: (tab?: string) => void;
   connected: boolean;
   send: (msg: object) => void;
 
@@ -81,6 +84,7 @@ export const useStore = create<Store>((set, get) => ({
   view: { kind: "orrery" },
   drawer: null,
   overlay: null,
+  settingsTab: null,
   connected: false,
   send: () => {},
   drafts: {},
@@ -128,6 +132,7 @@ export const useStore = create<Store>((set, get) => ({
   },
   setDrawer: (d) => set({ drawer: get().drawer === d ? null : d }),
   setOverlay: (o) => set({ overlay: o }),
+  openSettings: (tab) => set({ overlay: "settings", settingsTab: tab ?? null }),
   toast: (t) => {
     const id = toastId++;
     set({ toasts: [...get().toasts, { ...t, id }].slice(-4) });
@@ -361,6 +366,9 @@ export const useStore = create<Store>((set, get) => ({
         break;
       case "rules":
         window.dispatchEvent(new Event("orbit:rules"));
+        break;
+      case "libgen":
+        window.dispatchEvent(new CustomEvent("orbit:libgen", { detail: e }));
         break;
     }
   },
