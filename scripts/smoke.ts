@@ -72,6 +72,28 @@ const after = await api(`/api/workspaces/${ws.id}`);
 console.log("  messages after clear:", after.messages.length);
 const rules = await api(`/api/rules?workspace=${ws.id}`);
 console.log("  rules:", rules.map((r: any) => `${r.verdict} ${r.pattern}`).join(", "));
+
+// 6) two helpers at once; the builder's delete asks, and the question names the helper and its parent
+events.length = 0;
+sock.send(JSON.stringify({ type: "send", workspaceId: ws.id, text: "use helpers: map the folder and clear out dist" }));
+const hask = await waitFor((e) => e.type === "approval_request" && e.parentId === ws.id, 20000);
+console.log("6 helper asked:", hask.subject, " from", hask.agent, "for", hask.parentTitle ? "its parent" : "?");
+sock.send(JSON.stringify({ type: "approval", id: hask.id, decision: "allow" }));
+await waitFor((e) => e.type === "turn_end" && e.workspaceId === ws.id, 30000);
+const withHelpers = await api(`/api/workspaces/${ws.id}`);
+const hs = withHelpers.workspace.helpers;
+console.log("  helpers:", hs.map((h: any) => `${h.agent} ${h.state}`).join(", "));
+if (hs.length !== 2 || hs.some((h: any) => h.state !== "done")) throw new Error("helpers did not both finish");
+const reports = withHelpers.messages.flatMap((m: any) => m.content).filter((b: any) => b.type === "tool_result" && String(b.content).includes("Report:"));
+console.log("  reports back:", reports.length);
+if (reports.length !== 2) throw new Error("expected two reports");
+
+// 7) a doc and the board through the API
+const doc = await api(`/api/workspaces/${ws.id}/docs`, { method: "POST", body: JSON.stringify({ title: "Notes", body: "one" }) });
+const commented = await api(`/api/docs/${doc.id}/comments`, { method: "POST", body: JSON.stringify({ body: "why?", quote: "one" }) });
+const board = await api(`/api/workspaces/${ws.id}/board`, { method: "POST", body: JSON.stringify({ ops: [{ op: "add", kind: "note", text: "hi" }] }) });
+console.log("7 doc comments:", commented.comments.length, " board items:", board.items.length);
+
 sock.close();
 console.log("SMOKE OK");
 process.exit(0);
