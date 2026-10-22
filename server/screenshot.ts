@@ -122,7 +122,8 @@ export async function screenshot(url: string, width = 1280, opts: { height?: num
   };
   // the time budget lets timers and fetches settle; a page that never goes quiet (a long-lived
   // request) would hold it forever, so after a while take the shot as soon as the page loads
-  let stderr = await run(args, opts.timeoutMs ?? 12_000);
+  // a browser starting cold (the first shot after boot) can take well over ten seconds
+  let stderr = await run(args, opts.timeoutMs ?? 25_000);
   if (!existsSync(out)) stderr = await run(args.filter((a) => !a.startsWith("--virtual-time-budget")), 20_000);
   try {
     if (!existsSync(out)) throw new Error(`The browser didn't produce a screenshot.${stderr.trim() ? ` ${stderr.trim().split("\n").slice(-1)[0].slice(0, 200)}` : ""}`);

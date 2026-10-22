@@ -121,7 +121,7 @@ describe("comments on the preview", () => {
 
   test.skipIf(!findChrome())("a screenshot address with pins draws them on the page", async () => {
     const { id, cwd } = workspace();
-    writeFileSync(join(cwd, "index.html"), `<body><h1 id="t">Title</h1><script>addEventListener("load",()=>setTimeout(()=>console.log("pins "+[...document.querySelectorAll("div")].filter(d=>d.textContent==="1"&&d.style.borderRadius==="50%").length),200))</script></body>`);
+    writeFileSync(join(cwd, "index.html"), `<body><h1 id="t">Title</h1><script>addEventListener("load",()=>console.log("pins "+[...document.querySelectorAll("div")].filter(d=>d.textContent==="1"&&d.style.borderRadius==="50%").length))</script></body>`);
     const st = openPreview(id, ".");
     const pins = Buffer.from(JSON.stringify([{ n: 1, sel: "#t", px: 0.5, py: 0.5, outline: true }])).toString("base64");
     const s = await screenshot(`${st.url}?__orbit_pins=${encodeURIComponent(pins)}`, 600);
