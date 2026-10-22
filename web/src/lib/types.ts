@@ -131,6 +131,7 @@ export interface Config {
   workspaces: { home: string };
   profile: { about: string; instructions: string };
   integrations: { editor: string; briefing: boolean };
+  mcp: { servers: Record<string, McpServer> };
   pricing: Record<string, { input: number; output: number; cache_write: number; cache_read: number; context: number }>;
 }
 
@@ -177,4 +178,22 @@ export interface Integrations {
   resolvedEditor: string | null;
   apps: IntegrationApp[];
   editors: { id: string; name: string; found: boolean }[];
+}
+
+export interface McpServer {
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
+  enabled?: boolean;
+  trust_readonly?: boolean;
+}
+export interface McpStatus {
+  name: string;
+  state: "off" | "connecting" | "ready" | "error";
+  error?: string;
+  tools: { name: string; description?: string; readOnly: boolean }[];
+  transport: "stdio" | "http";
+  serverName?: string;
 }

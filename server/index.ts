@@ -24,6 +24,7 @@ import {
   pull as gitPull,
   init as gitInit,
 } from "./git";
+import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
 
@@ -78,6 +79,7 @@ if (flag("no-open")) process.env.ORBIT_NO_OPEN = "1";
 
 loadConfig();
 const cfg = config();
+syncMcp();
 const PORT = Number(flag("port") ?? process.env.PORT ?? cfg.server.port);
 const HOST = flag("host") ?? process.env.HOST ?? cfg.server.host;
 const TOKEN = crypto.randomUUID();
@@ -305,11 +307,19 @@ async function api(req: Request, url: URL): Promise<Response> {
     const patch = await body();
     const next = deepMerge(structuredClone(config()), patch) as Config;
     if (Array.isArray(patch?.permissions?.rules)) next.permissions.rules = patch.permissions.rules;
+    // tables that can lose entries are replaced, not merged
+    if (patch?.mcp?.servers) next.mcp.servers = patch.mcp.servers;
     saveConfig(next);
+    syncMcp();
     broadcast("state", stateSummary());
     return json(next);
   }
 
+  if (p === "/api/mcp" && m === "GET") return json(mcpStatus());
+  if ((match = p.match(/^\/api\/mcp\/([\w.-]+)\/reconnect$/)) && m === "POST") {
+    await reconnect(match[1]);
+    return json(mcpStatus());
+  }
   if (p === "/api/integrations" && m === "GET") return json({ ...listIntegrations(url.searchParams.has("rescan")), editors: editorChoices() });
   if (p === "/api/integrations/versions" && m === "GET") return json(await probeVersions());
   if (p === "/api/open" && m === "POST") {
@@ -576,6 +586,7 @@ if ((cfg.server.open_browser || OPEN_PATH) && !process.env.ORBIT_NO_OPEN) openBr
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, () => {
     for (const id of runningIds()) kill(id);
+    stopAllMcp();
     process.exit(0);
   });
 }

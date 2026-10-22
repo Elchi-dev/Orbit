@@ -502,3 +502,28 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius
 .git-empty { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .git-empty p { margin: 0; }
 @media (hover: none) { .git-acts { opacity: 1; } }
+
+/* mcp servers */
+.vd.good { color: var(--good); }
+.mcp-list { list-style: none; margin: 0 -12px; padding: 0; display: flex; flex-direction: column; }
+.mcp-item { border-radius: var(--r); transition: background-color 0.15s; }
+.mcp-item.open, .mcp-item:hover { background: rgba(255, 255, 255, 0.03); }
+.mcp-row { display: flex; align-items: center; gap: 10px; padding-right: 12px; }
+.mcp-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0; background: none; cursor: pointer; text-align: left; }
+.mcp-main .vd { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mcp-name { font-weight: 600; font-size: 14.5px; }
+.mcp-body { overflow: hidden; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.mcp-cmd { display: block; font-family: var(--mono); font-size: 12.5px; padding: 8px 10px; border-radius: 8px; background: var(--well); border: 1px solid var(--line); overflow-x: auto; white-space: nowrap; }
+.mcp-env { display: flex; flex-direction: column; gap: 6px; }
+.mcp-key { padding-left: 12px; font-size: 12.5px; color: var(--star-2); flex: none; }
+.mcp-err { margin: 0; overflow-wrap: anywhere; }
+.mcp-tools { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 12px; font-size: 12.5px; }
+.mcp-tools li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.mcp-tools .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcp-acts { display: flex; gap: 6px; }
+.mcp-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.mcp-preset { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--r); border: 1px dashed var(--line-2); background: none; cursor: pointer; text-align: left; transition: background-color 0.2s, border-color 0.2s, transform 0.35s var(--spring); }
+.mcp-preset:hover { background: var(--hover); border-style: solid; }
+.mcp-preset:active { transform: scale(0.98); }
+.mcp-preset-head { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
+.mcp-form { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: var(--r); border: 1px solid var(--line); }

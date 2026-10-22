@@ -5,6 +5,7 @@ import rehypeHighlight from "rehype-highlight";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AppWindow,
+  Boxes,
   Bell,
   Brain,
   Check,
@@ -166,6 +167,14 @@ export function toolLabel(name: string, input: any): ReactNode {
     case "ui_widget":
       return <>Built {input?.title ?? "a widget"}</>;
     default:
+      if (name.startsWith("mcp__")) {
+        const [, server, tool] = name.split("__");
+        return (
+          <>
+            {server} {code(tool ?? "")}
+          </>
+        );
+      }
       return <>{name}</>;
   }
 }
@@ -205,7 +214,7 @@ export function ToolCapsule({ block, call, wsId }: { block: { id?: string; name?
   const live = useStore((s) => (block.id ? s.shellOut[block.id] : undefined));
   const running = call?.status === "running";
   const [open, setOpen] = useState(false);
-  const Icon = TOOL_ICON[block.name ?? ""] ?? Wrench;
+  const Icon = TOOL_ICON[block.name ?? ""] ?? (block.name?.startsWith("mcp__") ? Boxes : Wrench);
   const input = block.input ?? (call ? safeJson(call.input) : {});
   const failed = call?.is_error && call.status === "error";
   const output = running ? live : call?.output;

@@ -13,6 +13,18 @@ export interface Rule {
   verdict: Verdict;
   kind?: "glob" | "regex";
 }
+export interface McpServer {
+  /** a local server: the command to start, its arguments and extra variables */
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  /** a remote server: its URL and headers (a token, for example) */
+  url?: string;
+  headers?: Record<string, string>;
+  enabled?: boolean;
+  /** let tools the server marks read-only skip the gate (default true) */
+  trust_readonly?: boolean;
+}
 export interface Price {
   input: number;
   output: number;
@@ -39,6 +51,7 @@ export interface Config {
   workspaces: { home: string };
   profile: { about: string; instructions: string };
   integrations: { editor: string; briefing: boolean };
+  mcp: { servers: Record<string, McpServer> };
   pricing: Record<string, Price>;
 }
 
@@ -67,6 +80,7 @@ export const DEFAULT_CONFIG: Config = {
   workspaces: { home: join(homedir(), "orbit-workspaces") },
   profile: { about: "", instructions: "" },
   integrations: { editor: "auto", briefing: true },
+  mcp: { servers: {} },
   // USD per million tokens, checked October 2026. Edit in orbit.toml when prices change.
   pricing: {
     "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 1, context: 1_000_000 },

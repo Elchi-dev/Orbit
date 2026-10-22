@@ -1,3 +1,4 @@
+import { callMcp, mcpSubject, mcpTools } from "./mcp";
 import { catalogReadOnly, catalogUnsafe } from "./catalog";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -387,9 +388,16 @@ const TOOLS: ToolDef[] = [
   },
 ];
 
-export function enabledTools() {
+export function enabledTools(): ToolDef[] {
   const flags = config().ui_tools;
-  return TOOLS.filter((t) => !t.ui || flags[t.ui]);
+  const mcp: ToolDef[] = mcpTools().map((t) => ({
+    name: t.name,
+    description: t.description,
+    input_schema: t.input_schema,
+    readOnly: t.readOnly,
+    run: (input) => callMcp(t.name, input),
+  }));
+  return [...TOOLS.filter((t) => !t.ui || flags[t.ui]), ...mcp];
 }
 export function toolDefs() {
   return enabledTools().map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
@@ -420,6 +428,7 @@ export function subjectOf(name: string, input: any, cwd: string): string {
     case "fetch_url":
       return `fetch ${input?.url ?? ""}`;
     default:
+      if (name.startsWith("mcp__")) return mcpSubject(name, input);
       return `${name} ${JSON.stringify(input ?? {})}`;
   }
 }

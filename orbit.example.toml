@@ -107,6 +107,26 @@ home = "~/orbit-workspaces"
 about = ""
 instructions = ""
 
+[integrations]
+# The editor paths open in: "auto" picks the first one found (Cursor, VS Code,
+# Windsurf, Zed, ...), "none" switches it off, or an id from docs/COMPATIBILITY.md.
+editor = "auto"
+# Tell Claude which known programs are installed and how to run them quietly.
+briefing = true
+
+# MCP servers. Their tools show up for Claude as mcp__<name>__<tool> and every
+# call passes the gate; rules match "mcp <name> <tool> {arguments}". Tools a
+# server marks read-only skip the gate unless trust_readonly = false.
+[mcp.servers.browser]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest", "--headless"]
+
+# A remote server over streamable HTTP, with a token:
+# [mcp.servers.tracker]
+# url = "https://example.com/mcp"
+# [mcp.servers.tracker.headers]
+# Authorization = "Bearer ..."
+
 # USD per million tokens, used for the cost shown everywhere (checked October
 # 2026; change them here when Anthropic's prices change). context is the
 # model's window.
