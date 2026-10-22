@@ -35,7 +35,29 @@ export function runningIds() {
   return [...running.keys()];
 }
 
+// messages sent while a workspace is working wait here for the next step
+const inbox = new Map<string, any[][]>();
+
+/** Add a message to a running turn. Claude sees it at the next step, between tool calls. */
+export function steer(wsId: string, content: any[]) {
+  const list = inbox.get(wsId) ?? [];
+  list.push(content);
+  inbox.set(wsId, list);
+  broadcast("queued", { workspaceId: wsId, count: list.length });
+}
+
+function takeInbox(wsId: string): any[] {
+  const list = inbox.get(wsId);
+  if (!list?.length) return [];
+  inbox.delete(wsId);
+  broadcast("queued", { workspaceId: wsId, count: 0 });
+  const blocks: any[] = [{ type: "text", text: "<steer>The user sent this while you were working. Take it into account from here on.</steer>" }];
+  for (const c of list) blocks.push(...c);
+  return blocks;
+}
+
 export function stop(wsId: string) {
+  inbox.delete(wsId);
   running.get(wsId)?.abort();
   cancelApprovals(wsId);
 }
@@ -320,7 +342,14 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
       // a long server-side search can pause the turn; sending it back as it is lets it go on
       if (result.stop_reason === "pause_turn") continue;
       const toolUses = result.content.filter((b) => b.type === "tool_use");
-      if (result.stop_reason !== "tool_use" || !toolUses.length) break;
+      if (result.stop_reason !== "tool_use" || !toolUses.length) {
+        // something arrived while Claude was answering: keep going with it instead of stopping
+        const queued = takeInbox(wsId);
+        if (!queued.length) break;
+        const qid = insertMessage(wsId, "user", queued);
+        broadcast("message", { workspaceId: wsId, message: { id: qid, role: "user", content: queued, created_at: now() } });
+        continue;
+      }
 
       // 1) register every call, 2) decide them all in parallel, 3) run the allowed ones in order
       const calls: PendingCall[] = toolUses.map((b) => ({ id: b.id, name: b.name, input: b.input, subject: subjectOf(b.name, b.input, ws.cwd) }));
@@ -389,6 +418,7 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
           } catch {}
         }
       }
+      results.push(...takeInbox(wsId));
       const resultId = insertMessage(wsId, "user", results);
       broadcast("message", { workspaceId: wsId, message: { id: resultId, role: "user", content: results, created_at: now() } });
       if (ac.signal.aborted) {

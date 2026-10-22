@@ -34,6 +34,8 @@ interface Store {
   /** what each workspace's preview shows, and whether the pane is open */
   previews: Record<string, { url: string; target: string; kind: "files" | "server"; nonce: number } | null>;
   previewOpen: Record<string, boolean>;
+  /** messages waiting for the next step of a running workspace */
+  queued: Record<string, number>;
   setPreviewOpen: (wsId: string, open: boolean) => void;
   setIncoming: (wsId: string, text: string | null) => void;
   setView: (v: View) => void;
@@ -70,6 +72,7 @@ export const useStore = create<Store>((set, get) => ({
   missions: {},
   previews: {},
   previewOpen: {},
+  queued: {},
   setPreviewOpen: (wsId, open) => set({ previewOpen: { ...get().previewOpen, [wsId]: open } }),
   setIncoming: (wsId, text) => {
     const drafts = { ...get().drafts };
@@ -230,6 +233,9 @@ export const useStore = create<Store>((set, get) => ({
         });
         break;
       }
+      case "queued":
+        set({ queued: { ...s.queued, [wsId!]: e.count } });
+        break;
       case "plan":
         patchWs(wsId!, { plan: e.plan });
         break;

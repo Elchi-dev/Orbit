@@ -44,8 +44,9 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 function UserTurn({ turn, onRetry }: { turn: Turn; onRetry: (text: string) => void }) {
+  const steered = turn.blocks.some((b) => b.type === "text" && b.text?.startsWith("<steer>"));
   const raw = turn.blocks
-    .filter((b) => b.type === "text" && !b.text?.startsWith("<attachment"))
+    .filter((b) => b.type === "text" && !b.text?.startsWith("<attachment") && !b.text?.startsWith("<steer>"))
     .map((b) => b.text)
     .join("\n");
   // a mission's request ends with a note to Claude; show it as a quiet label instead
@@ -76,6 +77,7 @@ function UserTurn({ turn, onRetry }: { turn: Turn; onRetry: (text: string) => vo
           </div>
         )}
         {text && <p className="user-text">{text}</p>}
+        {steered && <span className="muted small mission-tag">Sent while Claude was working</span>}
         {mission && (
           <span className="muted small mission-tag">
             Mission “{mission[1] || "untitled"}”{how}

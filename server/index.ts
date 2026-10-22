@@ -6,7 +6,7 @@ import { db, now, uid, getWorkspace, listMessages, workspaceStats, costSince, st
 import { apiKey, setSecret, deleteSecret } from "./secrets";
 import { validateKey, isMock } from "./anthropic";
 import { addClient, removeClient, broadcast } from "./hub";
-import { runTurn, stop, kill, isRunning, clearHistory, compact, runningIds, lastRate } from "./agent";
+import { runTurn, stop, kill, isRunning, clearHistory, compact, runningIds, lastRate, steer } from "./agent";
 import { resolveApproval, pendingApprovals, allRules, addRule } from "./gate";
 import { dropShell } from "./shell";
 import {
@@ -602,6 +602,11 @@ function onSocketMessage(raw: string) {
       }
       if (msg.text?.trim()) content.push({ type: "text", text: msg.text });
       if (!content.length) return;
+      // already working: the message joins the run at its next step
+      if (isRunning(msg.workspaceId)) {
+        steer(msg.workspaceId, content);
+        break;
+      }
       const web = typeof msg.web === "boolean" ? msg.web : getProfile(getWorkspace(msg.workspaceId)?.profile).web;
       runTurn(msg.workspaceId, content, { effort: msg.effort, web }).catch((e) =>
         broadcast("error", { workspaceId: msg.workspaceId, message: (e as Error).message, kind: "busy" }),

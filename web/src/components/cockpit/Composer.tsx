@@ -56,6 +56,7 @@ export function Composer({ ws }: { ws: Workspace }) {
   const ta = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const running = ws.running;
+  const queued = useStore((s) => s.queued[ws.id] ?? 0);
   // web search is remembered per workspace, in this browser
   const webKey = `orbit.web.${ws.id}`;
   const [web, setWeb] = useState(false);
@@ -197,7 +198,6 @@ export function Composer({ ws }: { ws: Workspace }) {
   }
 
   function submit() {
-    if (running) return;
     if (!text.trim() && !files.length) return;
     send({
       type: "send",
@@ -293,7 +293,7 @@ export function Composer({ ws }: { ws: Workspace }) {
           ref={ta}
           rows={1}
           value={text}
-          placeholder={listening ? heard || "Listening…" : running ? "Claude is working. You can type the next message." : "Tell Claude what to do next"}
+          placeholder={listening ? heard || "Listening…" : running ? "Claude is working. Anything you send now joins in at its next step." : "Tell Claude what to do next"}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (matches.length) {
@@ -402,12 +402,24 @@ export function Composer({ ws }: { ws: Workspace }) {
             </AnimatePresence>
           </div>
           <span className="grow" />
-          {running ? (
+          {queued > 0 && (
+            <span className="queued" title="Claude sees it at its next step">
+              {queued === 1 ? "1 message" : `${queued} messages`} for the next step
+            </span>
+          )}
+          {running && (
             <button type="button" className="btn b-outline send-btn" aria-label="Stop" data-tip="Stop (Esc twice kills the shell too)" onClick={() => send({ type: "stop", workspaceId: ws.id })}>
               <Square size={16} fill="currentColor" />
             </button>
-          ) : (
-            <button type="submit" className="btn b-peach send-btn" aria-label="Send" disabled={!text.trim() && !files.length}>
+          )}
+          {(!running || text.trim() || files.length > 0) && (
+            <button
+              type="submit"
+              className="btn b-peach send-btn"
+              aria-label={running ? "Send to the running task" : "Send"}
+              data-tip={running ? "Claude takes it into account at its next step" : undefined}
+              disabled={!text.trim() && !files.length}
+            >
               <ArrowUp size={20} strokeWidth={2.4} />
             </button>
           )}

@@ -111,3 +111,22 @@ describe("smart compaction", () => {
     delete process.env.ORBIT_MOCK;
   });
 });
+
+describe("steering a running turn", () => {
+  test("a message sent while Claude works joins at the next step instead of being refused", async () => {
+    process.env.ORBIT_MOCK = "1";
+    const { runTurn, steer } = await import("./agent");
+    const { listMessages } = await import("./db");
+    const ws = workspace();
+    db.run("UPDATE workspaces SET mode = 'full' WHERE id = ?", [ws]);
+    const done = runTurn(ws, [{ type: "text", text: "list the files" }]);
+    await Bun.sleep(150);
+    steer(ws, [{ type: "text", text: "and keep it short" }]);
+    expect(await done).toBe("done");
+    const users = listMessages(ws).filter((m) => m.role === "user").map((m) => JSON.parse(m.content));
+    const withSteer = users.find((c) => c.some((b: any) => b.text?.startsWith("<steer>")));
+    expect(withSteer).toBeDefined();
+    expect(withSteer.some((b: any) => b.text === "and keep it short")).toBe(true);
+    delete process.env.ORBIT_MOCK;
+  });
+});
