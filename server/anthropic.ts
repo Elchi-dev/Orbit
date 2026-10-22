@@ -311,7 +311,33 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
   blocks.push({ type: "thinking", thinking: "Looking at what was asked and picking the smallest useful next step.", signature: "mock" });
   const lastAsk = req.messages[req.messages.length - 2]?.content ?? [];
   const lastTool = lastAsk.filter((b: any) => b.type === "tool_use").pop()?.name;
-  if (afterTool && lastTool === "write_file" && req.tools?.some((t: any) => t.name === "screenshot")) {
+  if (req.tools?.some((t: any) => t.name === "submit") && req.tools?.some((t: any) => t.name === "read_page")) {
+    // the library's writer: one search, then the draft
+    const id = () => "toolu_" + crypto.randomUUID().slice(0, 12);
+    const topic = lastText.replace(/^write a (skill|knowledge file) for this:\s*/, "").split(/[.\n]/)[0].trim().slice(0, 60) || "a task";
+    const knowledge = /knowledge file/.test(lastText);
+    if (!req.messages.some((m: any) => m.role === "assistant")) {
+      blocks.push({ type: "server_tool_use", id: "srvtoolu_" + crypto.randomUUID().slice(0, 12), name: "web_search", input: { query: `${topic} best practices` } });
+      blocks.push({ type: "text", text: "Reading the best result." });
+      blocks.push({ type: "tool_use", id: id(), name: "read_page", input: { url: "https://example.com/" } });
+    } else {
+      const name = topic.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "my-skill";
+      const title = topic.charAt(0).toUpperCase() + topic.slice(1);
+      blocks.push({
+        type: "tool_use",
+        id: id(),
+        name: "submit",
+        input: knowledge
+          ? { name, title, description: `Reference on ${topic}.`, always: false, body: `# ${title}\n\n## Key facts\n\n- A fact worth keeping, with its source.\n` }
+          : {
+              name,
+              title,
+              description: `Use when working on ${topic}.`,
+              body: `# ${title}\n\n## Steps\n\n1. Look at what exists before changing anything.\n2. Make the smallest change that works.\n3. Check it the way it will be used.\n\n## Before you call it done\n\n- [ ] Checked, and anything open is said plainly.\n`,
+            },
+      });
+    }
+  } else if (afterTool && lastTool === "write_file" && req.tools?.some((t: any) => t.name === "screenshot")) {
     blocks.push({ type: "text", text: "Written. Checking it at phone and desktop width." });
     blocks.push({ type: "tool_use", id: "toolu_" + crypto.randomUUID().slice(0, 12), name: "screenshot", input: { target: "index.html", widths: [390, 1280] } });
   } else if (afterTool && lastTool === "screenshot") {

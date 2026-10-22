@@ -32,6 +32,8 @@ import { closePreview, openPreview, previewState, resolveTarget, startPreviewSer
 import { keep, reviewList, revert, revertAll } from "./review";
 import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
+import { builtinKnowledge, builtinSkills, deleteEntry, findKnowledge, normaliseKnowledge, normaliseSkill, readKnowledge, saveEntry, templates, NAME_RE, type LibKind } from "./library";
+import { generate, stopGeneration } from "./libgen";
 import { getProfile, listProfiles } from "./profiles";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
@@ -672,6 +674,70 @@ async function api(req: Request, url: URL): Promise<Response> {
       return json(rows);
     } catch {
       return json([]);
+    }
+  }
+
+  // ---------- the library: skills and knowledge ----------
+  if (p === "/api/library" && m === "GET") {
+    const cwd = getWorkspace(url.searchParams.get("workspace") ?? "")?.cwd;
+    return json({
+      skills: findSkills(cwd, true).map((s) => ({ name: s.name, description: s.description, source: s.source, enabled: s.enabled, path: s.dir ? join(s.dir, "SKILL.md") : null })),
+      knowledge: findKnowledge(cwd, true),
+      templates: { skill: templates("skill"), knowledge: templates("knowledge") },
+      enabled: { skills: config().skills.enabled !== false, knowledge: config().knowledge?.enabled !== false },
+      generator: config().library?.generator_model || config().models.scribe,
+    });
+  }
+  if (p === "/api/library/generate" && m === "POST") {
+    const b = await body();
+    const kind: LibKind = b.kind === "knowledge" ? "knowledge" : "skill";
+    const text = String(b.request ?? "").trim();
+    if (text.length < 8) return bad("Say a bit more about what it should cover.");
+    try {
+      return json(await generate(String(b.id ?? uid("g_")), kind, text));
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if ((match = p.match(/^\/api\/library\/generate\/([\w-]+)\/stop$/)) && m === "POST") {
+    stopGeneration(match[1]);
+    return json({ ok: true });
+  }
+  if ((match = p.match(/^\/api\/library\/(skill|knowledge)\/([a-z0-9-]+)$/))) {
+    const kind = match[1] as LibKind;
+    const name = match[2];
+    const ws = getWorkspace(url.searchParams.get("workspace") ?? "");
+    const project = url.searchParams.get("project") === "1";
+    if (m === "GET") {
+      if (kind === "skill") {
+        const s = findSkills(ws?.cwd, true).find((x) => x.name === name);
+        if (!s) return bad("No such skill", 404);
+        const text = s.source === "builtin" ? builtinSkills().find((x) => x.name === name)!.text : await Bun.file(join(s.dir, "SKILL.md")).text();
+        return json({ kind, name, source: s.source, text, editable: s.source === "orbit" || s.source === "project" });
+      }
+      const k = findKnowledge(ws?.cwd, true).find((x) => x.name === name);
+      if (!k) return bad("No such knowledge file", 404);
+      return json({ kind, name, source: k.source, text: readKnowledge(ws?.cwd, name) ?? "", editable: k.source !== "builtin" });
+    }
+    if (m === "PUT") {
+      const b = await body();
+      if (!NAME_RE.test(name)) return bad("Names are lower case letters, digits and dashes.");
+      const raw = String(b.text ?? "");
+      const text = kind === "skill" ? normaliseSkill(name, raw, b.description) : normaliseKnowledge(raw, { title: b.title, description: b.description, always: typeof b.always === "boolean" ? b.always : undefined });
+      try {
+        const path = saveEntry(kind, name, text, { cwd: ws?.cwd, project: project && !!ws });
+        return json({ ok: true, path });
+      } catch (e) {
+        return bad((e as Error).message);
+      }
+    }
+    if (m === "DELETE") {
+      try {
+        deleteEntry(kind, name, { cwd: ws?.cwd, project: project && !!ws });
+        return json({ ok: true });
+      } catch (e) {
+        return bad((e as Error).message);
+      }
     }
   }
 
