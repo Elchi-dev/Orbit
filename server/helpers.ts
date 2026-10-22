@@ -25,7 +25,7 @@ export interface AgentDef {
   source: "builtin" | "project" | "orbit" | "claude";
 }
 
-const READ = ["read_file", "list_dir", "glob", "grep", "fetch_url", "load_skill", "plan"];
+const READ = ["read_file", "list_dir", "glob", "grep", "fetch_url", "load_skill", "knowledge", "plan"];
 
 export const BUILTIN_AGENTS: AgentDef[] = [
   {

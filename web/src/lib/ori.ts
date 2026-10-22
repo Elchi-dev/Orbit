@@ -5,7 +5,9 @@ import { useStore } from "./store";
 /** Which pose goes with a tool, and what to call it. */
 export function poseForTool(name: string): { pose: OriPose; doing: string } {
   if (name === "bash") return { pose: "working", doing: "Running a command" };
-  if (/^(read_file|list_dir|glob|grep|load_skill)$/.test(name)) return { pose: "reading", doing: "Reading files" };
+  if (/^(read_file|list_dir|glob|grep)$/.test(name)) return { pose: "reading", doing: "Reading files" };
+  if (name === "load_skill") return { pose: "reading", doing: "Reading a skill" };
+  if (name === "knowledge") return { pose: "reading", doing: "Looking it up" };
   if (name === "fetch_url" || name === "web_search") return { pose: "searching", doing: "Looking on the web" };
   if (/^(write_file|edit_file|doc_write|doc_edit|doc_comment)$/.test(name)) return { pose: "writing", doing: "Writing" };
   if (name === "doc_read") return { pose: "reading", doing: "Reading a doc" };

@@ -29,5 +29,7 @@ jobs:
         run: bun scripts/lint-text.ts
       - name: Compatibility page matches the catalog
         run: bun scripts/gen-compat.ts --check
+      - name: Built-in library matches server/library
+        run: bun scripts/gen-library.ts --check
       - name: Editor extension
         run: node integrations/vscode/test.js

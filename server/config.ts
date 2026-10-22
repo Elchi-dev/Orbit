@@ -53,7 +53,9 @@ export interface Config {
   integrations: { editor: string; briefing: boolean };
   mcp: { servers: Record<string, McpServer> };
   context: { project_files: boolean };
-  skills: { enabled: boolean; dirs: string[] };
+  skills: { enabled: boolean; dirs: string[]; disabled: string[] };
+  knowledge: { enabled: boolean; disabled: string[]; always_max_chars: number };
+  library: { generator_model: string; max_searches: number };
   /** changes to the built-in profiles, and new ones, by id */
   profiles: Record<string, Record<string, unknown>>;
   helpers: { enabled: boolean; max_parallel: number; max_depth: number };
@@ -87,7 +89,9 @@ export const DEFAULT_CONFIG: Config = {
   integrations: { editor: "auto", briefing: true },
   mcp: { servers: {} },
   context: { project_files: true },
-  skills: { enabled: true, dirs: [] },
+  skills: { enabled: true, dirs: [], disabled: [] },
+  knowledge: { enabled: true, disabled: [], always_max_chars: 8000 },
+  library: { generator_model: "claude-haiku-5-5", max_searches: 5 },
   profiles: {},
   helpers: { enabled: true, max_parallel: 4, max_depth: 1 },
   // USD per million tokens, checked October 2026. Edit in orbit.toml when prices change.

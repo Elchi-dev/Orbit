@@ -6,6 +6,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { ORBIT_DIR, config } from "./config";
+import { builtinSkills } from "./library";
 
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md", "CLAUDE.local.md", ".cursorrules", ".windsurfrules", ".github/copilot-instructions.md"];
 const MAX_FILE = 20_000;
@@ -47,7 +48,8 @@ export interface Skill {
   name: string;
   description: string;
   dir: string;
-  source: "project" | "orbit" | "claude";
+  source: "project" | "orbit" | "claude" | "builtin";
+  enabled: boolean;
 }
 
 /** Read the --- frontmatter --- at the top of a SKILL.md: plain key: value lines are enough for name and description. */
@@ -78,8 +80,10 @@ export function skillDirs(cwd?: string): { dir: string; source: Skill["source"] 
   return dirs;
 }
 
-export function findSkills(cwd?: string): Skill[] {
-  if (config().skills?.enabled === false) return [];
+/** Skills Claude may load here: the project's, yours, Claude Code's, then the built-ins. `all` keeps the switched-off ones too. */
+export function findSkills(cwd?: string, all = false): Skill[] {
+  if (!all && config().skills?.enabled === false) return [];
+  const off = new Set(config().skills?.disabled ?? []);
   const seen = new Set<string>();
   const out: Skill[] = [];
   for (const { dir, source } of skillDirs(cwd)) {
@@ -98,11 +102,16 @@ export function findSkills(cwd?: string): Skill[] {
         // the first one found wins, so a project can override a personal skill
         if (seen.has(name)) continue;
         seen.add(name);
-        out.push({ name, description: (fm.description || "").slice(0, 400), dir: join(dir, e), source });
+        out.push({ name, description: (fm.description || "").slice(0, 400), dir: join(dir, e), source, enabled: !off.has(name) });
       } catch {}
     }
   }
-  return out;
+  for (const b of builtinSkills()) {
+    if (seen.has(b.name)) continue;
+    seen.add(b.name);
+    out.push({ name: b.name, description: b.description.slice(0, 400), dir: "", source: "builtin", enabled: !off.has(b.name) });
+  }
+  return all ? out : out.filter((s) => s.enabled);
 }
 
 const MAX_SKILL = 60_000;
@@ -111,6 +120,7 @@ const MAX_SKILL = 60_000;
 export function loadSkill(cwd: string, name: string): { content: string; isError?: boolean } {
   const s = findSkills(cwd).find((x) => x.name === name);
   if (!s) return { content: `No skill called "${name}". Available: ${findSkills(cwd).map((x) => x.name).join(", ") || "none"}.`, isError: true };
+  if (s.source === "builtin") return { content: `Built-in skill: ${s.name}\n\n${builtinSkills().find((b) => b.name === name)!.text}` };
   let body = readFileSync(join(s.dir, "SKILL.md"), "utf8");
   if (body.length > MAX_SKILL) body = body.slice(0, MAX_SKILL) + "\n\n(cut here)";
   const files: string[] = [];

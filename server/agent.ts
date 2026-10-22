@@ -1,4 +1,5 @@
 // The agent loop: stream a reply, gate and run its tool calls, feed results back, repeat until done.
+import { knowledgePrompt } from "./library";
 import { noticeServer, openPreview, previewState } from "./preview";
 import { getProfile } from "./profiles";
 import { findSkills, projectInstructions } from "./context";
@@ -132,6 +133,10 @@ function systemPrompt(ws: WorkspaceRow) {
         .map((s) => `- ${s.name}: ${s.description || "(no description)"}`)
         .join("\n")}`,
     );
+  if (c.knowledge?.enabled !== false) {
+    const k = knowledgePrompt(ws.cwd);
+    if (k) parts.push(k);
+  }
   if (pins.length) parts.push(`Memory shelf (facts pinned in this workspace):\n${pins.map((p) => `- ${p.text}`).join("\n")}`);
   if (ws.summary.trim()) parts.push(`Summary of earlier work in this workspace (older messages were folded into it):\n${ws.summary.trim()}`);
   return parts.join("\n\n");

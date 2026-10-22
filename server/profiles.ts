@@ -34,7 +34,7 @@ export interface Profile {
   builtin?: boolean;
 }
 
-const READ_ONLY_TOOLS = ["read_file", "list_dir", "glob", "grep", "fetch_url", "load_skill", "plan", "ui_*"];
+const READ_ONLY_TOOLS = ["read_file", "list_dir", "glob", "grep", "fetch_url", "load_skill", "knowledge", "plan", "ui_*"];
 
 export const BUILTIN: Profile[] = [
   {

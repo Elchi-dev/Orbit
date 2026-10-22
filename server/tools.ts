@@ -5,6 +5,7 @@ import { openPreview, previewState, resolveTarget } from "./preview";
 import { isLocalUrl, screenshot } from "./screenshot";
 import { profileAllows, type Profile } from "./profiles";
 import { loadSkill } from "./context";
+import { findKnowledge, readKnowledge, searchKnowledge } from "./library";
 import { callMcp, mcpSubject, mcpTools } from "./mcp";
 import { catalogReadOnly, catalogUnsafe } from "./catalog";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs";
@@ -242,6 +243,27 @@ const TOOLS: ToolDef[] = [
     readOnly: true,
     async run(input, ctx) {
       return loadSkill(ctx.ws.cwd, String(input?.name ?? ""));
+    },
+  },
+  {
+    name: "knowledge",
+    parallel: true,
+    description:
+      "Read the user's knowledge files (listed in the system prompt): pass name to read one whole, or query to search all of them for the passages that match.",
+    input_schema: obj({ name: str("A knowledge file's name"), query: str("Words to search for across all knowledge files") }, []),
+    readOnly: true,
+    async run(input, ctx) {
+      const name = String(input?.name ?? "").trim();
+      const query = String(input?.query ?? "").trim();
+      if (name) {
+        const text = readKnowledge(ctx.ws.cwd, name);
+        if (text != null) return { content: text };
+        return { content: `No knowledge file called "${name}". Available: ${findKnowledge(ctx.ws.cwd).map((k) => k.name).join(", ") || "none"}.`, isError: true };
+      }
+      if (!query) return { content: "Pass a name or a query.", isError: true };
+      const hits = searchKnowledge(ctx.ws.cwd, query);
+      if (!hits.length) return { content: `Nothing in the knowledge files matches "${query}".` };
+      return { content: hits.map((h) => `[${h.name}]\n${h.text}`).join("\n\n---\n\n") };
     },
   },
   {
