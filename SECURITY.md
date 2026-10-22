@@ -37,10 +37,30 @@ an allow rule for one command cannot be extended with `;`, `&&`, `|` or `$()`.
 in `~/.orbit/master.key`, mode 0600), is sent only to the Anthropic API and
 never to the browser, and is never logged.
 
+**Mission webhooks.** `POST /hook/<token>` starts a mission without the
+session cookie; the 20-character random token in the path is the key, and the
+server still only listens on loopback and checks the `Host`. A mission runs
+unattended, so it can only do what your rules (or the judge) allow, and it
+never waits for an answer. Delete the mission to retire its token.
+
+**Opening files in your editor.** The server only opens paths inside the
+workspace's folder, starts the editor's own command as an argument list (never
+through a shell), and only editors from the catalog.
+
 **AI-built widgets.** They run in a sandboxed frame with a content policy that
 allows no network access and no access to Orbit's page.
 
 ## What Orbit does not protect against
+
+- **MCP servers.** A server you add runs as you (a local command) or is a
+  service you trust with the token you give it. Its tool calls pass the gate,
+  but what the server does with them is up to the server. Tools it marks
+  read-only skip the gate unless you set `trust_readonly = false` for it.
+  Tokens for MCP servers are stored in `orbit.toml` in plain text.
+- **Project instruction files.** `AGENTS.md`, `CLAUDE.md` and editor rules in a
+  workspace folder go into Claude's instructions. A repository you cloned from
+  someone else can say anything there; switch it off in Settings, Integrations,
+  for folders you don't trust. The gate still applies.
 
 - **Anything you allow.** Orbit runs as you. An allowed command can do what
   you can do. If you need isolation, run Orbit inside a VM or a container.

@@ -23,6 +23,16 @@ a judge or a question:
   few more, `cd`, `find` without `-delete` or `-exec`, `git status`, `log`,
   `diff`, `show`, `blame`, `ls-files` and `rev-parse`, and `<tool> --version`
 
+- read-only subcommands of the 100 programs Orbit knows: `docker ps`,
+  `kubectl get`, `terraform validate`, `gh pr list`, `npm ls`, `cargo clippy`
+  and so on, listed per program in [COMPATIBILITY.md](COMPATIBILITY.md). A
+  flag that turns a read into a write is caught: `npm audit fix`,
+  `prettier --check --write`, `ruff check --fix`, `git diff --output=`,
+  `rg --pre`. `npx`, `bunx`, `uv run` and `poetry run` are judged by the
+  program they run.
+- `load_skill`, and tools of an MCP server that the server marks read-only
+  (unless that server has `trust_readonly = false`)
+
 A command is only read-only when **every** part of it is. Any of these makes
 the whole command go through the gate: output redirection (`>`), command
 substitution (`$(...)` or backticks), `tee`, `sudo`, or any program not on the
@@ -43,12 +53,15 @@ The pattern is matched against the whole action:
 | shell | the command, as written: `rm -rf ./build/cache` |
 | `write_file`, `edit_file` | `write ` and the absolute path: `write /home/me/app/src/a.ts` |
 | `fetch_url` | `fetch ` and the URL: `fetch https://api.example.com/v1` |
+| an MCP tool | `mcp `, the server, the tool and its arguments as JSON with shell operators taken out: `mcp linear create_issue {"title":"..."}` |
 
 `*` matches any text **except shell operators** (`;`, `&`, `|`, backtick,
 `$`, `(`, `)`, `<`, `>` and new lines). So `rm -rf ./build/*` allows
 `rm -rf ./build/cache` but not `rm -rf ./build/x; rm -rf ~`. `?` matches one
 character under the same condition. Set `kind = "regex"` for a regular
 expression instead.
+
+![Rules in Settings: from orbit.toml and from Always allow, in one list](images/rules.webp)
 
 Where rules come from, and which wins:
 
@@ -60,9 +73,12 @@ The first match decides. Within the database, newer rules are checked first.
 
 "Always allow" suggests a pattern you can edit before saving. For anything
 destructive or outward facing (`rm`, `mv`, `chmod`, `kill`, `sudo`, `curl`,
-`git` and similar), the suggestion is the exact command, never a wildcard.
-For other commands it is the first two words and `*` (`npm install *`), for
-files the folder (`write /home/me/app/src/**`).
+`git` and similar, and every guarded subcommand in the catalog such as
+`kubectl delete`, `terraform apply` or `vercel deploy`), the suggestion is the
+exact command, never a wildcard. For other commands it is the first two words
+and `*` (`npm install *`), one word deeper when that group has a guarded member
+(`docker compose up *`, so `docker compose down` stays out), for files the
+folder (`write /home/me/app/src/**`).
 
 ## 4. The workspace mode
 
@@ -74,7 +90,16 @@ Only actions no rule decided get here.
 | **Auto** | The judge decides. When it is unsure, you decide. |
 | **Rules** | Blocked. For runs nobody is watching. |
 
+Missions run unattended, with stricter versions of the same steps: Manual
+becomes Rules, a rule that says **ask** means no, and in Auto mode a judge that
+is unsure means no. Nothing ever waits for an answer.
+
 ## The judge
+
+When an action matches a guarded subcommand from the catalog, the judge is told
+so: "Orbit marks this as destructive or outward-facing (kubectl: kubectl
+delete). Allow it only when the goal clearly asks for exactly this."
+
 
 The judge is a second, cheaper model (`claude-sonnet-5-5` by default) asked
 one question: may this one action run without asking the user?

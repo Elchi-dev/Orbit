@@ -85,6 +85,11 @@ your editor at the right line (Settings, Integrations, "Open files in").
 | Emacs | `(shell-command (concat "orbit " default-directory))`; Orbit opens files back through `emacsclient`. |
 | Links | `http://localhost:7777/#/open?path=/abs/folder&file=src/a.ts&line=12&text=...` does the same from anything that can open a URL. Text lands in the composer and is never sent on its own. |
 
+Apps without a command line (Linear, Jira, Figma, Sentry, Notion, Slack and
+the rest) connect through MCP servers: Settings, MCP servers.
+
+![MCP servers in Settings, with the browser, GitHub and memory one click away](images/mcp.webp)
+
 ## The 100
 
 ### Editors and IDEs

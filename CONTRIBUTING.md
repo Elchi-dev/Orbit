@@ -31,10 +31,18 @@ The screenshots in `docs/images` are taken from this demo.
 
 ```sh
 bun run typecheck && bun test && bun scripts/lint-text.ts
+bun scripts/gen-compat.ts --check && node integrations/vscode/test.js
 ```
 
 CI runs the same, builds the interface and drives a running server end to end
 with `scripts/smoke.ts`.
+
+- **Adding a program** to the list of 100 (or replacing one): edit
+  `server/catalog.ts`, run `bun scripts/gen-compat.ts` to regenerate
+  `docs/COMPATIBILITY.md`, and add a line to `server/catalog.test.ts` for any
+  subcommand you mark read-only that has a flag which writes.
+- **The editor extension** is plain JavaScript in `integrations/vscode`, with
+  no build step. `node test.js` runs it against a stand-in editor.
 
 - A test for every fix, named after what broke, with a comment saying what
   happened.
@@ -49,4 +57,5 @@ with `scripts/smoke.ts`.
 
 Publishing a GitHub release with a tag like `v0.2.0` runs
 `.github/workflows/release.yml`, which builds the binaries, writes
-`SHA256SUMS` and attaches both to the release the installers download from.
+`SHA256SUMS`, packs the editor extension as `orbit-vscode.vsix`, and attaches
+all of it to the release the installers download from.

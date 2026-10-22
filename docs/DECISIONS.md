@@ -86,3 +86,43 @@ runtime.
 A workspace is a folder, a model, instructions, judge notes and a memory
 shelf, with a conversation in it. The word says what it is for: work happens
 there, and it stays where you left it.
+
+## A quiet interface around one loud sky (2026-10-22)
+
+The first interface wrapped everything in glass, glows, pills and gradient
+avatars, and read like every generated app. Now the sky is the one loud thing:
+the cockpit uses flat ink surfaces, hairline borders and two radii, the
+conversation is a log (your request marked by a peach rule, Claude's work as
+text and plain tool rows), and colour carries meaning only: peach is you or
+"needs you", lavender is "working".
+
+## "Compatible" means five concrete things (2026-10-22)
+
+"Works with the 100 programs developers use" had to mean something checkable.
+For each program in `server/catalog.ts` Orbit finds it, tells Claude it is
+there and how to run it without a prompt, lets its read-only subcommands
+through, never widens its destructive ones into a pattern, and sets the
+variables that stop it from waiting for input. Editors also open files at a
+line. The list is code, and the documentation is generated from it, so the two
+can't disagree. Deeper links (the git panel, the editor extension, MCP) are
+separate features, not claims about the list.
+
+## Borrow formats instead of inventing them (2026-10-22)
+
+Project instructions are read from `AGENTS.md`, `CLAUDE.md` and the rule files
+Cursor, Windsurf and Copilot use; skills use the `SKILL.md` folder format;
+saved prompts are Markdown files in `.claude/commands`; apps connect through
+MCP. Someone arriving from another tool brings their setup along unchanged.
+
+## Missions never wait (2026-10-22)
+
+A scheduled or webhook run has nobody to ask. Rather than parking an approval
+until someone shows up, an unattended run treats every "ask" as "no": Manual
+becomes Rules, an "ask" rule refuses, and an unsure judge refuses. The report
+says what was refused, and a rule fixes it for next time.
+
+## The editor extension only hands over text (2026-10-22)
+
+The extension never calls the API. It opens a local link, and Orbit puts the
+selection into the composer of the right workspace, where nothing is sent until
+you press Enter. One place holds the key, the gate and the history.

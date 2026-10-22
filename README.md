@@ -95,18 +95,48 @@ Everything else follows from that:
 
 ![A finished run: a read-only search, two edits allowed by a rule, a test run allowed by the judge](docs/images/workspace.webp)
 
-Every tool call is a capsule that says who let it through: **Read-only**,
-**Your rule**, **Judge** or **You**. Open one for the diff, the reason and the
-output.
+Your request is marked by the peach line; Claude's work reads as text and plain
+rows. Each row says who let it through: **read-only**, **your rule**,
+**judge** or **you**. Open one for the diff, the reason and the output.
 
 | | |
 | --- | --- |
-| ![The approval: the judge was not sure, so Orbit asks](docs/images/approval.webp) | ![Telemetry: speed, first token, context, cache hits and cost](docs/images/telemetry.webp) |
-| When something needs you, the screen dims behind an eclipse. **Y**, **A** or **N** on the keyboard. | Tokens per second, time to first token, context, cache hits, cost per workspace, per day and for the judge. |
-| ![Rules in the settings](docs/images/rules.webp) | ![A chart Claude drew in the conversation](docs/images/chart.webp) |
-| Rules from `orbit.toml` and from "Always allow", in one list. | Claude can change the interface: name workspaces, pin facts, draw charts. Each one can be switched off. |
+| ![The approval: the judge was not sure, so Orbit asks](docs/images/approval.webp) | ![The git panel with a diff and a commit message](docs/images/git.webp) |
+| When something needs you, the screen dims behind an eclipse. **Y**, **A** or **N** on the keyboard. | Branches, diffs, stage, commit, pull and push, next to the conversation. Claude writes the commit message if you want. |
+| ![Reviewing changes file by file](docs/images/review.webp) | ![Missions with a schedule, a webhook and the last report](docs/images/missions.webp) |
+| Every file Claude changed, against how it was before. Keep it, or put it back. | Missions run on a schedule or a webhook while you're away, and never wait for an approval. |
+| ![Integrations: the programs Orbit found on this machine](docs/images/integrations.webp) | ![Slash commands and saved prompts](docs/images/slash.webp) |
+| The 100 programs Orbit knows, and which ones you have. | Type `/` for commands; your `.claude/commands` show up there too. |
+| ![A web search with numbered citations](docs/images/search.webp) | ![A chart Claude drew in the conversation](docs/images/chart.webp) |
+| Web search with sources, a switch per workspace. | Claude can name workspaces, pin facts and draw charts. Each one is a switch. |
+
+<p align="center"><img src="docs/images/telemetry.webp" alt="Telemetry: speed, first token, context, cache hits and cost" width="420"></p>
 
 <p align="center"><img src="docs/images/phone.webp" alt="Orbit on a phone" width="560"></p>
+
+---
+
+## Works with what you already use
+
+- **The 100 programs developers use most**, from git, Docker and kubectl to
+  pnpm, uv, Terraform, the cloud CLIs and psql. For each one that is installed,
+  Orbit tells Claude it is there and how to run it without a prompt, lets its
+  read-only subcommands through (`docker ps`, `kubectl get`), refuses to widen
+  its destructive ones into a rule (`terraform apply`, `kubectl delete`), and
+  sets the variables that stop it from paging or asking. The full list, and
+  what Orbit knows about each: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+- **Your editor.** Paths open in VS Code, Cursor, Windsurf, Zed, JetBrains,
+  Sublime or Xcode at the right line. `orbit .` in any terminal opens that
+  folder as a workspace. The [extension](integrations/vscode) for VS Code,
+  Cursor, Windsurf and VSCodium sends a selection with `Ctrl Alt O`.
+- **Your project's instructions.** `AGENTS.md`, `CLAUDE.md`, `.cursorrules`,
+  `.cursor/rules`, `.windsurfrules` and Copilot's instructions are followed.
+- **Your skills and prompts.** `SKILL.md` skills from `.claude/skills` and
+  `~/.claude/skills`, and Markdown prompts from `.claude/commands`, work as
+  they are.
+- **Everything else through MCP.** Add a server by command or URL; its tools
+  pass the same gate. A real browser for Claude (Playwright), GitHub and a
+  memory store are one click away.
 
 ---
 
@@ -134,6 +164,7 @@ The browser opens on `http://localhost:7777`. Paste your Anthropic API key once
 and launch your first workspace by typing what you want done.
 
 ```
+orbit .               this folder as a workspace (or hand it to the running Orbit)
 orbit --port 7778     another port
 orbit --no-open       don't open the browser
 orbit --mock          a fake model, no API calls: try the interface for free
@@ -160,7 +191,11 @@ bun install && bun run build            # binaries in release/
 | **Safety** | Undo journal for every changed file, kill switch (Esc twice), daily and per-workspace budgets, a session cookie and Host and Origin checks on every request. [SECURITY.md](SECURITY.md) |
 | **Telemetry** | Speed, first token, context used, cache hits, cost per workspace, per day and for the judge, rate limits. |
 | **Interface tools** | Claude may rename the workspace, restyle its planet, pin facts, show charts and notes, notify you, and build sandboxed widgets. Each one is a switch. |
-| **Composer** | Images, PDFs and text files by drag, paste or click; long pastes become attachments; an effort picker per message. |
+| **Composer** | Images, PDFs and text files by drag, paste or click; long pastes become attachments; an effort picker per message; web search; dictation; `/` commands and saved prompts. |
+| **Git and review** | A git panel (branches, diffs, stage, commit, pull, push) and a review of every file Claude changed, kept or put back one by one. |
+| **Missions** | Requests that run on a schedule or from a local webhook, unattended, with a report and a notification. |
+| **Context** | Project instruction files, skills, MCP servers, the 100 known programs, smart compaction of older history. |
+| **Sharing** | Export to Markdown, or save a workspace as one HTML page that opens anywhere. |
 
 Everything lives in one SQLite file in `~/.orbit`, next to `orbit.toml`. The
 annotated config is [orbit.example.toml](orbit.example.toml).
@@ -169,20 +204,11 @@ annotated config is [orbit.example.toml](orbit.example.toml).
 
 ## Planned
 
-### Next
-
-- Web search with citations, as a switch in the composer
-- Knowledge files per workspace, searched locally instead of pasted into context
-- Skills: folders of instructions and scripts loaded only when they apply
-- Replay: scrub through a finished run and watch it happen again
-- Diff review: accept or reject a run's file changes hunk by hunk
-
-### Later
-
-- Missions: tasks that run on a schedule or a local webhook, in Rules mode
-- Parallel helpers, drawn as moons around the workspace's planet
-- Voice in and out
-- Other providers (OpenAI, Gemini, local models) behind the same gate
+- Long sessions against the live API, and fixing what they turn up
+- Hunk by hunk review, secrets for MCP servers from the encrypted store
+- Knowledge files per workspace and automatic memory
+- Replay, and parallel helpers drawn as moons around a planet
+- A phone companion with pairing, voice out, other providers
 
 Reasons and order: [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -195,10 +221,10 @@ Reasons and order: [docs/ROADMAP.md](docs/ROADMAP.md).
   and give it that machine.
 - **Not a hosted service, and not multi-user.** One person, one machine,
   loopback only. There are no accounts.
-- **Not an IDE.** It does not replace your editor or Claude Code's integration
-  with it. It is where you hand work over and watch it happen.
+- **Not an IDE.** It does not replace your editor; it opens files in it and
+  takes selections from it. It is where you hand work over and watch it happen.
 - **Not a chat app with extras.** No characters, no social features, no
-  sharing of conversations beyond exporting them.
+  hosted sharing: a workspace leaves your machine only as a file you save.
 
 ---
 
@@ -206,23 +232,27 @@ Reasons and order: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Alpha, and honest about it.
 
-Built and tested: the agent loop with streaming, adaptive thinking and tool
-use, the persistent shell, all file tools, the gate with read-only detection,
-rules, three modes and the judge, approvals with "Always allow", the undo
-journal and kill switch, budgets, history clearing with summaries, search,
-incognito workspaces, the whole interface, single binaries for five platforms
-and the installers.
+Built and tested: the agent loop with streaming, adaptive thinking, tool use
+and web search, the persistent shell, all file tools, the gate with read-only
+detection for the shell and the 100 known programs, rules, three modes and the
+judge, approvals with "Always allow", the undo journal, review and kill switch,
+budgets, compaction, missions, MCP servers, the git panel, skills and project
+instructions, the editor links and extension, the whole interface, single
+binaries for five platforms and the installers.
 
 Not yet: long sessions against the live API (everything above was driven by
-the mock model and unit tests), the 3D sky in Firefox (checked with the flat
-fallback only), Windows beyond building the binary.
+the mock model, test servers and unit tests), web search and MCP against real
+services, the extension inside a real editor, dictation with a real
+microphone, the 3D sky in Firefox (checked with the flat fallback only),
+Windows beyond building the binary.
 
-The test bar: 37 unit tests named after what they protect, including the rule
-that once let an allow rule be stretched with `;`. CI starts a real server and
-drives it end to end over HTTP and WebSocket: a read-only command, a manual
-approval, "Always allow" answering the next time, the judge handing a decision
-back, titles, search and clearing. Every screen was checked with data at desktop width
-and at 390 pixels, in Chromium and Firefox, with no console errors.
+The test bar: 104 tests named after what they protect, including the rule
+that once let an allow rule be stretched with `;`, flags that turn a read-only
+command into a write, and a mission that must refuse instead of waiting. CI
+starts a real server and drives it end to end over HTTP and WebSocket, checks
+that the compatibility page matches the catalog, and runs the extension
+against a stand-in editor. Every screen was checked with data at desktop width
+and at 390 pixels.
 
 ---
 
@@ -230,7 +260,9 @@ and at 390 pixels, in Chromium and Firefox, with no console errors.
 
 | Document | What |
 | --- | --- |
-| [docs/PERMISSIONS.md](docs/PERMISSIONS.md) | The gate in detail: read-only list, rule syntax, modes, the judge |
+| [docs/PERMISSIONS.md](docs/PERMISSIONS.md) | The gate in detail: read-only list, rule syntax, modes, the judge, unattended runs |
+| [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | The 100 programs, what Orbit knows about each, the editor links |
+| [integrations/vscode](integrations/vscode) | The extension for VS Code, Cursor, Windsurf and VSCodium |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the server, the agent loop and the interface fit together |
 | [orbit.example.toml](orbit.example.toml) | Every setting, annotated |
 | [SECURITY.md](SECURITY.md) | What Orbit protects against, what it does not, how to report a problem |

@@ -35,6 +35,13 @@ browser only ever talks to it.
 | `server/secrets.ts` | The API key, encrypted with a key that never leaves `~/.orbit` |
 | `server/usage.ts` | Token counts to cost |
 | `server/hub.ts` | Sends events to every open tab |
+| `server/catalog.ts` | The 100 programs Orbit knows: how to find them, their read-only and guarded subcommands, variables that keep them quiet, how editors open a file at a line |
+| `server/integrations.ts` | What is installed, versions, opening files in your editor |
+| `server/context.ts` | `AGENTS.md`, `CLAUDE.md` and editor rules from the workspace folder; skills; saved prompts as slash commands |
+| `server/mcp.ts` | The MCP client: stdio and streamable HTTP servers, their tools as Claude's tools |
+| `server/git.ts` | The git panel: status, diffs, stage, commit, branches, push and pull, commit messages from the scribe |
+| `server/review.ts`, `server/diff.ts` | Reviewing Claude's changes per file, and the line diff behind it |
+| `server/missions.ts` | Missions: schedules, webhooks and unattended runs |
 
 ### One turn
 
@@ -55,6 +62,23 @@ browser only ever talks to it.
    until the reply ends without tools, the budget is used up, or you stop it.
 
 After the first finished turn the scribe model names the workspace.
+
+With web search on, the API's own search tool is added to the request. Its
+blocks and the citations on the answer are stored and sent back as they came;
+a turn the API pauses during a long search is sent back to let it finish. With
+search off, earlier searches go back as plain text.
+
+A mission runs the same loop with `unattended` set: the gate turns Manual into
+Rules, a rule that says "ask" into no, and an unsure judge into no, so nothing
+ever waits for an answer.
+
+### What Claude is told
+
+The system prompt is built for every request, so changes apply at once: the
+environment, how to work, your profile and standing instructions, the
+workspace's instructions, the project's own instruction files, the installed
+programs Orbit found with a line on driving each one quietly, the skills by
+name and description, the memory shelf and the summary of folded history.
 
 ### The shell
 
@@ -83,7 +107,8 @@ the shell's process tree; the next command starts a fresh shell.
 | `tool_calls` | input, the matched text, status, output, who decided and why, durations |
 | `usage` | tokens per call, by kind (main, judge, scribe), time to first token, speed, cost |
 | `rules` | pattern, verdict, kind, scope (one workspace or all) |
-| `snapshots` | file contents before a change, for undo |
+| `snapshots` | file contents before a change, for undo and review (`reviewed` once kept) |
+| `missions` | prompt, schedule, approval mode, webhook token, next and last run, the last report |
 | `pins` | the memory shelf |
 | `secrets` | the API key, AES-256-GCM |
 | `search` | full-text index over messages (FTS5); incognito workspaces are left out |
@@ -93,7 +118,8 @@ the shell's process tree; the next command starts a fresh shell.
 The server pushes one stream of events to every open tab: `message`,
 `block_start`, `delta`, `block_stop`, `speed`, `usage`, `tool_call`,
 `tool_output`, `approval_request`, `approval_resolved`, `workspace`,
-`turn_start`, `turn_end`, `cleared`, `notify` and `error`. The tab sends
+`turn_start`, `turn_end`, `cleared`, `compacted`, `missions`, `mcp`, `file_changed`,
+`notify` and `error`. The tab sends
 `send`, `approval`, `stop` and `kill`.
 
 ## Interface
@@ -104,7 +130,9 @@ The server pushes one stream of events to every open tab: `message`,
 | --- | --- |
 | `lib/store.ts` | All state, one store; applies server events |
 | `components/orrery/` | The home screen. `OrreryScene` is the 3D sky (planet surfaces, the sun, nebula and dust are shaders); `FlatOrrery` is the same layout without WebGL |
-| `components/cockpit/` | A workspace: the conversation, tool capsules, composer, telemetry, the dock and its drawers |
+| `components/cockpit/` | A workspace: the conversation, tool rows, composer with slash commands and dictation, telemetry, the dock and its panels (shell, review, git, missions, memory, workspace) |
+| `components/Integrations.tsx`, `components/McpPage.tsx` | Settings pages for the editor and the 100 programs, and for MCP servers |
+| `lib/slash.ts`, `lib/share.tsx` | Slash commands; saving a workspace as one HTML page |
 | `components/Approval.tsx` | The approval eclipse |
 | `components/Settings.tsx` | Settings; writes `orbit.toml` through the server |
 | `styles.css`, `app.css` | Tokens and the interaction rules every control follows |
@@ -112,6 +140,17 @@ The server pushes one stream of events to every open tab: `message`,
 Planet labels are ordinary buttons laid over the canvas and moved every frame
 to sit under their planet, so they can be clicked, focused with Tab and read
 by a screen reader.
+
+## Editors
+
+`integrations/vscode` is the extension for VS Code, Cursor, Windsurf and
+VSCodium. It never talks to Claude: it opens
+`http://localhost:7777/#/open?path=...&file=...&line=...&text=...`, and the
+interface finds or makes the workspace for the folder and puts the text into
+its composer. `orbit <folder>` does the same from a terminal, handing the
+folder to the Orbit that is running when there is one. The other way, the
+server starts the editor's own command with the file and line, or returns its
+link (`vscode://file/...`) for the browser to open.
 
 ## Build
 
