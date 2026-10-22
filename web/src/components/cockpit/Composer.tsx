@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUp, FileText, Gauge, Globe, Image as ImageIcon, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, FileText, Gauge, Globe, Mic, MicOff, Image as ImageIcon, Paperclip, Square, X } from "lucide-react";
 import { useStore } from "../../lib/store";
 import type { Workspace } from "../../lib/types";
 import { api } from "../../lib/api";
@@ -73,6 +73,42 @@ export function Composer({ ws }: { ws: Workspace }) {
     } catch {}
   };
   const toggleWeb = () => setWebOn(!web);
+
+  // dictation through the browser's own speech recognition, where there is one
+  const Speech: any = typeof window !== "undefined" ? (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition : null;
+  const [listening, setListening] = useState(false);
+  const [heard, setHeard] = useState("");
+  const rec = useRef<any>(null);
+  function dictate() {
+    if (listening) {
+      rec.current?.stop();
+      return;
+    }
+    const r = new Speech();
+    r.continuous = true;
+    r.interimResults = true;
+    r.lang = navigator.language || "en-US";
+    r.onresult = (ev: any) => {
+      let interim = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) setText((x) => (x && !x.endsWith(" ") ? `${x} ` : x) + t.trim());
+        else interim += t;
+      }
+      setHeard(interim);
+    };
+    r.onend = () => {
+      setListening(false);
+      setHeard("");
+    };
+    r.onerror = (ev: any) => {
+      if (ev.error !== "no-speech" && ev.error !== "aborted") useStore.getState().toast({ title: "Dictation stopped", body: ev.error === "not-allowed" ? "The browser wasn't allowed to use the microphone." : ev.error, tone: "warn" });
+    };
+    rec.current = r;
+    r.start();
+    setListening(true);
+  }
+  useEffect(() => () => rec.current?.stop(), [ws.id]);
 
   // slash commands: built-ins, saved prompts (.claude/commands, ~/.orbit/prompts) and skills
   const [custom, setCustom] = useState<SlashItem[]>([]);
@@ -238,7 +274,7 @@ export function Composer({ ws }: { ws: Workspace }) {
           ref={ta}
           rows={1}
           value={text}
-          placeholder={running ? "Claude is working. You can type the next message." : "Tell Claude what to do next"}
+          placeholder={listening ? heard || "Listening…" : running ? "Claude is working. You can type the next message." : "Tell Claude what to do next"}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (matches.length) {
@@ -287,6 +323,18 @@ export function Composer({ ws }: { ws: Workspace }) {
           <button type="button" className="btn b-ghost icon-btn" aria-label="Attach files" data-tip="Attach images, PDFs or text" onClick={() => fileInput.current?.click()}>
             <Paperclip size={18} />
           </button>
+          {Speech && (
+            <button
+              type="button"
+              className={`btn b-ghost icon-btn mic ${listening ? "on" : ""}`}
+              aria-pressed={listening}
+              aria-label={listening ? "Stop dictating" : "Dictate"}
+              data-tip={listening ? "Stop dictating" : "Dictate (your browser's speech recognition, which may send audio to its maker)"}
+              onClick={dictate}
+            >
+              {listening ? <MicOff size={17} /> : <Mic size={17} />}
+            </button>
+          )}
           <button
             type="button"
             className={`btn b-ghost sz-s web-toggle ${web ? "on" : ""}`}

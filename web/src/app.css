@@ -585,3 +585,5 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius
 .rev-del { color: var(--danger); }
 .git-dir .rev-add, .git-dir .rev-del { font-size: 12px; }
 .git-dir.num { direction: ltr; text-align: left; }
+.mic.on { color: var(--peach); background: rgba(255, 177, 153, 0.1); }
+.mic.on svg { animation: breathe 1.2s ease-in-out infinite; }
