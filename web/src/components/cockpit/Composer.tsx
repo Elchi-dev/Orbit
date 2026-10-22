@@ -156,6 +156,20 @@ export function Composer({ ws }: { ws: Workspace }) {
     ta.current?.focus();
   }, [ws.id]);
 
+  // a screenshot from the preview arrives as an attachment (and its console as a text file)
+  useEffect(() => {
+    const onAttach = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d?.workspaceId !== ws.id) return;
+      const add: Attachment[] = [{ id: attachId++, kind: "image", name: d.name, mediaType: d.mediaType, data: d.data, preview: `data:${d.mediaType};base64,${d.data}` }];
+      if (d.note) add.push({ id: attachId++, kind: "text", name: "console.txt", text: d.note });
+      setFiles((f) => [...f, ...add]);
+      ta.current?.focus();
+    };
+    window.addEventListener("orbit:attach", onAttach);
+    return () => window.removeEventListener("orbit:attach", onAttach);
+  }, [ws.id]);
+
   // text handed over from the editor or an orbit:// style link lands here, never sent on its own
   const incoming = useStore((s) => s.drafts[ws.id]);
   useEffect(() => {

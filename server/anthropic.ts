@@ -233,13 +233,74 @@ export async function validateKey(key: string): Promise<{ ok: boolean; error?: s
 // ---------- mock model (ORBIT_MOCK=1) for offline UI work and tests ----------
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const MOCK_PAGE = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy</title>
+<style>
+  :root { --ink: #1d1b16; --paper: #f7f3ea; --line: #e3dccb; --accent: #2f6f4f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 17px/1.5 Georgia, "Iowan Old Style", serif; color: var(--ink); background: var(--paper); }
+  main { max-width: 560px; margin: 0 auto; padding: 56px 20px; }
+  h1 { font-size: 44px; line-height: 1; margin: 0 0 6px; letter-spacing: -0.02em; }
+  p.sub { margin: 0 0 32px; color: #6b6556; }
+  form { display: flex; gap: 8px; margin-bottom: 20px; }
+  input { flex: 1; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fffdf8; }
+  button { font: inherit; padding: 0 18px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; cursor: pointer; }
+  ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  li { display: flex; align-items: center; gap: 12px; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+  li.done span { text-decoration: line-through; color: #9a937f; }
+  li input { flex: none; width: 20px; height: 20px; accent-color: var(--accent); }
+  .count { margin-top: 16px; font-size: 14px; color: #6b6556; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tidy</h1>
+  <p class="sub">Three things today. Not thirty.</p>
+  <form id="f"><input id="t" placeholder="Add a task" aria-label="Add a task"><button>Add</button></form>
+  <ul id="l"></ul>
+  <p class="count" id="c"></p>
+</main>
+<script>
+  const KEY = "tidy";
+  let todos = JSON.parse(localStorage.getItem(KEY) || '[{"text":"Water the basil","done":true},{"text":"Call the landlord","done":false},{"text":"Finish chapter two","done":false}]');
+  const save = () => localStorage.setItem(KEY, JSON.stringify(todos));
+  function draw() {
+    l.innerHTML = "";
+    todos.forEach((t, i) => {
+      const li = document.createElement("li");
+      li.className = t.done ? "done" : "";
+      li.innerHTML = '<input type="checkbox"' + (t.done ? " checked" : "") + '><span></span>';
+      li.querySelector("span").textContent = t.text;
+      li.querySelector("input").onchange = () => { todos[i].done = !todos[i].done; save(); draw(); };
+      l.append(li);
+    });
+    c.textContent = todos.filter((t) => !t.done).length + " left";
+  }
+  f.onsubmit = (e) => { e.preventDefault(); if (!t.value.trim()) return; todos.push({ text: t.value.trim(), done: false }); t.value = ""; save(); draw(); };
+  draw();
+</script>
+</body>
+</html>
+`;
+
 async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: AbortSignal): Promise<StreamResult> {
   const last = req.messages[req.messages.length - 1];
   const lastText = (last?.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(" ").toLowerCase();
   const afterTool = (last?.content ?? []).some((b: any) => b.type === "tool_result");
   const blocks: any[] = [];
   blocks.push({ type: "thinking", thinking: "Looking at what was asked and picking the smallest useful next step.", signature: "mock" });
-  if (afterTool) {
+  const lastAsk = req.messages[req.messages.length - 2]?.content ?? [];
+  const lastTool = lastAsk.filter((b: any) => b.type === "tool_use").pop()?.name;
+  if (afterTool && lastTool === "write_file" && req.tools?.some((t: any) => t.name === "screenshot")) {
+    blocks.push({ type: "text", text: "Written. Checking it at phone and desktop width." });
+    blocks.push({ type: "tool_use", id: "toolu_" + crypto.randomUUID().slice(0, 12), name: "screenshot", input: { target: "index.html", widths: [390, 1280] } });
+  } else if (afterTool && lastTool === "screenshot") {
+    blocks.push({ type: "text", text: "Both widths hold up: the list stacks on the phone, the header stays on one line, and the console is clean. It's in `index.html`; open it in the preview or straight in a browser." });
+  } else if (afterTool) {
     blocks.push({ type: "text", text: "Done. The command finished and the output looks right. Anything else?" });
   } else if (req.tools?.some((t: any) => t.type?.startsWith("web_search")) && /search|latest|current|news|price/.test(lastText)) {
     const id = "srvtoolu_" + crypto.randomUUID().slice(0, 12);
@@ -258,6 +319,9 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
       citations: [{ type: "web_search_result_location", url: "https://bun.com/blog", title: "Bun blog", encrypted_index: "mock", cited_text: "Install is faster in this release." }],
     });
     blocks.push({ type: "text", text: " Node.js shipped a security update the same week." , citations: [{ type: "web_search_result_location", url: "https://nodejs.org/en/blog", title: "Node.js blog", encrypted_index: "mock", cited_text: "Security releases for all active lines." }] });
+  } else if (req.tools?.some((t: any) => t.name === "preview_open") && /\b(page|site|landing|html|ui)\b/.test(lastText)) {
+    blocks.push({ type: "text", text: "One file, no build step. Writing it now; watch the preview." });
+    blocks.push({ type: "tool_use", id: "toolu_" + crypto.randomUUID().slice(0, 12), name: "write_file", input: { path: "index.html", content: MOCK_PAGE } });
   } else if (req.tools?.some((t: any) => t.name === "plan") && /\b(build|make|create)\b/.test(lastText)) {
     blocks.push({ type: "text", text: "Planning this first." });
     blocks.push({

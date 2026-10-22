@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   AppWindow,
   BookOpen,
+  Camera,
+  MonitorPlay,
   Boxes,
   Bell,
   Brain,
@@ -140,6 +142,8 @@ const TOOL_ICON: Record<string, LucideIcon> = {
   ui_widget: AppWindow,
   load_skill: BookOpen,
   plan: ListTodo,
+  preview_open: MonitorPlay,
+  screenshot: Camera,
 };
 
 const base = (p: string) => (p ? p.split(/[\\/]/).filter(Boolean).slice(-2).join("/") : "");
@@ -173,6 +177,14 @@ export function toolLabel(name: string, input: any): ReactNode {
       const d = items.filter((i) => i.status === "done").length;
       return <>Updated the plan, {d} of {items.length} done</>;
     }
+    case "preview_open":
+      return <>Showed {code(input?.target ?? "")} in the preview</>;
+    case "screenshot":
+      return (
+        <>
+          Looked at {code(input?.target || "the preview")} at {(input?.widths?.length ? input.widths : [1280]).join(", ")} px
+        </>
+      );
     case "load_skill":
       return <>Loaded the skill {code(input?.name ?? "")}</>;
     case "ui_set_title":
@@ -258,6 +270,11 @@ export function ToolCapsule({ block, call, wsId }: { block: { id?: string; name?
         </span>
         <ChevronDown size={14} className={`chev ${showOpen ? "up" : ""}`} />
       </button>
+      {block.name === "screenshot" && call?.output && !showOpen && (
+        <div className="cap-shots">
+          <Shots text={call.output} />
+        </div>
+      )}
       <AnimatePresence initial={false}>
         {showOpen && (
           <motion.div
@@ -280,7 +297,8 @@ export function ToolCapsule({ block, call, wsId }: { block: { id?: string; name?
                   <SquareArrowOutUpRight size={14} /> Open in editor
                 </button>
               ) : null}
-              {output ? <pre className="cap-out mono">{output}</pre> : null}
+              <Shots text={output ?? ""} />
+              {output ? <pre className="cap-out mono">{output.replace(/\n?\[shots: [^\]]*\]/, "")}</pre> : null}
             </div>
           </motion.div>
         )}
@@ -329,7 +347,7 @@ function ToolInput({ name, input }: { name: string; input: any }) {
         {String(input?.content ?? "").slice(0, 3000)}
       </pre>
     );
-  if (name.startsWith("ui_") || name === "bash") return null;
+  if (name.startsWith("ui_") || ["bash", "screenshot", "preview_open", "plan", "load_skill"].includes(name)) return null;
   return <pre className="cap-cmd mono">{JSON.stringify(input, null, 2)}</pre>;
 }
 
@@ -513,6 +531,8 @@ export function TerminalTool({ block, call }: { block: { id?: string; name?: str
       .map((text) => ({ text }));
   }
   if (call?.status === "denied") body = [{ text: call.reason ?? "denied", cls: "denied" }];
+  const shots = name === "screenshot" ? (call?.output ?? "") : "";
+  if (shots) body = body.filter((l) => !l.text.startsWith("[shots:"));
   const shown = open ? body : body.slice(0, PREVIEW_LINES);
   const more = body.length - shown.length;
   return (
@@ -524,6 +544,11 @@ export function TerminalTool({ block, call }: { block: { id?: string; name?: str
         {call?.status === "pending" && <span className="tt-wait">waiting for you</span>}
         {call?.status === "judging" && <span className="tt-judge">judge looking</span>}
       </button>
+      {shots && (
+        <div className="tt-shots">
+          <Shots text={shots} />
+        </div>
+      )}
       {shown.length > 0 && (
         <div className="tt-out">
           <span className="tt-elbow" aria-hidden="true">
@@ -544,6 +569,25 @@ export function TerminalTool({ block, call }: { block: { id?: string; name?: str
           </pre>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Screenshots a tool took, from the "[shots: a.png b.png]" line in its output. */
+export function Shots({ text }: { text: string }) {
+  const m = text.match(/\[shots: ([^\]]*)\]/);
+  if (!m) return null;
+  return (
+    <div className="shots">
+      {m[1]
+        .split(" ")
+        .filter(Boolean)
+        .map((f) => (
+          <a key={f} href={`/api/shots/${f}`} target="_blank" rel="noreferrer" className="shot">
+            <img src={`/api/shots/${f}`} alt={`Screenshot at ${f.split("-").pop()?.replace(".png", "")} px`} loading="lazy" />
+            <span className="num">{f.split("-").pop()?.replace(".png", "")} px</span>
+          </a>
+        ))}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { AlertCircle, EyeOff, Folder, Pencil, Sparkles, SquareArrowOutUpRight } 
 import { useStore } from "../../lib/store";
 import { ProfilePicker } from "../profiles/ProfilePicker";
 import { PlanBar } from "./PlanBar";
+import { PreviewPane } from "./Preview";
 import { openInEditor } from "../../lib/open";
 import { shortPath, tokens } from "../../lib/format";
 import { Logo } from "../Logo";
@@ -75,6 +76,34 @@ export function Cockpit({ id }: { id: string }) {
   const ws = useStore((s) => s.workspaces[id]);
   const detail = useStore((s) => s.details[id]);
   const server = useStore((s) => s.server);
+  const previewOpen = useStore((s) => s.previewOpen[id]);
+  const hasPreview = useStore((s) => !!s.previews[id]?.url);
+  // how much of the width the conversation takes when the preview is open
+  const [split, setSplit] = useState<number>(() => {
+    try {
+      return Number(localStorage.getItem("orbit.split")) || 46;
+    } catch {
+      return 46;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("orbit.split", String(split));
+    } catch {}
+  }, [split]);
+  const startDrag = (e: React.PointerEvent) => {
+    const main = (e.currentTarget as HTMLElement).parentElement!;
+    const rect = main.getBoundingClientRect();
+    const move = (ev: PointerEvent) => setSplit(Math.min(72, Math.max(28, ((ev.clientX - rect.left) / rect.width) * 100)));
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.classList.remove("dragging");
+    };
+    document.body.classList.add("dragging");
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
   const approvals = useStore((s) => s.approvals);
   const setView = useStore((s) => s.setView);
   const patch = useStore((s) => s.patchWorkspace);
@@ -95,6 +124,8 @@ export function Cockpit({ id }: { id: string }) {
   }, [ws?.running, id]);
 
   if (!ws) return <div className="loading">Loading the workspace…</div>;
+  const profileOfWs = server?.profiles.find((p) => p.id === ws.profile);
+  const showPreview = previewOpen ?? !!(profileOfWs?.preview || hasPreview);
   const layout = server?.profiles.find((p) => p.id === ws.profile)?.layout ?? "log";
   const others = approvals.filter((a) => a.workspaceId !== id);
 
@@ -142,10 +173,29 @@ export function Cockpit({ id }: { id: string }) {
         )}
       </AnimatePresence>
 
-      <main className="cockpit-main">
-        {detail ? <Stream ws={ws} detail={detail} /> : <div className="loading">Loading…</div>}
-        <PlanBar ws={ws} />
-        <Composer ws={ws} />
+      <main className={`cockpit-main ${showPreview ? "split" : ""}`} style={showPreview ? ({ "--split": `${split}%` } as any) : undefined}>
+        <div className="work">
+          {detail ? <Stream ws={ws} detail={detail} /> : <div className="loading">Loading…</div>}
+          <PlanBar ws={ws} />
+          <Composer ws={ws} />
+        </div>
+        {showPreview && (
+          <>
+            <div
+              className="split-handle"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize the preview"
+              tabIndex={0}
+              onPointerDown={startDrag}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowLeft") setSplit((v) => Math.max(28, v - 3));
+                if (e.key === "ArrowRight") setSplit((v) => Math.min(72, v + 3));
+              }}
+            />
+            <PreviewPane ws={ws} onClose={() => useStore.getState().setPreviewOpen(ws.id, false)} />
+          </>
+        )}
       </main>
       <Dock ws={ws} detail={detail} />
       <DrawerHost ws={ws} detail={detail} />

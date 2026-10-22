@@ -1,4 +1,5 @@
 // The agent loop: stream a reply, gate and run its tool calls, feed results back, repeat until done.
+import { noticeServer, openPreview, previewState } from "./preview";
 import { getProfile } from "./profiles";
 import { findSkills, projectInstructions } from "./context";
 import { briefing } from "./catalog";
@@ -356,13 +357,16 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
         db.run("UPDATE tool_calls SET status = 'running' WHERE id = ?", [call.id]);
         broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
         const t0 = performance.now();
-        let out: { content: string; isError?: boolean };
+        let out: { content: string; isError?: boolean; blocks?: any[] };
         try {
           out = tool
             ? await tool.run(call.input, {
                 ws,
                 toolCallId: call.id,
-                onOutput: (chunk) => broadcast("tool_output", { workspaceId: wsId, id: call.id, chunk }),
+                onOutput: (chunk) => {
+                  broadcast("tool_output", { workspaceId: wsId, id: call.id, chunk });
+                  if (profile.preview) noticeServer(wsId, chunk);
+                },
               })
             : { content: `Unknown tool ${call.name}`, isError: true };
         } catch (e) {
@@ -377,7 +381,13 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
           call.id,
         ]);
         broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
-        results.push({ type: "tool_result", tool_use_id: call.id, content: out.content, ...(out.isError ? { is_error: true } : {}) });
+        results.push({ type: "tool_result", tool_use_id: call.id, content: out.blocks ?? out.content, ...(out.isError ? { is_error: true } : {}) });
+        // an HTML page written in a preview profile shows up by itself
+        if (profile.preview && !out.isError && call.name === "write_file" && /\.html?$/i.test(String(call.input?.path ?? "")) && !previewState(wsId)) {
+          try {
+            openPreview(wsId, String(call.input.path));
+          } catch {}
+        }
       }
       const resultId = insertMessage(wsId, "user", results);
       broadcast("message", { workspaceId: wsId, message: { id: resultId, role: "user", content: results, created_at: now() } });

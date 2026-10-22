@@ -1,3 +1,5 @@
+import { openPreview, previewState, resolveTarget } from "./preview";
+import { screenshot } from "./screenshot";
 import { profileAllows, type Profile } from "./profiles";
 import { loadSkill } from "./context";
 import { callMcp, mcpSubject, mcpTools } from "./mcp";
@@ -16,8 +18,11 @@ export interface ToolCtx {
   onOutput: (chunk: string) => void;
 }
 export interface ToolResult {
+  /** what the interface shows and the journal keeps */
   content: string;
   isError?: boolean;
+  /** what Claude gets instead, when it is more than text (screenshots) */
+  blocks?: any[];
 }
 
 type Schema = Record<string, any>;
@@ -135,6 +140,64 @@ const TOOLS: ToolDef[] = [
       broadcast("plan", { workspaceId: ctx.ws.id, plan: items });
       const done = items.filter((i: any) => i.status === "done").length;
       return { content: `Plan saved: ${done} of ${items.length} done.` };
+    },
+  },
+  {
+    name: "preview_open",
+    description:
+      "Show a page in the live preview next to the conversation, where the user watches it. target is a file or folder in the workspace (an HTML file, or a folder with index.html; it reloads by itself when files change) or a local dev server URL like http://localhost:5173. Start dev servers in the background first.",
+    input_schema: obj({ target: str("A path in the workspace, or a http://localhost URL") }, ["target"]),
+    readOnly: true,
+    async run(input, ctx) {
+      try {
+        const st = openPreview(ctx.ws.id, String(input?.target ?? "."));
+        return { content: `The preview now shows ${st.target} (${st.url}).` };
+      } catch (e) {
+        return { content: (e as Error).message, isError: true };
+      }
+    },
+  },
+  {
+    name: "screenshot",
+    description:
+      "Look at a page the way a person would: load it in a headless browser at one or more widths and get the screenshots back, plus the page's console messages and errors. target is a path in the workspace or a local URL; leave it out for what the preview shows. Use it to check your own frontend work before calling it done.",
+    input_schema: obj(
+      {
+        target: str("A path in the workspace or a http://localhost URL; empty for the current preview"),
+        widths: { type: "array", items: { type: "integer" }, description: "CSS widths in pixels, like [390, 1280]. Default [1280]." },
+        full: { type: "boolean", description: "Capture up to 4000 px of height instead of one screen" },
+      },
+      [],
+    ),
+    readOnly: true,
+    async run(input, ctx) {
+      const cur = previewState(ctx.ws.id);
+      const target = String(input?.target || cur?.target || "").trim();
+      if (!target) return { content: "Nothing to look at: give a target or open the preview first.", isError: true };
+      let url: string;
+      try {
+        url = resolveTarget(ctx.ws.id, target).url;
+      } catch (e) {
+        return { content: (e as Error).message, isError: true };
+      }
+      const widths = (Array.isArray(input?.widths) && input.widths.length ? input.widths : [1280]).slice(0, 4).map((w: any) => Number(w) || 1280);
+      const blocks: any[] = [];
+      const names: string[] = [];
+      let consoleLines: string[] = [];
+      for (const w of widths) {
+        try {
+          const s = await screenshot(url, w, { full: !!input?.full });
+          blocks.push({ type: "text", text: `${target} at ${w} px:` });
+          blocks.push({ type: "image", source: { type: "base64", media_type: "image/png", data: s.image } });
+          names.push(s.file);
+          consoleLines = s.console;
+        } catch (e) {
+          return { content: (e as Error).message, isError: true };
+        }
+      }
+      const consoleText = consoleLines.length ? `Console:\n${consoleLines.join("\n")}` : "Console: nothing logged.";
+      blocks.push({ type: "text", text: consoleText });
+      return { content: `Screenshots of ${target} at ${widths.join(", ")} px\n[shots: ${names.join(" ")}]\n${consoleText}`, blocks };
     },
   },
   {
@@ -458,7 +521,7 @@ export function isReadOnly(name: string, input: any) {
   return typeof t.readOnly === "function" ? t.readOnly(input) : t.readOnly;
 }
 export function isUiTool(name: string) {
-  return name.startsWith("ui_");
+  return name.startsWith("ui_") || name === "preview_open";
 }
 
 /** The text a rule pattern is matched against, e.g. "rm -rf build", "write /home/me/x.ts". */

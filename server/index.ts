@@ -24,6 +24,8 @@ import {
   pull as gitPull,
   init as gitInit,
 } from "./git";
+import { screenshot, shotPath } from "./screenshot";
+import { closePreview, openPreview, previewState, startPreviewServer } from "./preview";
 import { keep, reviewList, revert, revertAll } from "./review";
 import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
@@ -195,7 +197,7 @@ function workspaceDetail(id: string) {
     .query("SELECT model, input, output, cache_read, cache_write, ttft_ms, tps, cost FROM usage WHERE workspace_id = ? AND kind = 'pilot' ORDER BY id DESC LIMIT 1")
     .get(id);
   const judge = db.query<{ cost: number; n: number }, [string]>("SELECT COALESCE(SUM(cost),0) AS cost, COUNT(*) AS n FROM usage WHERE workspace_id = ? AND kind = 'judge'").get(id);
-  return { workspace: wsPayload(w), messages, calls, pins, snapshots, last, judge, approvals: pendingApprovals().filter((a) => a.workspaceId === id) };
+  return { workspace: wsPayload(w), messages, calls, pins, snapshots, last, judge, approvals: pendingApprovals().filter((a) => a.workspaceId === id), preview: previewState(id) };
 }
 
 function undoLast(id: string) {
@@ -441,6 +443,34 @@ async function api(req: Request, url: URL): Promise<Response> {
       return bad((e as Error).message);
     }
   }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/preview$/))) {
+    if (!getWorkspace(match[1])) return bad("No such workspace", 404);
+    try {
+      if (m === "GET") return json(previewState(match[1]));
+      if (m === "POST") return json(openPreview(match[1], String((await body()).target ?? ".")));
+      if (m === "DELETE") {
+        closePreview(match[1]);
+        return json({ ok: true });
+      }
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/screenshot$/)) && m === "POST") {
+    if (!getWorkspace(match[1])) return bad("No such workspace", 404);
+    const b = await body();
+    try {
+      const s = await screenshot(String(b.url ?? ""), Number(b.width) || 1280, { full: !!b.full });
+      return json({ image: s.image, console: s.console, width: s.width, file: s.file });
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if ((match = p.match(/^\/api\/shots\/([\w.-]+\.png)$/)) && m === "GET") {
+    const f = shotPath(match[1]);
+    if (!f || !existsSync(f)) return bad("No such screenshot", 404);
+    return new Response(Bun.file(f), { headers: { "content-type": "image/png", "cache-control": "private, max-age=86400" } });
+  }
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/missions$/))) {
     if (!getWorkspace(match[1])) return bad("No such workspace", 404);
     if (m === "GET") return json(listMissions(match[1]));
@@ -659,12 +689,13 @@ try {
   process.exit(1);
 }
 
+const PREVIEW_PORT = startPreviewServer(Number(process.env.ORBIT_PREVIEW_PORT) || (server.port ?? PORT) + 1);
 const url = `http://${HOST === "0.0.0.0" ? "localhost" : HOST === "127.0.0.1" ? "localhost" : HOST}:${server.port}`;
 console.log(`
    ◯  Orbit ${VERSION}${isMock() ? "  (mock model)" : ""}
       ${url}
       data   ${ORBIT_DIR}
-      config ${CONFIG_PATH}
+      config ${CONFIG_PATH}${PREVIEW_PORT ? `\n      preview http://127.0.0.1:${PREVIEW_PORT}` : ""}
 `);
 
 if ((cfg.server.open_browser || OPEN_PATH) && !process.env.ORBIT_NO_OPEN) openBrowser(url + openHash());

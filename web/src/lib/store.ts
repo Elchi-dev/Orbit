@@ -31,6 +31,10 @@ interface Store {
   /** text waiting to be put into a workspace's composer (from a deep link or the editor) */
   drafts: Record<string, string>;
   missions: Record<string, import("../components/cockpit/Missions").Mission[]>;
+  /** what each workspace's preview shows, and whether the pane is open */
+  previews: Record<string, { url: string; target: string; kind: "files" | "server"; nonce: number } | null>;
+  previewOpen: Record<string, boolean>;
+  setPreviewOpen: (wsId: string, open: boolean) => void;
   setIncoming: (wsId: string, text: string | null) => void;
   setView: (v: View) => void;
   setDrawer: (d: Drawer) => void;
@@ -64,6 +68,9 @@ export const useStore = create<Store>((set, get) => ({
   send: () => {},
   drafts: {},
   missions: {},
+  previews: {},
+  previewOpen: {},
+  setPreviewOpen: (wsId, open) => set({ previewOpen: { ...get().previewOpen, [wsId]: open } }),
   setIncoming: (wsId, text) => {
     const drafts = { ...get().drafts };
     if (text) drafts[wsId] = text;
@@ -97,6 +104,7 @@ export const useStore = create<Store>((set, get) => ({
   loadDetail: async (id) => {
     try {
       const d = await api.get<any>(`/api/workspaces/${id}`);
+      if (d.preview) set({ previews: { ...get().previews, [id]: { ...d.preview, nonce: Date.now() } } });
       set({
         workspaces: { ...get().workspaces, [id]: d.workspace },
         details: {
@@ -213,6 +221,15 @@ export const useStore = create<Store>((set, get) => ({
       case "file_changed":
         if (s.details[wsId!]) get().loadDetail(wsId!);
         break;
+      case "preview": {
+        const cur = s.previews[wsId!];
+        set({
+          previews: { ...s.previews, [wsId!]: e.url ? { url: e.url, target: e.target, kind: e.kind, nonce: Date.now() } : null },
+          // a page Claude opens shows up; closing the pane stays your call
+          previewOpen: e.url && !cur ? { ...s.previewOpen, [wsId!]: true } : s.previewOpen,
+        });
+        break;
+      }
       case "plan":
         patchWs(wsId!, { plan: e.plan });
         break;

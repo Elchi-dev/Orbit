@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, BookOpen, CalendarClock, Check, FileDiff, FileText, GitBranch, Loader2, OctagonX, Pin, Plus, Settings2, SquareArrowOutUpRight, Terminal, Trash2, Undo2, X } from "lucide-react";
+import { Archive, BookOpen, CalendarClock, Check, FileDiff, FileText, GitBranch, Loader2, MonitorPlay, OctagonX, Pin, Plus, Settings2, SquareArrowOutUpRight, Terminal, Trash2, Undo2, X } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
 import { openInEditor } from "../../lib/open";
@@ -24,6 +24,10 @@ export function Dock({ ws, detail }: { ws: Workspace; detail?: Detail }) {
   const setDrawer = useStore((s) => s.setDrawer);
   const calls = Object.values(detail?.calls ?? {});
   const [gitCount, setGitCount] = useState(0);
+  const previewOpen = useStore((s) => s.previewOpen[ws.id]);
+  const hasPreview = useStore((s) => !!s.previews[ws.id]?.url);
+  const profilePreview = useStore((s) => !!s.server?.profiles.find((p) => p.id === ws.profile)?.preview);
+  const previewShown = previewOpen ?? (profilePreview || hasPreview);
   // how many files differ from the last commit; refreshed when a run ends
   useEffect(() => {
     if (ws.running) return;
@@ -55,6 +59,17 @@ export function Dock({ ws, detail }: { ws: Workspace; detail?: Detail }) {
           {typeof badges[id] === "number" && (badges[id] as number) > 0 && <span className="badge">{badges[id] as number}</span>}
         </button>
       ))}
+      <button
+        className={`btn b-ghost icon-btn dock-btn ${previewShown ? "on" : ""}`}
+        onClick={() => useStore.getState().setPreviewOpen(ws.id, !previewShown)}
+        aria-label="Preview"
+        aria-pressed={previewShown}
+        data-tip={previewShown ? "Hide the preview" : "Show the preview"}
+        data-tip-side="left"
+      >
+        <MonitorPlay size={19} />
+        {hasPreview && !previewShown && <span className="badge live" />}
+      </button>
       {ws.running && (
         <button
           className="btn b-ghost icon-btn dock-btn kill"
