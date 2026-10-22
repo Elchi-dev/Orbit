@@ -85,7 +85,7 @@ export function Dock({ ws, detail }: { ws: Workspace; detail?: Detail }) {
       })}
       {ws.running && (
         <button
-          className="btn b-ghost icon-btn dock-btn kill"
+          className="btn b-ghost icon-btn dock-btn kill pop-in"
           onClick={() => useStore.getState().send({ type: "kill", workspaceId: ws.id })}
           aria-label="Kill switch"
           data-tip="Kill switch: stop and end the shell"

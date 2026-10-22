@@ -74,7 +74,7 @@ export function App() {
   }, [approvals, busy]);
   const [welcome, setWelcome] = useState(() => location.hash === "#/welcome");
   useEffect(() => {
-    const on = () => location.hash === "#/welcome" && setWelcome(true);
+    const on = () => setWelcome(location.hash === "#/welcome");
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
