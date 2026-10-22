@@ -720,7 +720,7 @@ body.dragging iframe { pointer-events: none; }
 .pv-device { width: 100%; height: 100%; transform-origin: top center; flex: none; }
 .pv-stage.framed .pv-device { border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--line-2), 0 24px 60px -20px rgba(0, 0, 0, 0.8); }
 .pv-frame { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
-.pv-live { position: absolute; top: 18px; left: 50%; translate: -50% 0; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--pop); font-size: 12.5px; color: var(--star-2); font-family: var(--mono); }
+.pv-live { pointer-events: none; position: absolute; top: 18px; left: 50%; translate: -50% 0; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: var(--surface-2); box-shadow: var(--pop); font-size: 12.5px; color: var(--star-2); font-family: var(--mono); }
 .pv-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--lav); animation: breathe 1s ease-in-out infinite; }
 .pv-empty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; max-width: 300px; color: var(--star-2); }
 .pv-empty p { margin: 0; }
