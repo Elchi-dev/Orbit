@@ -67,7 +67,17 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
-        components={{ pre: CodeBlock, a: (p) => <a {...p} target="_blank" rel="noreferrer" /> }}
+        components={{
+          pre: CodeBlock,
+          a: ({ title, children, ...p }) =>
+            title === "cite" ? (
+              <a {...p} className="cite" target="_blank" rel="noreferrer">
+                {children}
+              </a>
+            ) : (
+              <a {...p} title={title} target="_blank" rel="noreferrer" />
+            ),
+        }}
       >
         {text}
       </ReactMarkdown>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUp, FileText, Gauge, Image as ImageIcon, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, FileText, Gauge, Globe, Image as ImageIcon, Paperclip, Square, X } from "lucide-react";
 import { useStore } from "../../lib/store";
 import type { Workspace } from "../../lib/types";
 
@@ -54,6 +54,22 @@ export function Composer({ ws }: { ws: Workspace }) {
   const ta = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const running = ws.running;
+  // web search is remembered per workspace, in this browser
+  const webKey = `orbit.web.${ws.id}`;
+  const [web, setWeb] = useState(false);
+  useEffect(() => {
+    try {
+      setWeb(localStorage.getItem(webKey) === "1");
+    } catch {
+      setWeb(false);
+    }
+  }, [webKey]);
+  const toggleWeb = () => {
+    setWeb(!web);
+    try {
+      localStorage.setItem(webKey, web ? "0" : "1");
+    } catch {}
+  };
 
   useEffect(() => {
     ta.current?.focus();
@@ -93,6 +109,7 @@ export function Composer({ ws }: { ws: Workspace }) {
       workspaceId: ws.id,
       text,
       effort: effort || undefined,
+      web,
       attachments: files.map(({ kind, name, mediaType, data, text }) => ({ kind, name, mediaType, data, text })),
     });
     setText("");
@@ -172,6 +189,15 @@ export function Composer({ ws }: { ws: Workspace }) {
           <input ref={fileInput} type="file" multiple hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
           <button type="button" className="btn b-ghost icon-btn" aria-label="Attach files" data-tip="Attach images, PDFs or text" onClick={() => fileInput.current?.click()}>
             <Paperclip size={18} />
+          </button>
+          <button
+            type="button"
+            className={`btn b-ghost sz-s web-toggle ${web ? "on" : ""}`}
+            aria-pressed={web}
+            onClick={() => toggleWeb()}
+            data-tip={web ? "Web search is on for this workspace" : "Let Claude search the web (1 cent a search)"}
+          >
+            <Globe size={16} /> {web ? "Web on" : "Web"}
           </button>
           <div className="effort">
             <button type="button" className={`btn b-ghost sz-s pill ${effort ? "set" : ""}`} aria-label="Thinking effort" aria-expanded={effortOpen} onClick={() => setEffortOpen(!effortOpen)} data-tip="How hard Claude thinks">

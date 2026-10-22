@@ -67,3 +67,21 @@ describe("config", () => {
     expect(Bun.TOML.parse(toToml(c as any))).toEqual(c as any);
   });
 });
+
+describe("web search history", () => {
+  test("goes back unchanged when search is on, and as plain text when it is off", async () => {
+    const { flattenWeb } = await import("./agent");
+    const content = [
+      { type: "server_tool_use", id: "srv_1", name: "web_search", input: { query: "bun release" } },
+      { type: "web_search_tool_result", tool_use_id: "srv_1", content: [{ type: "web_search_result", url: "https://bun.com/blog", title: "Bun blog", encrypted_content: "x" }] },
+      { type: "text", text: "Bun shipped.", citations: [{ type: "web_search_result_location", url: "https://bun.com/blog", title: "Bun blog", encrypted_index: "y", cited_text: "..." }] },
+    ];
+    const flat = flattenWeb(content);
+    expect(flat.map((b: any) => b.type)).toEqual(["text", "text", "text"]);
+    expect(flat[0].text).toContain("bun release");
+    expect(flat[1].text).toContain("https://bun.com/blog");
+    expect(flat[2]).toEqual({ type: "text", text: "Bun shipped." });
+    const plain = [{ type: "text", text: "hi" }];
+    expect(flattenWeb(plain)).toBe(plain);
+  });
+});

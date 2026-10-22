@@ -527,3 +527,17 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius
 .mcp-preset:active { transform: scale(0.98); }
 .mcp-preset-head { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
 .mcp-form { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: var(--r); border: 1px solid var(--line); }
+
+/* web search */
+.cite { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; margin: 0 1px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); color: var(--star-2) !important; font-size: 11px; font-weight: 600; text-decoration: none !important; vertical-align: 2px; transition: background-color 0.15s, color 0.15s; }
+.cite:hover { background: rgba(255, 177, 153, 0.18); color: var(--peach) !important; }
+.cap-label q { color: var(--star); quotes: "\201C" "\201D"; }
+.search-results, .sources { list-style: none; margin: 0; padding: 0 8px 10px 36px; display: flex; flex-direction: column; overflow: hidden; }
+.search-results a, .sources a { display: flex; align-items: baseline; gap: 10px; padding: 4px 6px; margin: 0 -6px; border-radius: 6px; text-decoration: none; color: var(--star-2); font-size: 13.5px; transition: background-color 0.15s, color 0.15s; }
+.search-results a:hover, .sources a:hover { background: var(--hover); color: var(--star); }
+.src-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src-host { flex: none; margin-left: auto; font-size: 12px; color: var(--star-3); }
+.sources { padding: 8px 0 4px; margin-top: 2px; border-top: 1px solid var(--line); }
+.src-n { flex: none; width: 18px; font-size: 12px; color: var(--star-3); }
+.web-toggle.on { color: var(--star); background: rgba(255, 255, 255, 0.07); }
+.web-toggle.on svg { color: var(--star); }

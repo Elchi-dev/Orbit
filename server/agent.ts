@@ -73,12 +73,33 @@ function systemPrompt(ws: WorkspaceRow) {
   return parts.join("\n\n");
 }
 
+/**
+ * Without the search tool in the request, earlier searches go back as plain text:
+ * the query as a note, the answer without citation markers.
+ */
+export function flattenWeb(content: any[]): any[] {
+  if (!content.some((b) => b.type === "server_tool_use" || b.type === "web_search_tool_result" || b.citations)) return content;
+  const out: any[] = [];
+  for (const b of content) {
+    if (b.type === "server_tool_use") out.push({ type: "text", text: `(searched the web for "${b.input?.query ?? ""}")` });
+    else if (b.type === "web_search_tool_result") {
+      const list = Array.isArray(b.content) ? b.content : [];
+      if (list.length) out.push({ type: "text", text: `Results:\n${list.map((r: any) => `- ${r.title}: ${r.url}`).join("\n")}` });
+    } else if (b.type === "text" && b.citations) {
+      const { citations: _c, ...rest } = b;
+      out.push(rest);
+    } else out.push(b);
+  }
+  return out;
+}
+
 /** Rebuild the API message list from SQLite, merging same-role neighbours and closing dangling tool calls. */
-export function buildMessages(wsId: string) {
+export function buildMessages(wsId: string, opts: { web?: boolean } = {}) {
   const rows = listMessages(wsId);
   const msgs: { role: "user" | "assistant"; content: any[] }[] = [];
   for (const r of rows) {
-    const content = JSON.parse(r.content) as any[];
+    let content = JSON.parse(r.content) as any[];
+    if (!opts.web) content = flattenWeb(content);
     const prev = msgs[msgs.length - 1];
     if (prev && prev.role === r.role) prev.content.push(...content);
     else msgs.push({ role: r.role, content: [...content] });
@@ -173,7 +194,9 @@ async function autoTitle(ws: WorkspaceRow) {
   } catch {}
 }
 
-export async function runTurn(wsId: string, userContent: any[], opts: { effort?: string } = {}) {
+export const WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_uses: 5 };
+
+export async function runTurn(wsId: string, userContent: any[], opts: { effort?: string; web?: boolean } = {}) {
   if (running.has(wsId)) throw new Error("This workspace is already working");
   const ac = new AbortController();
   running.set(wsId, ac);
@@ -212,8 +235,8 @@ export async function runTurn(wsId: string, userContent: any[], opts: { effort?:
         {
           model,
           system: systemPrompt(ws),
-          messages: buildMessages(wsId),
-          tools: toolDefs(),
+          messages: buildMessages(wsId, { web: opts.web }),
+          tools: opts.web ? [...toolDefs(), WEB_SEARCH_TOOL] : toolDefs(),
           max_tokens: c.models.max_tokens,
           effort: opts.effort || c.models.effort,
           thinkingDisplay: c.models.thinking_display,
@@ -258,6 +281,8 @@ export async function runTurn(wsId: string, userContent: any[], opts: { effort?:
       if (result.stop_reason === "max_tokens") {
         broadcast("error", { workspaceId: wsId, message: "The reply hit the max_tokens limit. Raise it in Settings or ask to continue.", kind: "limit" });
       }
+      // a long server-side search can pause the turn; sending it back as it is lets it go on
+      if (result.stop_reason === "pause_turn") continue;
       const toolUses = result.content.filter((b) => b.type === "tool_use");
       if (result.stop_reason !== "tool_use" || !toolUses.length) break;
 

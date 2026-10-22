@@ -10,6 +10,8 @@ export interface Usage {
   output: number;
   cache_read: number;
   cache_write: number;
+  /** web searches run by the API's own search tool, billed per search */
+  web_searches?: number;
 }
 export interface RateInfo {
   tokens_remaining?: number;
@@ -120,7 +122,7 @@ export async function streamMessage(req: MessageRequest, h: StreamHandlers, sign
       }
       case "content_block_start": {
         const block = { ...data.content_block };
-        if (block.type === "tool_use") block.input = {};
+        if (block.type === "tool_use" || block.type === "server_tool_use") block.input = {};
         content[data.index] = block;
         h.onBlockStart?.(data.index, block);
         break;
@@ -161,6 +163,7 @@ export async function streamMessage(req: MessageRequest, h: StreamHandlers, sign
       case "message_delta":
         stop_reason = data.delta?.stop_reason ?? stop_reason;
         if (data.usage?.output_tokens != null) usage.output = data.usage.output_tokens;
+        if (data.usage?.server_tool_use?.web_search_requests != null) usage.web_searches = data.usage.server_tool_use.web_search_requests;
         break;
       case "error":
         throw new ApiError(500, data.error?.message ?? "stream error");
@@ -238,6 +241,23 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
   blocks.push({ type: "thinking", thinking: "Looking at what was asked and picking the smallest useful next step.", signature: "mock" });
   if (afterTool) {
     blocks.push({ type: "text", text: "Done. The command finished and the output looks right. Anything else?" });
+  } else if (req.tools?.some((t: any) => t.type?.startsWith("web_search")) && /search|latest|current|news|price/.test(lastText)) {
+    const id = "srvtoolu_" + crypto.randomUUID().slice(0, 12);
+    blocks.push({ type: "server_tool_use", id, name: "web_search", input: { query: lastText.slice(0, 60) } });
+    blocks.push({
+      type: "web_search_tool_result",
+      tool_use_id: id,
+      content: [
+        { type: "web_search_result", url: "https://bun.com/blog", title: "Bun blog", page_age: "2 days ago", encrypted_content: "mock" },
+        { type: "web_search_result", url: "https://nodejs.org/en/blog", title: "Node.js blog", page_age: "1 week ago", encrypted_content: "mock" },
+      ],
+    });
+    blocks.push({
+      type: "text",
+      text: "Bun's latest release improves install speed again.",
+      citations: [{ type: "web_search_result_location", url: "https://bun.com/blog", title: "Bun blog", encrypted_index: "mock", cited_text: "Install is faster in this release." }],
+    });
+    blocks.push({ type: "text", text: " Node.js shipped a security update the same week." , citations: [{ type: "web_search_result_location", url: "https://nodejs.org/en/blog", title: "Node.js blog", encrypted_index: "mock", cited_text: "Security releases for all active lines." }] });
   } else if (/delete|remove|clean/.test(lastText)) {
     const command = /snapshot|backup/.test(lastText) ? "rm -rf ./old-snapshots/2025-*" : /build|dist/.test(lastText) ? "rm -rf ./dist ./build" : "rm -rf ./tmp";
     blocks.push({ type: "text", text: "I'll remove those with one delete in the workspace folder." });
@@ -261,6 +281,11 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+    if (b.type === "web_search_tool_result") {
+      h.onBlockStart?.(i, b);
+      h.onBlockStop?.(i, b);
+      continue;
+    }
     const startBlock = b.type === "text" ? { type: "text", text: "" } : b.type === "thinking" ? { type: "thinking", thinking: "" } : { ...b, input: {} };
     h.onBlockStart?.(i, startBlock);
     const s: string = b.type === "text" ? b.text : b.type === "thinking" ? b.thinking : JSON.stringify(b.input);
@@ -278,7 +303,7 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
   return {
     content: blocks,
     stop_reason: blocks.some((b) => b.type === "tool_use") ? "tool_use" : "end_turn",
-    usage: { input: 1200, output: out, cache_read: 3400, cache_write: 0 },
+    usage: { input: 1200, output: out, cache_read: 3400, cache_write: 0, web_searches: blocks.filter((b) => b.type === "server_tool_use").length },
     ttft_ms: Math.round((first ?? t0) - t0) + 300,
     tps: out / Math.max(secs, 0.1),
     rate: { tokens_remaining: 1_800_000, tokens_limit: 2_000_000 },

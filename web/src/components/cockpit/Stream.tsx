@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDown, Check, Copy, FileText, Image as ImageIcon, RotateCcw } from "lucide-react";
+import { ArrowDown, Check, ChevronDown, Copy, FileText, Globe, Image as ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useStore } from "../../lib/store";
 import type { Block, Detail, Message, StreamBlock, Workspace } from "../../lib/types";
 import { Markdown, ThoughtTrail, ToolCapsule, UiPanel, Widget } from "./Blocks";
@@ -77,37 +77,139 @@ function UserTurn({ turn, onRetry }: { turn: Turn; onRetry: (text: string) => vo
   );
 }
 
+interface Source {
+  n: number;
+  url: string;
+  title: string;
+}
+
+/**
+ * Turn raw blocks into what is drawn: neighbouring text joined into one piece
+ * (the API splits it wherever a citation starts), citation numbers inline, and
+ * each web search paired with its results.
+ */
+function prepare(blocks: (Block | StreamBlock)[], streaming?: boolean) {
+  const sources = new Map<string, Source>();
+  const items: ({ kind: "text"; text: string; live: boolean } | { kind: "search"; block: any; result?: any; live: boolean } | { kind: "block"; b: any; i: number; live: boolean })[] = [];
+  blocks.forEach((b: any, i) => {
+    if (!b) return;
+    const live = !!streaming && i === blocks.length - 1;
+    if (b.type === "text") {
+      let t = b.text ?? "";
+      for (const c of b.citations ?? []) {
+        if (!c.url) continue;
+        if (!sources.has(c.url)) sources.set(c.url, { n: sources.size + 1, url: c.url, title: c.title || c.url });
+      }
+      const marks = [...new Set((b.citations ?? []).map((c: any) => c.url).filter(Boolean))].map((u) => ` [${sources.get(u as string)!.n}](${u} "cite")`);
+      t += marks.join("");
+      const prev = items[items.length - 1];
+      if (prev?.kind === "text") {
+        prev.text += t;
+        prev.live = live;
+      } else if (t || live) items.push({ kind: "text", text: t, live });
+      return;
+    }
+    if (b.type === "web_search_tool_result") {
+      const s = [...items].reverse().find((x) => x.kind === "search" && x.block.id === b.tool_use_id) as any;
+      if (s) s.result = b;
+      return;
+    }
+    if (b.type === "server_tool_use") return items.push({ kind: "search", block: b, live });
+    items.push({ kind: "block", b, i, live });
+  });
+  return { items, sources: [...sources.values()] };
+}
+
 function AssistantBlocks({ blocks, detail, streaming, wsId }: { blocks: (Block | StreamBlock)[]; detail: Detail; streaming?: boolean; wsId: string }) {
+  const { items, sources } = prepare(blocks, streaming);
   return (
     <>
-      {blocks.map((b, i) => {
-        if (!b) return null;
-        const last = streaming && i === blocks.length - 1;
-        if (b.type === "thinking") {
-          const t = (b as any).thinking ?? (b as any).text ?? "";
-          return <ThoughtTrail key={i} text={t} live={last} />;
-        }
-        if (b.type === "redacted_thinking") return null;
-        if (b.type === "text") {
-          const t = (b as any).text ?? "";
-          if (!t && !last) return null;
+      {items.map((it, k) => {
+        if (it.kind === "text")
           return (
-            <div key={i} className="assistant-text">
-              <Markdown text={t} />
-              {last && <span className="caret" aria-hidden="true" />}
+            <div key={k} className="assistant-text">
+              <Markdown text={it.text} />
+              {it.live && <span className="caret" aria-hidden="true" />}
             </div>
           );
+        if (it.kind === "search") return <WebSearchRow key={k} block={it.block} result={it.result} live={it.live} />;
+        const b = it.b;
+        if (b.type === "thinking") {
+          const t = b.thinking ?? b.text ?? "";
+          return <ThoughtTrail key={k} text={t} live={it.live} />;
         }
+        if (b.type === "redacted_thinking") return null;
         if (b.type === "tool_use") {
           const call = b.id ? detail.calls[b.id] : undefined;
           const input = (b as Block).input;
-          if (b.name === "ui_show" && input && call?.status !== "denied") return <UiPanel key={i} input={input} />;
-          if (b.name === "ui_widget" && input && call?.status !== "denied") return <Widget key={i} input={input} />;
-          return <ToolCapsule key={b.id ?? i} block={b as any} call={call} wsId={wsId} />;
+          if (b.name === "ui_show" && input && call?.status !== "denied") return <UiPanel key={k} input={input} />;
+          if (b.name === "ui_widget" && input && call?.status !== "denied") return <Widget key={k} input={input} />;
+          return <ToolCapsule key={b.id ?? k} block={b as any} call={call} wsId={wsId} />;
         }
         return null;
       })}
+      {sources.length > 0 && !streaming && <Sources sources={sources} />}
     </>
+  );
+}
+
+function host(url: string) {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function Sources({ sources }: { sources: Source[] }) {
+  return (
+    <ol className="sources">
+      {sources.map((s) => (
+        <li key={s.url}>
+          <a href={s.url} target="_blank" rel="noreferrer">
+            <span className="src-n num">{s.n}</span>
+            <span className="src-title">{s.title}</span>
+            <span className="src-host">{host(s.url)}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function WebSearchRow({ block, result, live }: { block: any; result?: any; live: boolean }) {
+  const [open, setOpen] = useState(false);
+  const query = block.input?.query ?? String(block.text ?? "").match(/"query"\s*:\s*"([^"]*)/)?.[1] ?? "";
+  const list: any[] = Array.isArray(result?.content) ? result.content : [];
+  const error = result && !Array.isArray(result.content) ? result.content?.error_code : null;
+  return (
+    <div className={`cap ${live || !result ? "running" : ""}`}>
+      <button className="cap-row" onClick={() => setOpen(!open)} aria-expanded={open} disabled={!list.length}>
+        <span className="cap-icon">{!result ? <Loader2 size={15} className="spin" /> : <Globe size={15} />}</span>
+        <span className="cap-label">
+          {result ? "Searched the web for" : "Searching the web for"} <q>{query}</q>
+        </span>
+        <span className="cap-meta">{error ? <span className="bad-text">{error.replace(/_/g, " ")}</span> : list.length ? `${list.length} results` : ""}</span>
+        {list.length > 0 && <ChevronDown size={14} className={`chev ${open ? "up" : ""}`} />}
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.ul className="search-results" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+            {list.map((r) => (
+              <li key={r.url}>
+                <a href={r.url} target="_blank" rel="noreferrer">
+                  <span className="src-title">{r.title}</span>
+                  <span className="src-host">
+                    {host(r.url)}
+                    {r.page_age ? `, ${r.page_age}` : ""}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

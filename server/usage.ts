@@ -2,9 +2,13 @@ import { priceFor } from "./config";
 import { db, now } from "./db";
 import type { Usage } from "./anthropic";
 
+/** USD per web search (10 per 1,000), checked October 2026 */
+export const WEB_SEARCH_USD = 0.01;
+
 export function costOf(model: string, u: Usage) {
   const p = priceFor(model);
-  return (u.input * p.input + u.output * p.output + u.cache_read * p.cache_read + u.cache_write * p.cache_write) / 1_000_000;
+  const tokens = (u.input * p.input + u.output * p.output + u.cache_read * p.cache_read + u.cache_write * p.cache_write) / 1_000_000;
+  return tokens + (u.web_searches ?? 0) * WEB_SEARCH_USD;
 }
 
 export function recordUsage(

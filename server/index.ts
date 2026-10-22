@@ -499,7 +499,7 @@ function onSocketMessage(raw: string) {
       }
       if (msg.text?.trim()) content.push({ type: "text", text: msg.text });
       if (!content.length) return;
-      runTurn(msg.workspaceId, content, { effort: msg.effort }).catch((e) =>
+      runTurn(msg.workspaceId, content, { effort: msg.effort, web: !!msg.web }).catch((e) =>
         broadcast("error", { workspaceId: msg.workspaceId, message: (e as Error).message, kind: "busy" }),
       );
       break;
