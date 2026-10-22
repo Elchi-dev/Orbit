@@ -1,3 +1,4 @@
+import { catalogReadOnly, catalogUnsafe } from "./catalog";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { homedir } from "node:os";
@@ -80,9 +81,10 @@ export function isReadOnlyCommand(command: string): boolean {
     const s = seg.replace(/^(\w+=\S*\s+)+/, "");
     const first = s.split(/\s+/)[0];
     if (first === "cd") return true;
+    if (catalogUnsafe(s)) return false;
     if (SAFE_GIT.test(s) || VERSION_CHECK.test(s)) return true;
     if (first === "find") return !/\s-(delete|exec|execdir|ok|fprint)/.test(s);
-    return SAFE_CMDS.has(first);
+    return SAFE_CMDS.has(first) || catalogReadOnly(s);
   });
 }
 

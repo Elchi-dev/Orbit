@@ -1,4 +1,5 @@
 // One persistent shell per workspace, so `cd`, exported variables and venvs carry over between commands.
+import { quietEnv } from "./catalog";
 import type { Subprocess } from "bun";
 import { existsSync } from "node:fs";
 
@@ -41,7 +42,7 @@ export class Shell {
       stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",
-      env: { ...process.env, TERM: "dumb", NO_COLOR: "1", PAGER: "cat", GIT_PAGER: "cat" },
+      env: { ...process.env, ...quietEnv() },
     });
     this.proc = proc;
     const pump = async (stream: ReadableStream<Uint8Array>) => {

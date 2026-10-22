@@ -38,6 +38,7 @@ export interface Config {
   safety: { undo_journal: boolean; undo_max_bytes: number; command_timeout_s: number };
   workspaces: { home: string };
   profile: { about: string; instructions: string };
+  integrations: { editor: string; briefing: boolean };
   pricing: Record<string, Price>;
 }
 
@@ -65,6 +66,7 @@ export const DEFAULT_CONFIG: Config = {
   safety: { undo_journal: true, undo_max_bytes: 2_000_000, command_timeout_s: 300 },
   workspaces: { home: join(homedir(), "orbit-workspaces") },
   profile: { about: "", instructions: "" },
+  integrations: { editor: "auto", briefing: true },
   // USD per million tokens, checked October 2026. Edit in orbit.toml when prices change.
   pricing: {
     "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 1, context: 1_000_000 },
