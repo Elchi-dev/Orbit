@@ -367,6 +367,9 @@ export const useStore = create<Store>((set, get) => ({
       case "rules":
         window.dispatchEvent(new Event("orbit:rules"));
         break;
+      case "remote":
+        window.dispatchEvent(new CustomEvent("orbit:remote", { detail: e.status }));
+        break;
       case "libgen":
         window.dispatchEvent(new CustomEvent("orbit:libgen", { detail: e }));
         break;

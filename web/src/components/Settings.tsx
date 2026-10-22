@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { BookOpen, Bot, Boxes, Info, Layers, Plug, KeyRound, LayoutTemplate, ListChecks, Plus, Save, ShieldCheck, Trash2, UserRound, Wallet, X } from "lucide-react";
+import { BookOpen, Smartphone, Bot, Boxes, Info, Layers, Plug, KeyRound, LayoutTemplate, ListChecks, Plus, Save, ShieldCheck, Trash2, UserRound, Wallet, X } from "lucide-react";
 import { useStore } from "../lib/store";
 import { api } from "../lib/api";
 import type { Config, Rule } from "../lib/types";
@@ -9,6 +9,7 @@ import { IntegrationsPage } from "./Integrations";
 import { McpPage } from "./McpPage";
 import { ProfilesPage } from "./profiles/ProfilesPage";
 import { LibraryPage } from "./library/LibraryPage";
+import { RemotePage } from "./remote/RemotePage";
 
 const TABS = [
   { id: "key", label: "API key", Icon: KeyRound },
@@ -17,6 +18,7 @@ const TABS = [
   { id: "rules", label: "Rules", Icon: ListChecks },
   { id: "profiles", label: "Profiles", Icon: Layers },
   { id: "library", label: "Library", Icon: BookOpen },
+  { id: "remote", label: "Your phone", Icon: Smartphone },
   { id: "integrations", label: "Integrations", Icon: Plug },
   { id: "mcp", label: "MCP servers", Icon: Boxes },
   { id: "you", label: "About you", Icon: UserRound },
@@ -109,6 +111,7 @@ export function Settings() {
             <motion.div key={tab} className="set-page" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }}>
               {tab === "profiles" && <ProfilesPage draft={draft} setDraft={setDraft} />}
               {tab === "library" && <LibraryPage draft={draft} setDraft={setDraft} />}
+              {tab === "remote" && <RemotePage />}
               {tab === "mcp" && <McpPage draft={draft} setServers={(servers) => setDraft({ ...draft, mcp: { servers } })} />}
               {tab === "integrations" && <IntegrationsPage draft={draft} set={(v) => set("integrations", v)} setCtx={(v) => set("context", v)} setSkills={(v) => set("skills", v)} />}
               {tab === "key" && (
