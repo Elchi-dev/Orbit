@@ -107,20 +107,21 @@ home = "~/orbit-workspaces"
 about = ""
 instructions = ""
 
-# USD per million tokens, used for the cost shown everywhere. Cache prices follow
-# the usual 1.25x write and 0.1x read multipliers. context is the model's window.
+# USD per million tokens, used for the cost shown everywhere (checked October
+# 2026; change them here when Anthropic's prices change). context is the
+# model's window.
 [pricing.claude-opus-5-5]
 input = 4
 output = 20
 cache_write = 5
-cache_read = 0.4
+cache_read = 0.2
 context = 1000000
 
 [pricing.claude-sonnet-5-5]
 input = 2
 output = 10
 cache_write = 2.5
-cache_read = 0.2
+cache_read = 0.1
 context = 1000000
 
 [pricing.claude-haiku-5-5]

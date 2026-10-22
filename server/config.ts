@@ -65,11 +65,11 @@ export const DEFAULT_CONFIG: Config = {
   safety: { undo_journal: true, undo_max_bytes: 2_000_000, command_timeout_s: 300 },
   workspaces: { home: join(homedir(), "orbit-workspaces") },
   profile: { about: "", instructions: "" },
-  // USD per million tokens. Cache prices assume the usual 1.25x write / 0.1x read multipliers; edit if yours differ.
+  // USD per million tokens, checked October 2026. Edit in orbit.toml when prices change.
   pricing: {
     "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 1, context: 1_000_000 },
-    "claude-opus-5-5": { input: 4, output: 20, cache_write: 5, cache_read: 0.4, context: 1_000_000 },
-    "claude-sonnet-5-5": { input: 2, output: 10, cache_write: 2.5, cache_read: 0.2, context: 1_000_000 },
+    "claude-opus-5-5": { input: 4, output: 20, cache_write: 5, cache_read: 0.2, context: 1_000_000 },
+    "claude-sonnet-5-5": { input: 2, output: 10, cache_write: 2.5, cache_read: 0.1, context: 1_000_000 },
     "claude-haiku-5-5": { input: 0.1, output: 0.5, cache_write: 0.125, cache_read: 0.01, context: 1_000_000 },
   },
 };

@@ -7,6 +7,10 @@
 - The installers failed with "could not download" while every release is a
   pre-release, because GitHub's `releases/latest` skips pre-releases. They now
   ask the API for the newest release.
+- Cache reads were priced at 0.40 USD per million tokens for Opus 5.5 and
+  0.20 for Sonnet 5.5; they are 0.20 and 0.10, so cost was shown too high on
+  cached requests. Existing `orbit.toml` files keep their old numbers; edit
+  `[pricing]` there or delete the section to take the new defaults.
 
 ## 0.1.0 (2026-10-22)
 
