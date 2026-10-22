@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, Download, Eraser, FoldVertical, Gauge, Layers, Scale, Timer, Wallet, Zap } from "lucide-react";
+import { ChevronDown, Download, Eraser, FoldVertical, Share, Gauge, Layers, Scale, Timer, Wallet, Zap } from "lucide-react";
 import { useStore } from "../../lib/store";
 import { api } from "../../lib/api";
 import { runSlash } from "../../lib/slash";
@@ -118,7 +118,14 @@ export function Hud({ ws, detail }: { ws: Workspace; detail?: Detail }) {
                   <button className="btn b-ghost sz-m" onClick={() => setConfirmClear(true)} disabled={ws.running}>
                     <Eraser size={16} /> Clear
                   </button>
-                  <a className="btn b-ghost sz-m" href={`/api/workspaces/${ws.id}/export`} download>
+                  <button
+                    className="btn b-ghost sz-m"
+                    data-tip="One HTML file that opens anywhere"
+                    onClick={() => runSlash("share", "", { ws, setText: () => {}, web: false, setWeb: () => {}, setEffort: () => {} })}
+                  >
+                    <Share size={16} /> Save as a page
+                  </button>
+                  <a className="btn b-ghost sz-m" href={`/api/workspaces/${ws.id}/export`} download data-tip="Markdown">
                     <Download size={16} /> Export
                   </a>
                 </>

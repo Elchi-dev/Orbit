@@ -36,6 +36,7 @@ export const BUILTINS: SlashItem[] = [
   { name: "shell", hint: "Open the shell panel", kind: "action" },
   { name: "files", hint: "Open the changed files", kind: "action" },
   { name: "open", hint: "Open the folder in your editor", kind: "action" },
+  { name: "share", hint: "Save this workspace as one HTML page you can send", kind: "action" },
   { name: "export", hint: "Download this workspace as Markdown", kind: "action" },
   { name: "settings", hint: "Open Settings", kind: "action" },
 ];
@@ -89,6 +90,13 @@ export async function runSlash(name: string, args: string, ctx: SlashCtx): Promi
       return;
     case "open":
       return openInEditor(ws.id);
+    case "share": {
+      const detail = st.details[ws.id];
+      if (!detail) return say("Still loading", "warn");
+      const { downloadShare } = await import("./share");
+      downloadShare(ws, detail);
+      return say("Saved as a page", "good", "Opens in any browser, no Orbit needed.");
+    }
     case "export":
       window.location.href = `/api/workspaces/${ws.id}/export`;
       return;
