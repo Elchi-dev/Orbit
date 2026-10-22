@@ -1,3 +1,4 @@
+import { OriEmpty } from "../ori/OriEmpty";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, Check, CheckCheck, Eye, FilePlus2, FileText, Loader2, MessageSquare, MessageSquarePlus, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
@@ -376,11 +377,9 @@ export function DocsPane({ ws }: { ws: Workspace }) {
       {!docs ? (
         <div className="loading">Loading…</div>
       ) : docs.length === 0 ? (
-        <div className="pv-empty">
-          <FileText size={22} />
-          <p>No docs yet.</p>
-          <p className="muted small">Ask Claude to write a plan, a spec or notes as a doc. You both edit it, and you comment on any passage.</p>
-        </div>
+        <OriEmpty pose="writing" title="No docs yet">
+          <p>Ask Claude to write a plan, a spec or notes as a doc. You both edit it, and you comment on any passage.</p>
+        </OriEmpty>
       ) : (
         <ul className="doc-list">
           {docs.map((d) => (

@@ -1,3 +1,5 @@
+import { AskOri } from "../ori/Guide";
+import { Galaxy } from "../ui/Galaxy";
 import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -15,6 +17,7 @@ import {
   Trash2,
   Wallet,
   X,
+  ArrowUpRight,
 } from "lucide-react";
 import { useStore } from "../../lib/store";
 import { api } from "../../lib/api";
@@ -111,7 +114,7 @@ export function Home() {
 
   return (
     <div className="home">
-      <div className="home-canvas">
+      <div className="home-canvas" data-tour="sky">
         {hasWebGL() ? (
           <SceneBoundary fallback={<FlatOrrery workspaces={list} onSelect={(id) => setView({ kind: "ws", id })} motion={motionPref} />}>
             <Suspense fallback={null}>
@@ -123,6 +126,8 @@ export function Home() {
         )}
       </div>
 
+      <AskOri nudge="sky" />
+
       <header className="home-top">
         <div className="brand">
           <Logo />
@@ -133,13 +138,13 @@ export function Home() {
           </span>
         </div>
         <div className="top-actions">
-          <button className="btn b-ghost icon-btn glass-soft" data-tip="Search (Ctrl K)" data-tip-side="bottom" onClick={() => setOverlay("palette")} aria-label="Search">
+          <button data-tour="search" className="btn b-ghost icon-btn glass-soft" data-tip="Search (Ctrl K)" data-tip-side="bottom" onClick={() => setOverlay("palette")} aria-label="Search">
             <Search size={18} />
           </button>
-          <button className="btn b-ghost icon-btn glass-soft" data-tip="All workspaces" data-tip-side="bottom" onClick={() => setListOpen(!listOpen)} aria-label="All workspaces" aria-expanded={listOpen}>
+          <button data-tour="list" className="btn b-ghost icon-btn glass-soft" data-tip="All workspaces" data-tip-side="bottom" onClick={() => setListOpen(!listOpen)} aria-label="All workspaces" aria-expanded={listOpen}>
             <LayoutList size={18} />
           </button>
-          <div className="peek">
+          <div className="peek" data-tour="budget">
             <button className="btn b-ghost sz-m glass-soft" aria-label="Spending">
               <Wallet size={17} />
               <span className="num">{money(server?.today.cost)}</span>
@@ -161,7 +166,7 @@ export function Home() {
               </dl>
             </div>
           </div>
-          <button className="btn b-ghost icon-btn glass-soft" data-tip="Settings" data-tip-side="bottom" onClick={() => setOverlay("settings")} aria-label="Settings">
+          <button data-tour="settings" className="btn b-ghost icon-btn glass-soft" data-tip="Settings" data-tip-side="bottom" onClick={() => setOverlay("settings")} aria-label="Settings">
             <Settings2 size={18} />
           </button>
         </div>
@@ -226,25 +231,6 @@ export function Home() {
       </AnimatePresence>
 
       <div className="home-bottom">
-        <div className="peek legend-peek">
-          <button className="btn b-ghost sz-m glass-soft">
-            <Info size={17} /> How to read the sky
-          </button>
-          <div className="peek-card up glass panel">
-            <dl className="kv">
-              <dt>Distance</dt>
-              <dd>closer means used more recently</dd>
-              <dt>Size</dt>
-              <dd>how much work went into it</dd>
-              <dt>Sparks</dt>
-              <dd>Claude is working there</dd>
-              <dt>Peach pulse</dt>
-              <dd>it's waiting for you</dd>
-            </dl>
-            <p className="muted small">Drag to turn the sky, scroll to zoom, click a planet to open it.</p>
-          </div>
-        </div>
-
         <div className="launch-wrap">
           <AnimatePresence>
             {empty && (
@@ -284,7 +270,7 @@ export function Home() {
               </motion.div>
             )}
           </AnimatePresence>
-          <form className="launch glass" onSubmit={launch}>
+          <form className="launch glass" onSubmit={launch} data-tour="launch">
             <button
               type="button"
               className={`btn b-ghost icon-btn ${opts ? "on" : ""}`}
@@ -314,8 +300,11 @@ export function Home() {
               Start a new workspace
             </label>
             <input id="launch" ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="What are we working on?" autoComplete="off" />
-            <button type="submit" className="btn b-peach sz-l launch-go" disabled={busy}>
-              Launch
+            <button type="submit" className="btn b-peach sz-l launch-go gbtn" disabled={busy}>
+              <Galaxy />
+              <span className="lbl">
+                Launch <ArrowUpRight size={17} strokeWidth={2.4} />
+              </span>
             </button>
           </form>
         </div>

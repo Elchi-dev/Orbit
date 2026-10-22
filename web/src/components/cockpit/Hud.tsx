@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, Download, Eraser, FoldVertical, Share, Gauge, Layers, Scale, Timer, Wallet, Zap } from "lucide-react";
 import { useStore } from "../../lib/store";
+import { Ori } from "../ori/Ori";
+import { useOriStatus } from "../../lib/ori";
 import { api } from "../../lib/api";
 import { runSlash } from "../../lib/slash";
 import type { Detail, Workspace } from "../../lib/types";
@@ -60,8 +62,23 @@ export function Hud({ ws, detail }: { ws: Workspace; detail?: Detail }) {
     await api.post(`/api/workspaces/${ws.id}/clear`, { keepSummary });
   }
 
+  const ori = useOriStatus(ws, detail);
+  // done and oops fade back to idle on their own
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (ori.pose !== "done" && ori.pose !== "oops") return;
+    const t = setTimeout(() => tick((n) => n + 1), 26_000);
+    return () => clearTimeout(t);
+  }, [ori.pose]);
   return (
     <div className="hud" ref={ref}>
+      <span className="hud-ori" data-tip={ori.doing} data-tip-side="bottom" aria-live="polite" aria-label={`Ori: ${ori.doing}`}>
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span key={ori.pose} className="hud-ori-in" initial={{ opacity: 0, scale: 0.7, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.7, y: -4 }} transition={{ type: "spring", stiffness: 420, damping: 24 }}>
+            <Ori pose={ori.pose} size={46} title={ori.doing} />
+          </motion.span>
+        </AnimatePresence>
+      </span>
       <button className="btn hud-pill" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="Usage and context">
         <Ring pct={pct} />
         <span className="hud-model">{modelName(model)}</span>

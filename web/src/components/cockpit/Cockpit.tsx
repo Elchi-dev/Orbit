@@ -1,3 +1,4 @@
+import { AskOri } from "../ori/Guide";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, ChevronRight, EyeOff, Folder, Pencil, Sparkles, SquareArrowOutUpRight } from "lucide-react";
@@ -220,6 +221,7 @@ export function Cockpit({ id }: { id: string }) {
       <Dock ws={ws} detail={detail} />
       <DrawerHost ws={ws} detail={detail} />
       <ClearedBurst />
+      <AskOri nudge={ws.parent_id ? undefined : "workspace"} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { OriEmpty } from "../ori/OriEmpty";
 import { useTabs } from "./SidePanel";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -205,7 +206,9 @@ function FilesDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
         undo journal.
       </p>
       {files.length === 0 ? (
-        <p className="muted">Nothing to review. Changes Claude makes show up here.</p>
+        <OriEmpty pose="done" title="Nothing to review" size={96}>
+          <p>Files Claude changes show up here.</p>
+        </OriEmpty>
       ) : (
         <>
           <div className="rev-bar">

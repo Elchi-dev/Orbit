@@ -1,3 +1,5 @@
+import { Ori } from "../ori/Ori";
+import { useGuide } from "../ori/Guide";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowDown, Check, ChevronDown, Copy, FileText, Globe, Image as ImageIcon, Loader2, RotateCcw } from "lucide-react";
@@ -285,11 +287,22 @@ export function Stream({ ws, detail }: { ws: Workspace; detail: Detail }) {
         )}
         {turns.length === 0 && !ws.running && (
           <div className="empty-stream">
+            <Ori pose="hi" size={150} />
             <p className="display">What should happen here?</p>
             <p className="muted">
               Claude works in <span className="mono">{ws.cwd}</span> with a real shell. Anything that changes your machine passes the approval
               gate first.
             </p>
+            <div className="starters">
+              {["Explain what's in this folder", "Find what could be improved here", "Run the tests and fix what fails"].map((t, i) => (
+                <button key={t} className="btn b-outline sz-s rise" style={{ "--i": i } as any} onClick={() => useStore.getState().setIncoming(ws.id, t)}>
+                  {t}
+                </button>
+              ))}
+            </div>
+            <button className="btn b-link starters-ori" onClick={() => useGuide.getState().setOpen(true)}>
+              New to Orbit? Ask Ori
+            </button>
           </div>
         )}
         <AnimatePresence initial={false}>

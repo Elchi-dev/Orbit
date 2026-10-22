@@ -34,6 +34,8 @@ interface Store {
   /** what each workspace's preview shows, and whether the pane is open */
   previews: Record<string, { url: string; target: string; kind: "files" | "server"; nonce: number } | null>;
   previewOpen: Record<string, boolean>;
+  /** how and when each workspace's last run ended, for Ori */
+  ended: Record<string, { reason: string; at: number }>;
   /** messages waiting for the next step of a running workspace */
   queued: Record<string, number>;
   /** the side panel: which tab, which doc, and what Claude changed that you haven't looked at */
@@ -86,6 +88,7 @@ export const useStore = create<Store>((set, get) => ({
   previews: {},
   previewOpen: {},
   queued: {},
+  ended: {},
   panelTab: {},
   docs: {},
   docById: {},
@@ -227,7 +230,7 @@ export const useStore = create<Store>((set, get) => ({
       case "turn_end":
         patchWs(wsId!, { running: false });
         patchHelper(wsId!, { running: false });
-        set({ streams: { ...get().streams, [wsId!]: undefined }, live: { ...get().live, [wsId!]: {} } });
+        set({ streams: { ...get().streams, [wsId!]: undefined }, live: { ...get().live, [wsId!]: {} }, ended: { ...get().ended, [wsId!]: { reason: e.reason ?? "done", at: Date.now() } } });
         get().loadServer();
         if (e.reason === "done" && document.hidden) notify("Orbit", `${get().workspaces[wsId!]?.title ?? "A workspace"} finished`);
         break;

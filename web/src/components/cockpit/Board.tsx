@@ -1,3 +1,4 @@
+import { OriEmpty } from "../ori/OriEmpty";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Camera, CheckSquare, FileCode2, Frame, ImagePlus, LayoutDashboard, Link2, Loader2, Maximize, Minus, Plus, Spline, StickyNote, Trash2, Type } from "lucide-react";
 import { api } from "../../lib/api";
@@ -468,11 +469,9 @@ export function BoardPane({ ws }: { ws: Workspace }) {
           </svg>
         </div>
         {!board.items.length && (
-          <div className="pv-empty bd-empty">
-            <LayoutDashboard size={22} />
-            <p>The board is empty.</p>
-            <p className="muted small">Claude lays out notes, screenshots, options and flows here. Add your own with the buttons above, or drop and paste images.</p>
-          </div>
+          <OriEmpty pose="drawing" title="The board is empty" className="bd-empty">
+            <p>Claude lays out notes, screenshots, options and flows here. Add your own with the buttons above, or drop and paste images.</p>
+          </OriEmpty>
         )}
       </div>
     </div>

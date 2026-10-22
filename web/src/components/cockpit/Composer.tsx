@@ -1,3 +1,4 @@
+import { Galaxy } from "../ui/Galaxy";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUp, FileText, Gauge, Globe, Mic, MicOff, Image as ImageIcon, Paperclip, Square, X } from "lucide-react";
@@ -197,8 +198,11 @@ export function Composer({ ws }: { ws: Workspace }) {
     setFiles((f) => [...f, ...read]);
   }
 
+  const [launched, setLaunched] = useState(false);
   function submit() {
     if (!text.trim() && !files.length) return;
+    setLaunched(true);
+    setTimeout(() => setLaunched(false), 700);
     send({
       type: "send",
       workspaceId: ws.id,
@@ -415,12 +419,15 @@ export function Composer({ ws }: { ws: Workspace }) {
           {(!running || text.trim() || files.length > 0) && (
             <button
               type="submit"
-              className="btn b-peach send-btn"
+              className={`btn b-peach send-btn gbtn round lift ${launched ? "launched" : ""}`}
               aria-label={running ? "Send to the running task" : "Send"}
               data-tip={running ? "Claude takes it into account at its next step" : undefined}
               disabled={!text.trim() && !files.length}
             >
-              <ArrowUp size={20} strokeWidth={2.4} />
+              <Galaxy />
+              <span className="lbl">
+                <ArrowUp size={20} strokeWidth={2.4} />
+              </span>
             </button>
           )}
         </div>

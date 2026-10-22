@@ -20,9 +20,10 @@ export type OriPose =
   | "done"
   | "sleeping"
   | "oops"
-  | "helpers";
+  | "helpers"
+  | "idle";
 
-export const ORI_POSES: OriPose[] = ["hi", "thinking", "working", "reading", "searching", "writing", "planning", "drawing", "camera", "needs", "done", "sleeping", "oops", "helpers"];
+export const ORI_POSES: OriPose[] = ["idle", "hi", "thinking", "working", "reading", "searching", "writing", "planning", "drawing", "camera", "needs", "done", "sleeping", "oops", "helpers"];
 
 const LABEL: Record<OriPose, string> = {
   hi: "Ori waving hi",
@@ -39,6 +40,7 @@ const LABEL: Record<OriPose, string> = {
   sleeping: "Ori asleep",
   oops: "Ori, something went wrong",
   helpers: "Ori with helper stars",
+  idle: "Ori",
 };
 
 export const BODY =
@@ -106,6 +108,7 @@ const FACE: Record<OriPose, { eyes: Eyes; mouth: Mouth; blush?: boolean; anim: s
   sleeping: { eyes: "closed", mouth: "sleep", anim: "breathe" },
   oops: { eyes: "wide", mouth: "wavy", anim: "shake" },
   helpers: { eyes: "open", mouth: "smile", blush: true, anim: "bob" },
+  idle: { eyes: "open", mouth: "smile", anim: "bob" },
 };
 
 function Face({ eyes, mouth, blush, tiny }: { eyes: Eyes; mouth: Mouth; blush?: boolean; tiny?: boolean }) {
@@ -219,7 +222,7 @@ function OriImpl({ pose = "hi", size = 160, still, className, title }: { pose?: 
   const id = `ori${raw.replace(/[^a-zA-Z0-9]/g, "")}`;
   const f = FACE[pose] ?? FACE.hi;
   // small sizes keep the star and the face; the ring and hands would only blur
-  const compact = size < 56;
+  const compact = size < 34;
   const label = title ?? LABEL[pose];
 
   const hands = (() => {
@@ -247,6 +250,7 @@ function OriImpl({ pose = "hi", size = 160, still, className, title }: { pose?: 
       case "needs":
         return { back: <Hand x={76} y={244} r={-160} left />, front: null };
       case "helpers":
+      case "idle":
         return { back: <><Hand x={70} y={244} r={-160} left /><Hand x={330} y={240} r={160} /></>, front: null };
       default:
         // the poses that hold something bring their own two hands with the object

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { WifiOff } from "lucide-react";
 import { connectSocket, useStore, type View } from "./lib/store";
@@ -9,9 +9,10 @@ import { ApprovalEclipse } from "./components/Approval";
 import { Settings } from "./components/Settings";
 import { Palette } from "./components/Palette";
 import { Toasts } from "./components/Toasts";
-import { Onboarding } from "./components/Onboarding";
+import { Welcome } from "./components/ori/Welcome";
 import { Sky } from "./components/Sky";
 import { OriSheet } from "./components/ori/OriSheet";
+import { Tour, useGuideShortcut } from "./components/ori/Guide";
 
 function viewFromHash(): View {
   const m = location.hash.match(/^#\/w\/(\w+)/);
@@ -55,6 +56,13 @@ export function App() {
   const overlay = useStore((s) => s.overlay);
   const connected = useStore((s) => s.connected);
   const prevView = useRef<View>(view);
+  useGuideShortcut();
+  const [welcome, setWelcome] = useState(() => location.hash === "#/welcome");
+  useEffect(() => {
+    const on = () => location.hash === "#/welcome" && setWelcome(true);
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -127,11 +135,16 @@ export function App() {
       </div>
     );
 
-  if (!server.hasKey && !server.mock)
+  if ((!server.hasKey && !server.mock) || welcome)
     return (
       <>
         <Sky />
-        <Onboarding />
+        <Welcome
+          onDone={() => {
+            setWelcome(false);
+            if (location.hash.startsWith("#/welcome")) history.replaceState(null, "", "#/");
+          }}
+        />
         <Toasts />
       </>
     );
@@ -156,6 +169,7 @@ export function App() {
         {overlay === "palette" && <Palette key="palette" />}
       </AnimatePresence>
       <Toasts />
+      <Tour />
       <AnimatePresence>
         {!connected && (
           <motion.div className="offline glass pill" initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -40, opacity: 0 }}>

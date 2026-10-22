@@ -1,3 +1,4 @@
+import { OriEmpty } from "../ori/OriEmpty";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { create } from "zustand";
@@ -317,11 +318,9 @@ export function PreviewPane({ ws }: { ws: Workspace }) {
             )}
           </div>
         ) : (
-          <div className="pv-empty">
-            <Monitor size={22} />
-            <p>Nothing to show yet.</p>
-            <p className="muted small">Claude opens the preview when it builds a page. Or type a file, a folder or a local address above.</p>
-          </div>
+          <OriEmpty pose="camera" title="Nothing to show yet">
+            <p>Claude opens the preview when it builds a page. Or type a file, a folder or a local address above.</p>
+          </OriEmpty>
         )}
       </div>
 
