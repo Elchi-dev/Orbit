@@ -930,3 +930,11 @@ mark.doc-mark::after { content: attr(data-n); display: inline-grid; place-items:
   .pv-comment { margin-left: auto; }
   .doc-meta { display: none; }
 }
+
+/* the mascot sheet at #/ori */
+.ori-sheet { min-height: 100vh; padding: 40px; background: var(--void); color: var(--star); overflow: auto; }
+.ori-sheet h1 { margin: 0 0 24px; font-family: var(--display); font-size: 28px; }
+.ori-sheet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.ori-sheet figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: var(--r-l); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.ori-sheet figcaption { display: flex; flex-direction: column; align-items: center; gap: 8px; font-weight: 600; }
+.ori-sheet figcaption span { display: flex; align-items: center; gap: 12px; }

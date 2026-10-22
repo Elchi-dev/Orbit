@@ -11,6 +11,7 @@ import { Palette } from "./components/Palette";
 import { Toasts } from "./components/Toasts";
 import { Onboarding } from "./components/Onboarding";
 import { Sky } from "./components/Sky";
+import { OriSheet } from "./components/ori/OriSheet";
 
 function viewFromHash(): View {
   const m = location.hash.match(/^#\/w\/(\w+)/);
@@ -115,6 +116,8 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.motion = server?.config.ui.motion ?? "full";
   }, [server?.config.ui.motion]);
+
+  if (location.hash === "#/ori") return <OriSheet />;
 
   if (!server)
     return (
