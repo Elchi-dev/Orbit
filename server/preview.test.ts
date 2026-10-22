@@ -40,16 +40,18 @@ describe("the live preview", () => {
     expect((await fetch(st.url, { method: "POST" })).status).toBe(405);
   });
 
-  test("local servers are shown as they are; other sites are refused", () => {
+  test("local servers are shown through the proxy; other sites are refused", () => {
     const { id } = workspace();
-    expect(openPreview(id, "http://localhost:5173/")).toMatchObject({ kind: "server", url: "http://localhost:5173/" });
+    const st = openPreview(id, "http://localhost:5173/app?x=1");
+    expect(st).toMatchObject({ kind: "server", target: "http://localhost:5173/app?x=1" });
+    expect(st.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/app\?x=1$/);
     expect(() => openPreview(id, "https://example.com")).toThrow("local addresses only");
   });
 
   test("a dev server announcing itself in shell output opens in the preview", () => {
     const { id } = workspace();
     noticeServer(id, "  VITE v6.0.0  ready in 312 ms\n  ➜  Local:   http://localhost:5174/\n");
-    expect(previewState(id)?.url).toBe("http://localhost:5174/");
+    expect(previewState(id)?.target).toBe("http://localhost:5174/");
   });
 
   test("changing a file tells open pages to reload", async () => {
@@ -65,6 +67,66 @@ describe("the live preview", () => {
     expect(new TextDecoder().decode(value ?? new Uint8Array())).toContain("reload");
     reader.cancel();
   });
+});
+
+describe("comments on the preview", () => {
+  test("served pages get the comment script, and the screenshot browser gets it without the reload stream", async () => {
+    const { id, cwd } = workspace();
+    writeFileSync(join(cwd, "index.html"), "<html><head><title>x</title></head><body><h1>Hi</h1></body></html>");
+    const st = openPreview(id, ".");
+    const html = await (await fetch(st.url)).text();
+    expect(html.indexOf("__orbitAnnotate")).toBeLessThan(html.indexOf("</head>"));
+    const headless = await (await fetch(st.url, { headers: { "user-agent": "Mozilla/5.0 HeadlessChrome/140" } })).text();
+    expect(headless).toContain("__orbitAnnotate");
+    expect(headless).not.toContain("EventSource");
+  });
+
+  test("the dev server proxy injects the script into HTML, passes everything else and its websockets through", async () => {
+    const dev = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch(req, server) {
+        const u = new URL(req.url);
+        if (u.pathname === "/hmr" && server.upgrade(req, { headers: { "Sec-WebSocket-Protocol": "vite-hmr" } })) return;
+        if (u.pathname === "/go") return Response.redirect(`${u.origin}/`, 302);
+        if (u.pathname === "/main.js") return new Response("console.log(1)", { headers: { "content-type": "text/javascript" } });
+        return new Response(`<!doctype html><html><head></head><body>dev ${req.headers.get("host")}</body></html>`, { headers: { "content-type": "text/html" } });
+      },
+      websocket: {
+        message(ws, m) {
+          ws.send(`echo ${m}`);
+        },
+      },
+    });
+    const { id } = workspace();
+    const st = openPreview(id, `http://localhost:${dev.port}/`);
+    const html = await (await fetch(st.url)).text();
+    expect(html).toContain("__orbitAnnotate");
+    expect(html).toContain(`dev localhost:${dev.port}`); // the dev server sees its own host
+    expect(await (await fetch(new URL("/main.js", st.url))).text()).toBe("console.log(1)");
+    const r = await fetch(new URL("/go", st.url), { redirect: "manual" });
+    expect(r.headers.get("location")).toStartWith(new URL(st.url).origin);
+    const ws = new WebSocket(new URL("/hmr", st.url).href.replace("http", "ws"), ["vite-hmr"]);
+    const got = await new Promise<string>((res, rej) => {
+      ws.onopen = () => ws.send("ping");
+      ws.onmessage = (e) => res(String(e.data));
+      ws.onerror = () => rej(new Error("ws failed"));
+      setTimeout(() => rej(new Error("timeout")), 3000);
+    });
+    expect(ws.protocol).toBe("vite-hmr");
+    expect(got).toBe("echo ping");
+    ws.close();
+    dev.stop(true);
+  });
+
+  test.skipIf(!findChrome())("a screenshot address with pins draws them on the page", async () => {
+    const { id, cwd } = workspace();
+    writeFileSync(join(cwd, "index.html"), `<body><h1 id="t">Title</h1><script>addEventListener("load",()=>setTimeout(()=>console.log("pins "+[...document.querySelectorAll("div")].filter(d=>d.textContent==="1"&&d.style.borderRadius==="50%").length),200))</script></body>`);
+    const st = openPreview(id, ".");
+    const pins = Buffer.from(JSON.stringify([{ n: 1, sel: "#t", px: 0.5, py: 0.5, outline: true }])).toString("base64");
+    const s = await screenshot(`${st.url}?__orbit_pins=${encodeURIComponent(pins)}`, 600);
+    expect(s.console.join("\n")).toContain("pins 1");
+  }, 40_000);
 });
 
 describe("screenshots", () => {

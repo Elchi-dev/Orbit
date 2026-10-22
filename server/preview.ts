@@ -7,6 +7,7 @@ import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:
 import { extname, join, resolve, sep } from "node:path";
 import { broadcast } from "./hub";
 import { getWorkspace } from "./db";
+import { annotateTag, inject, proxyFor } from "./annotate";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -112,7 +113,13 @@ export function resolveTarget(wsId: string, target: string): PreviewState {
   let state: PreviewState;
   if (/^https?:\/\//.test(t)) {
     if (!isLocalUrl(t)) throw new Error("The preview shows local addresses only (localhost or 127.0.0.1); open other sites in your browser.");
-    state = { workspaceId: wsId, target: t, url: t.replace("0.0.0.0", "localhost"), kind: "server" };
+    // shown through a local proxy so the page gets the comment script; straight if that fails
+    const direct = new URL(t.replace("0.0.0.0", "localhost"));
+    let url = direct.href;
+    try {
+      url = `http://127.0.0.1:${proxyFor(direct.origin)}${direct.pathname}${direct.search}${direct.hash}`;
+    } catch {}
+    state = { workspaceId: wsId, target: t, url, kind: "server" };
   } else {
     const full = resolve(ws.cwd, t);
     const root = resolve(ws.cwd);
@@ -156,11 +163,11 @@ function serveFile(token: string, rest: string, ua = ""): Response {
   watchFolder(ws.id, ws.cwd);
   const type = MIME[extname(full).toLowerCase()] ?? "application/octet-stream";
   const headers = { "content-type": type, "cache-control": "no-store" };
-  // the screenshot browser waits for the network to go quiet, which an open event stream never does
-  if (type.startsWith("text/html") && !ua.includes("HeadlessChrome")) {
-    let html = readFileSync(full, "utf8");
-    const script = RELOAD(token);
-    html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${script}</body>`) : html + script;
+  if (type.startsWith("text/html")) {
+    // the comment script always; the reload script not for the screenshot browser, which waits
+    // for the network to go quiet, and an open event stream never does
+    let html = inject(readFileSync(full, "utf8"), annotateTag());
+    if (!ua.includes("HeadlessChrome")) html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${RELOAD(token)}</body>`) : html + RELOAD(token);
     return new Response(html, { headers });
   }
   return new Response(Bun.file(full), { headers });
