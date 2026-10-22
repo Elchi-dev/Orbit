@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowDown, Check, ChevronDown, Copy, FileText, Globe, Image as ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useStore } from "../../lib/store";
 import type { Block, Detail, Message, StreamBlock, Workspace } from "../../lib/types";
-import { Markdown, ThoughtTrail, ToolCapsule, UiPanel, Widget } from "./Blocks";
+import { Markdown, TerminalTool, ThoughtTrail, ToolCapsule, UiPanel, Widget } from "./Blocks";
 
 interface Turn {
   role: "user" | "assistant";
@@ -130,6 +130,7 @@ function prepare(blocks: (Block | StreamBlock)[], streaming?: boolean) {
 }
 
 function AssistantBlocks({ blocks, detail, streaming, wsId }: { blocks: (Block | StreamBlock)[]; detail: Detail; streaming?: boolean; wsId: string }) {
+  const terminal = useStore((s) => s.server?.profiles.find((p) => p.id === s.workspaces[wsId]?.profile)?.layout === "terminal");
   const { items, sources } = prepare(blocks, streaming);
   return (
     <>
@@ -153,7 +154,7 @@ function AssistantBlocks({ blocks, detail, streaming, wsId }: { blocks: (Block |
           const input = (b as Block).input;
           if (b.name === "ui_show" && input && call?.status !== "denied") return <UiPanel key={k} input={input} />;
           if (b.name === "ui_widget" && input && call?.status !== "denied") return <Widget key={k} input={input} />;
-          return <ToolCapsule key={b.id ?? k} block={b as any} call={call} wsId={wsId} />;
+          return terminal ? <TerminalTool key={b.id ?? k} block={b as any} call={call} /> : <ToolCapsule key={b.id ?? k} block={b as any} call={call} wsId={wsId} />;
         }
         return null;
       })}

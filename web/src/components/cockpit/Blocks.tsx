@@ -92,7 +92,7 @@ export function ThoughtTrail({ text, live }: { text: string; live?: boolean }) {
   const [open, setOpen] = useState(false);
   if (!text.trim() && !live) return null;
   return (
-    <div className={`thought ${open ? "open" : ""}`}>
+    <div className={`thought ${open ? "open" : ""} ${live ? "live" : ""}`}>
       <button className="btn b-ghost thought-head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <Brain size={15} className={live ? "pulse-icon" : ""} />
         <span>{live ? "Thinking" : "Thought trail"}</span>
@@ -442,5 +442,108 @@ export function Widget({ input }: { input: any }) {
       </figcaption>
       <iframe className="widget-frame" sandbox="allow-scripts" srcDoc={WIDGET_CSP + String(input?.html ?? "")} title={input?.title ?? "Widget"} />
     </motion.figure>
+  );
+}
+
+// ---------- the terminal layout ----------
+const TERM_NAME: Record<string, string> = {
+  bash: "Bash",
+  read_file: "Read",
+  write_file: "Write",
+  edit_file: "Update",
+  list_dir: "List",
+  glob: "Glob",
+  grep: "Search",
+  fetch_url: "Fetch",
+  plan: "Plan",
+  load_skill: "Skill",
+  preview_open: "Preview",
+  screenshot: "Screenshot",
+};
+
+function termArg(name: string, input: any): string {
+  switch (name) {
+    case "bash":
+      return String(input?.command ?? "").split("\n")[0];
+    case "read_file":
+    case "write_file":
+    case "edit_file":
+    case "list_dir":
+      return input?.path ?? "";
+    case "glob":
+    case "grep":
+      return input?.pattern ?? "";
+    case "fetch_url":
+      return input?.url ?? "";
+    case "plan":
+      return `${(input?.items ?? []).filter((i: any) => i.status === "done").length}/${(input?.items ?? []).length}`;
+    case "load_skill":
+      return input?.name ?? "";
+    case "preview_open":
+    case "screenshot":
+      return input?.target ?? input?.url ?? input?.path ?? "";
+    default:
+      return name.startsWith("ui_") ? "" : JSON.stringify(input ?? {}).slice(0, 80);
+  }
+}
+
+const PREVIEW_LINES = 6;
+
+/** A tool call drawn the way a terminal agent prints it: a status dot, Name(argument), and the first lines of output under an elbow. */
+export function TerminalTool({ block, call }: { block: { id?: string; name?: string; input?: any }; call?: ToolCall }) {
+  const live = useStore((s) => (block.id ? s.shellOut[block.id] : undefined));
+  const [open, setOpen] = useState(false);
+  const name = block.name ?? "";
+  const input = block.input ?? (call ? safeJson(call.input) : {});
+  const running = call?.status === "running";
+  const status = !call ? "prep" : call.status === "error" && call.is_error ? "failed" : call.status;
+  const label = name.startsWith("mcp__") ? name.split("__").slice(1).join(":") : (TERM_NAME[name] ?? name.replace(/^ui_/, "ui:"));
+  let body: { text: string; cls?: string }[] = [];
+  if (name === "edit_file") {
+    body = [
+      ...String(input?.old_string ?? "").split("\n").map((l) => ({ text: `- ${l}`, cls: "del" })),
+      ...String(input?.new_string ?? "").split("\n").map((l) => ({ text: `+ ${l}`, cls: "add" })),
+    ];
+  } else {
+    const out = (running ? live : call?.output) ?? "";
+    body = out
+      .replace(/\s+$/, "")
+      .split("\n")
+      .filter((l, i, a) => l || i < a.length - 1)
+      .map((text) => ({ text }));
+  }
+  if (call?.status === "denied") body = [{ text: call.reason ?? "denied", cls: "denied" }];
+  const shown = open ? body : body.slice(0, PREVIEW_LINES);
+  const more = body.length - shown.length;
+  return (
+    <div className={`tt s-${status}`}>
+      <button className="tt-head" onClick={() => setOpen(!open)} aria-expanded={open} title={call?.reason ?? undefined}>
+        <span className="tt-dot" aria-hidden="true" />
+        <b>{label}</b>
+        {termArg(name, input) ? <span className="tt-arg">({termArg(name, input)})</span> : null}
+        {call?.status === "pending" && <span className="tt-wait">waiting for you</span>}
+        {call?.status === "judging" && <span className="tt-judge">judge looking</span>}
+      </button>
+      {shown.length > 0 && (
+        <div className="tt-out">
+          <span className="tt-elbow" aria-hidden="true">
+            ⎿
+          </span>
+          <pre>
+            {shown.map((l, i) => (
+              <span key={i} className={l.cls}>
+                {l.text}
+                {"\n"}
+              </span>
+            ))}
+            {more > 0 && (
+              <button className="tt-more" onClick={() => setOpen(true)}>
+                … {more} more {more === 1 ? "line" : "lines"}
+              </button>
+            )}
+          </pre>
+        </div>
+      )}
+    </div>
   );
 }

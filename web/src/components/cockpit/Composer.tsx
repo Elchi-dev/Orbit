@@ -271,6 +271,9 @@ export function Composer({ ws }: { ws: Workspace }) {
         <label htmlFor="composer" className="sr">
           Message Claude
         </label>
+        <span className="term-caret" aria-hidden="true">
+          ❯
+        </span>
         <textarea
           id="composer"
           ref={ta}

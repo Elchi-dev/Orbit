@@ -95,10 +95,11 @@ export function Cockpit({ id }: { id: string }) {
   }, [ws?.running, id]);
 
   if (!ws) return <div className="loading">Loading the workspace…</div>;
+  const layout = server?.profiles.find((p) => p.id === ws.profile)?.layout ?? "log";
   const others = approvals.filter((a) => a.workspaceId !== id);
 
   return (
-    <div className="cockpit">
+    <div className={`cockpit layout-${layout}`}>
       <header className="cockpit-top">
         <nav className="crumbs" aria-label="Location">
           <button className="btn b-ghost home-btn" onClick={() => setView({ kind: "orrery" })} data-tip="Back to the Orrery" data-tip-side="bottom" aria-label="Back to all workspaces">

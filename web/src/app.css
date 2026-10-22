@@ -633,3 +633,55 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius
 .plan-item.s-skipped .plan-text { text-decoration: line-through; color: var(--star-3); }
 .spin-slow { animation: spin 3s linear infinite; }
 @media (max-width: 860px) { .plan { width: calc(100% - 20px); } }
+
+/* ---------- the terminal layout ---------- */
+.layout-terminal { --term-font: var(--mono); }
+.layout-terminal .stream { font-family: var(--mono); background: #08080e; }
+.layout-terminal .stream-inner { max-width: 980px; padding: 18px 24px 40px; }
+.layout-terminal .md { font-size: 13.5px; line-height: 1.6; max-width: none; }
+.layout-terminal .md h1, .layout-terminal .md h2, .layout-terminal .md h3 { font-size: 13.5px; font-weight: 700; margin: 1em 0 0.3em; }
+.layout-terminal .md code { background: none; padding: 0; color: #c8bcff; }
+.layout-terminal .md pre { background: none; border: 0; border-left: 1px solid var(--line-2); border-radius: 0; padding: 4px 0 4px 14px; }
+.layout-terminal .turn.you { margin: 22px 0 8px; padding: 0; border: 0; }
+.layout-terminal .user-text { font-size: 13.5px; font-weight: 500; color: var(--star); }
+.layout-terminal .user-text::before { content: "❯ "; color: var(--peach); }
+.layout-terminal .turn.claude { padding-left: 0; }
+.layout-terminal .turn.claude.live::before { display: none; }
+.layout-terminal .assistant-text { padding: 2px 0 2px 18px; position: relative; }
+.layout-terminal .assistant-text::before { content: ""; position: absolute; left: 3px; top: 0.68em; width: 6px; height: 6px; border-radius: 50%; background: var(--star); }
+.layout-terminal .thought-head { font-family: var(--mono); font-size: 12.5px; margin-left: 10px; }
+.layout-terminal .turn-body { gap: 4px; }
+.layout-terminal .acts { background: #08080e; }
+.layout-terminal .composer { font-family: var(--mono); flex-direction: row; flex-wrap: wrap; align-items: flex-start; border-radius: 10px; background: #0b0b13; }
+.layout-terminal .composer textarea { flex: 1; min-width: 0; font-size: 14px; padding: 11px 8px 6px 2px; }
+.layout-terminal .composer-tools { flex-basis: 100%; }
+.term-caret { display: none; }
+.layout-terminal .term-caret { display: block; padding: 10px 0 0 10px; color: var(--peach); font-size: 15px; line-height: 1.5; }
+.layout-terminal .sky { display: none; }
+.layout-terminal .cockpit-main { background: #08080e; }
+.layout-terminal .composer-wrap { max-width: 980px; }
+
+.tt { font-family: var(--mono); font-size: 13px; line-height: 1.55; margin: 2px 0; }
+.tt-head { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 1px 0; border: 0; background: none; cursor: pointer; text-align: left; color: var(--star); font: inherit; }
+.tt-head b { font-weight: 700; }
+.tt-arg { color: var(--star-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-head:hover .tt-arg { color: var(--star); }
+.tt-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--good); transform: translateY(-1px); }
+.tt.s-running .tt-dot, .tt.s-prep .tt-dot, .tt.s-judging .tt-dot { background: var(--lav); animation: breathe 1s ease-in-out infinite; }
+.tt.s-pending .tt-dot { background: var(--peach); animation: breathe 1s ease-in-out infinite; }
+.tt.s-denied .tt-dot, .tt.s-failed .tt-dot, .tt.s-cancelled .tt-dot { background: var(--danger); }
+.tt-wait { color: var(--peach); font-size: 12px; }
+.tt-judge { color: var(--lav); font-size: 12px; }
+.tt-out { display: flex; gap: 8px; padding-left: 15px; color: var(--star-3); }
+.tt-elbow { flex: none; color: var(--star-3); }
+.tt-out pre { margin: 0; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; color: rgba(236, 235, 244, 0.62); }
+.tt-out .add { color: #9de3c6; }
+.tt-out .del { color: #ffb0a0; }
+.tt-out .denied { color: var(--danger); }
+.tt-more { display: block; border: 0; background: none; padding: 0; color: var(--star-3); font: inherit; cursor: pointer; }
+.tt-more:hover { color: var(--star); }
+.layout-terminal .thought:not(.live):not(.open) .thought-head { opacity: 0.45; min-height: 22px; }
+.layout-terminal .thought:not(.live):not(.open) .thought-head:hover { opacity: 1; }
+.layout-terminal .plan { max-width: 980px; font-family: var(--mono); }
+.layout-terminal .plan-head, .layout-terminal .plan-item { font-size: 12.5px; }
+.layout-terminal .term-caret { padding-right: 8px; }
