@@ -22,6 +22,7 @@ import { broadcast } from "./hub";
 import { decide, cancelApprovals, type PendingCall } from "./gate";
 import { allowedBy, findTool, subjectOf, toolDefs } from "./tools";
 import { killShell } from "./shell";
+import { canDelegate, helpersOf, listAgents } from "./helpers";
 import { recordUsage } from "./usage";
 import { priceFor } from "./config";
 
@@ -58,6 +59,7 @@ function takeInbox(wsId: string): any[] {
 
 export function stop(wsId: string) {
   inbox.delete(wsId);
+  for (const h of helpersOf(wsId)) if (running.has(h.id)) stop(h.id);
   running.get(wsId)?.abort();
   cancelApprovals(wsId);
 }
@@ -96,6 +98,12 @@ function systemPrompt(ws: WorkspaceRow) {
   if (profile.prompt.trim()) parts.push(`How to work here (the ${profile.name} profile):\n${profile.prompt.trim()}`);
   if (profile.hands_off && !profile.prompt.includes("do not ask"))
     parts.push("Nobody is watching this workspace live. Do not ask questions; decide, note the decision, and continue.");
+  if (canDelegate(ws) && allowedBy(profile, "delegate", ws))
+    parts.push(
+      `You can hand work to helpers with the delegate tool. Each helper is a separate agent with its own context, which you don't share: give it everything it needs in the task. Several delegate calls in one reply run at the same time. Use helpers for independent pieces (looking into several questions, building separate parts with paths set, reviewing what you built); do small or tightly linked work yourself. A helper's report is a summary: check what matters before relying on it. Helpers you can send:\n${listAgents(ws.cwd)
+        .map((a) => `- ${a.name}: ${a.description}`)
+        .join("\n")}`,
+    );
   if (ws.system_prompt.trim()) parts.push(`Instructions for this workspace:\n${ws.system_prompt.trim()}`);
   if (c.context.project_files) {
     const files = projectInstructions(ws.cwd);
@@ -294,7 +302,7 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
           model,
           system: systemPrompt(ws),
           messages: buildMessages(wsId, { web: opts.web }),
-          tools: opts.web ? [...toolDefs(profile), WEB_SEARCH_TOOL] : toolDefs(profile),
+          tools: opts.web ? [...toolDefs(profile, ws), WEB_SEARCH_TOOL] : toolDefs(profile, ws),
           max_tokens: c.models.max_tokens,
           effort: opts.effort || profile.effort || c.models.effort,
           thinkingDisplay: c.models.thinking_display,
@@ -364,25 +372,25 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
       const gateWs = opts.mode ? { ...ws, mode: opts.mode } : ws;
       const decisions = await Promise.all(calls.map((call) => decide(gateWs, call, jctx, { unattended: opts.unattended })));
 
-      const results: any[] = [];
-      for (let i = 0; i < calls.length; i++) {
+      const results: any[] = new Array(calls.length);
+      const runOne = async (i: number) => {
         const call = calls[i];
         const d = decisions[i];
         db.run("UPDATE tool_calls SET decided_by = ?, reason = ?, judge_ms = ? WHERE id = ?", [d.decidedBy, d.reason ?? null, d.judgeMs ?? null, call.id]);
         if (ac.signal.aborted) {
           db.run("UPDATE tool_calls SET status = 'cancelled' WHERE id = ?", [call.id]);
-          results.push({ type: "tool_result", tool_use_id: call.id, content: "Stopped by the user before it ran.", is_error: true });
+          results[i] = { type: "tool_result", tool_use_id: call.id, content: "Stopped by the user before it ran.", is_error: true };
           broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
-          continue;
+          return;
         }
         if (!d.allow) {
           const msg = `Not allowed (${d.decidedBy}): ${d.reason ?? "denied"}. Do not retry this exact action; explain or propose another way.`;
           db.run("UPDATE tool_calls SET status = 'denied', output = ?, is_error = 1 WHERE id = ?", [msg, call.id]);
-          results.push({ type: "tool_result", tool_use_id: call.id, content: msg, is_error: true });
+          results[i] = { type: "tool_result", tool_use_id: call.id, content: msg, is_error: true };
           broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
-          continue;
+          return;
         }
-        const tool = allowedBy(profile, call.name) ? findTool(call.name) : undefined;
+        const tool = allowedBy(profile, call.name, ws) ? findTool(call.name) : undefined;
         db.run("UPDATE tool_calls SET status = 'running' WHERE id = ?", [call.id]);
         broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
         const t0 = performance.now();
@@ -392,6 +400,8 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
             ? await tool.run(call.input, {
                 ws,
                 toolCallId: call.id,
+                signal: ac.signal,
+                unattended: !!opts.unattended,
                 onOutput: (chunk) => {
                   broadcast("tool_output", { workspaceId: wsId, id: call.id, chunk });
                   if (profile.preview) noticeServer(wsId, chunk);
@@ -410,14 +420,28 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
           call.id,
         ]);
         broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
-        results.push({ type: "tool_result", tool_use_id: call.id, content: out.blocks ?? out.content, ...(out.isError ? { is_error: true } : {}) });
+        results[i] = { type: "tool_result", tool_use_id: call.id, content: out.blocks ?? out.content, ...(out.isError ? { is_error: true } : {}) };
         // an HTML page written in a preview profile shows up by itself
         if (profile.preview && !out.isError && call.name === "write_file" && /\.html?$/i.test(String(call.input?.path ?? "")) && !previewState(wsId)) {
           try {
             openPreview(wsId, String(call.input.path));
           } catch {}
         }
-      }
+      };
+      // helpers run side by side (a few at a time); everything else runs in order, next to them
+      const parallel = calls.map((c, i) => i).filter((i) => findTool(calls[i].name)?.parallel);
+      const ordered = calls.map((c, i) => i).filter((i) => !parallel.includes(i));
+      const limit = Math.max(1, config().helpers?.max_parallel ?? 4);
+      let next = 0;
+      const lanes = Array.from({ length: Math.min(limit, parallel.length) }, async () => {
+        while (next < parallel.length) await runOne(parallel[next++]);
+      });
+      await Promise.all([
+        (async () => {
+          for (const i of ordered) await runOne(i);
+        })(),
+        ...lanes,
+      ]);
       results.push(...takeInbox(wsId));
       const resultId = insertMessage(wsId, "user", results);
       broadcast("message", { workspaceId: wsId, message: { id: resultId, role: "user", content: results, created_at: now() } });

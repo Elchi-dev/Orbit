@@ -114,6 +114,15 @@ for (const sql of [
   "ALTER TABLE snapshots ADD COLUMN reviewed INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE workspaces ADD COLUMN profile TEXT NOT NULL DEFAULT 'pair'",
   "ALTER TABLE workspaces ADD COLUMN plan TEXT NOT NULL DEFAULT '[]'",
+  // helpers (subagents) are workspaces with a parent
+  "ALTER TABLE workspaces ADD COLUMN parent_id TEXT",
+  "ALTER TABLE workspaces ADD COLUMN agent TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE workspaces ADD COLUMN scope TEXT NOT NULL DEFAULT '[]'",
+  "ALTER TABLE workspaces ADD COLUMN tools TEXT NOT NULL DEFAULT '[]'",
+  "ALTER TABLE workspaces ADD COLUMN branch TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE workspaces ADD COLUMN base TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE workspaces ADD COLUMN report TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE workspaces ADD COLUMN helper_state TEXT NOT NULL DEFAULT ''",
 ]) {
   try {
     db.exec(sql);
@@ -138,6 +147,14 @@ export interface WorkspaceRow {
   incognito: number;
   profile: string;
   plan: string;
+  parent_id: string | null;
+  agent: string;
+  scope: string;
+  tools: string;
+  branch: string;
+  base: string;
+  report: string;
+  helper_state: string;
   created_at: number;
   updated_at: number;
 }

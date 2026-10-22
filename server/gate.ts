@@ -5,10 +5,11 @@ import { config, type Mode, type Verdict } from "./config";
 import { db, now, type WorkspaceRow } from "./db";
 import { complete } from "./anthropic";
 import { broadcast } from "./hub";
-import { isReadOnly, isUiTool } from "./tools";
+import { isReadOnly, isUiTool, resolvePath } from "./tools";
+import { isInScope } from "./helpers";
 import { recordUsage } from "./usage";
 
-export type DecidedBy = "builtin" | "readonly" | "rule" | "judge" | "user" | "mode" | "full";
+export type DecidedBy = "builtin" | "readonly" | "rule" | "judge" | "user" | "mode" | "full" | "scope";
 export interface Decision {
   allow: boolean;
   decidedBy: DecidedBy;
@@ -239,7 +240,10 @@ ${call.subject.slice(0, 4000)}${guardNote(call)}`;
 
 export async function decide(ws: WorkspaceRow, call: PendingCall, ctx: JudgeContext, opts: { unattended?: boolean } = {}): Promise<Decision> {
   const c = config();
-  if (isUiTool(call.name)) return { allow: true, decidedBy: "builtin" };
+  if (isUiTool(call.name) || call.name === "delegate") return { allow: true, decidedBy: "builtin" };
+  // a helper given its own folders writes there and nowhere else, whatever the mode
+  if ((call.name === "write_file" || call.name === "edit_file") && !isInScope(ws, resolvePath(ws.cwd, String(call.input?.path ?? ""))))
+    return { allow: false, decidedBy: "scope", reason: `Outside the folders this helper was given (${JSON.parse(ws.scope || "[]").join(", ")})` };
   if (c.permissions.skip_readonly && isReadOnly(call.name, call.input)) return { allow: true, decidedBy: "readonly" };
 
   const rule = matchRule(ws.id, call.subject);

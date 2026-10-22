@@ -1,3 +1,4 @@
+import { canDelegate, delegate } from "./helpers";
 import { openPreview, previewState, resolveTarget } from "./preview";
 import { isLocalUrl, screenshot } from "./screenshot";
 import { profileAllows, type Profile } from "./profiles";
@@ -16,6 +17,10 @@ export interface ToolCtx {
   ws: WorkspaceRow;
   toolCallId: string;
   onOutput: (chunk: string) => void;
+  /** aborted when the user stops the run */
+  signal?: AbortSignal;
+  /** the run has nobody to ask (a mission or a hands-off profile) */
+  unattended?: boolean;
 }
 export interface ToolResult {
   /** what the interface shows and the journal keeps */
@@ -40,6 +45,8 @@ interface ToolDef {
   description: string;
   input_schema: Schema;
   readOnly: boolean | ((input: any) => boolean);
+  /** may run at the same time as other calls from the same reply (helpers) */
+  parallel?: boolean;
   ui?: keyof ReturnType<typeof config>["ui_tools"];
   run: (input: any, ctx: ToolCtx) => Promise<ToolResult>;
 }
@@ -116,6 +123,29 @@ function walk(dir: string, out: string[], limit: number) {
 }
 
 const TOOLS: ToolDef[] = [
+  {
+    name: "delegate",
+    description:
+      "Send a task to a helper: a separate agent with its own context, shell and model that works while you wait and returns a short report. Several delegate calls in the same reply run in parallel. The helper sees none of this conversation, so the task must stand on its own: the goal, the relevant files, constraints, and how to check the result. Set paths to the folders or files a builder may change (writes elsewhere are refused). Set isolate to give it its own git worktree and branch, so parallel builders can't collide; the user merges the branch. To follow up with the same helper (it keeps its context), pass helper with its id from the earlier report.",
+    input_schema: obj(
+      {
+        agent: str("Which kind of helper, from the list in your instructions (default builder)"),
+        task: str("The complete task, standing on its own"),
+        name: str("A short name the user sees, like 'Login form' or 'Find slow queries'"),
+        paths: { type: "array", items: { type: "string" }, description: "Folders or files the helper may change, relative to the workspace. Leave out for no limit." },
+        isolate: { type: "boolean", description: "Work in a separate git worktree on its own branch" },
+        model: str("Override the model: fast, light, inherit, opus, sonnet, haiku or a model id"),
+        helper: str("The id of an earlier helper to continue, instead of starting a new one"),
+      },
+      ["task"],
+    ),
+    readOnly: true,
+    parallel: true,
+    async run(input, ctx) {
+      const { runTurn } = await import("./agent");
+      return delegate(ctx.ws, input, { unattended: ctx.unattended, signal: ctx.signal, run: runTurn });
+    },
+  },
   {
     name: "plan",
     description:
@@ -204,6 +234,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "load_skill",
+    parallel: true,
     description: "Load a skill's full instructions by name (the skills are listed in the system prompt). Returns the SKILL.md and the other files in its folder.",
     input_schema: obj({ name: str("The skill's name") }, ["name"]),
     readOnly: true,
@@ -231,6 +262,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "read_file",
+    parallel: true,
     description: "Read a text file. Paths are relative to the workspace folder unless absolute. Returns numbered lines.",
     input_schema: obj(
       { path: str("File path"), offset: int("First line to read, 1-based"), limit: int("Number of lines to read") },
@@ -295,6 +327,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "list_dir",
+    parallel: true,
     description: "List a folder's entries with sizes. Relative to the workspace folder unless absolute.",
     input_schema: obj({ path: str("Folder path, default is the workspace folder") }, []),
     readOnly: true,
@@ -317,6 +350,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "glob",
+    parallel: true,
     description: "Find files by glob pattern, e.g. src/**/*.ts. Skips node_modules and .git.",
     input_schema: obj({ pattern: str("Glob pattern"), path: str("Folder to search, default workspace folder") }, ["pattern"]),
     readOnly: true,
@@ -333,6 +367,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "grep",
+    parallel: true,
     description: "Search file contents with a regular expression. Returns file:line: text matches.",
     input_schema: obj(
       { pattern: str("Regular expression"), path: str("Folder or file, default workspace folder"), glob: str("Only files matching this glob") },
@@ -381,6 +416,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "fetch_url",
+    parallel: true,
     description: "Download a web page or API response and return it as text (HTML is reduced to readable text).",
     input_schema: obj({ url: str("http or https URL") }, ["url"]),
     readOnly: false,
@@ -502,13 +538,23 @@ export function enabledTools(): ToolDef[] {
   return [...TOOLS.filter((t) => !t.ui || flags[t.ui]), ...mcp];
 }
 /** The tools Claude is offered: everything switched on, narrowed by the workspace's profile. */
-export function toolDefs(profile?: Profile) {
+export function toolDefs(profile?: Profile, ws?: WorkspaceRow) {
   return enabledTools()
-    .filter((t) => !profile || allowedBy(profile, t.name))
+    .filter((t) => !profile || allowedBy(profile, t.name, ws))
     .map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
 }
 
-export function allowedBy(profile: Profile, name: string) {
+export function allowedBy(profile: Profile, name: string, ws?: WorkspaceRow) {
+  if (ws) {
+    // a helper gets the tools its agent definition lists, and never the interface tools that belong to its parent
+    let own: string[] = [];
+    try {
+      own = JSON.parse(ws.tools || "[]");
+    } catch {}
+    if (own.length && !own.some((t) => (t.endsWith("*") ? name.startsWith(t.slice(0, -1)) : t === name))) return false;
+    if (ws.parent_id && /^(ui_set_title|ui_set_planet|ui_notify)$/.test(name)) return false;
+    if (name === "delegate") return canDelegate(ws);
+  }
   if (name === "plan") return profile.plan;
   if (PREVIEW_TOOLS.has(name)) return profile.preview;
   return profileAllows(profile, name);

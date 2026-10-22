@@ -337,6 +337,11 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
         ],
       },
     });
+  } else if (req.tools?.some((t: any) => t.name === "delegate") && /\b(helpers?|in parallel)\b/.test(lastText)) {
+    blocks.push({ type: "text", text: "Two separate questions, so two helpers at once." });
+    const id = () => "toolu_" + crypto.randomUUID().slice(0, 12);
+    blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "explorer", name: "Map the folder", task: "List the files in the workspace folder and say what each one is for." } });
+    blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "tester", name: "Run the tests", task: "Run the test suite and report what fails." } });
   } else if (/delete|remove|clean/.test(lastText)) {
     const command = /snapshot|backup/.test(lastText) ? "rm -rf ./old-snapshots/2025-*" : /build|dist/.test(lastText) ? "rm -rf ./dist ./build" : "rm -rf ./tmp";
     blocks.push({ type: "text", text: "I'll remove those with one delete in the workspace folder." });

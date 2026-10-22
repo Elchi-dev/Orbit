@@ -1,3 +1,4 @@
+import { discardHelper, helpersOf, helperView, listAgents, mergeHelper } from "./helpers";
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, resolve, dirname, extname } from "node:path";
 import { homedir } from "node:os";
@@ -129,7 +130,8 @@ function wsPayload(w: WorkspaceRow) {
   try {
     plan = JSON.parse(w.plan || "[]");
   } catch {}
-  return { ...w, style: JSON.parse(w.style || "{}"), plan, stats, running: isRunning(w.id), pending, messageCount: msgCount };
+  const helpers = w.parent_id ? [] : helpersOf(w.id).map((h) => ({ ...helperView(h), running: isRunning(h.id), pending: pendingApprovals().filter((p) => p.workspaceId === h.id).length }));
+  return { ...w, style: JSON.parse(w.style || "{}"), plan, stats, running: isRunning(w.id), pending, messageCount: msgCount, helpers };
 }
 
 function publicConfig() {
@@ -381,6 +383,12 @@ async function api(req: Request, url: URL): Promise<Response> {
       return json(wsPayload(w));
     }
     if (m === "DELETE") {
+      for (const h of helpersOf(id)) {
+        kill(h.id);
+        dropShell(h.id);
+        if (h.branch && !["merged", "discarded"].includes(h.helper_state)) await discardHelper(h.id).catch(() => {});
+        db.run("DELETE FROM workspaces WHERE id = ?", [h.id]);
+      }
       kill(id);
       dropShell(id);
       db.run("DELETE FROM search WHERE workspace_id = ?", [id]);
@@ -389,6 +397,20 @@ async function api(req: Request, url: URL): Promise<Response> {
       broadcast("workspace_deleted", { workspaceId: id });
       return json({ ok: true });
     }
+  }
+  if ((match = p.match(/^\/api\/helpers\/([\w]+)\/(merge|discard)$/)) && m === "POST") {
+    try {
+      const r = match[2] === "merge" ? await mergeHelper(match[1]) : await discardHelper(match[1]);
+      const h = getWorkspace(match[1]);
+      if (h?.parent_id) broadcast("workspace", { workspace: wsPayload(getWorkspace(h.parent_id)!) });
+      return json(r);
+    } catch (e) {
+      return bad((e as Error).message, 409);
+    }
+  }
+  if (p === "/api/agents" && m === "GET") {
+    const w = url.searchParams.get("ws") ? getWorkspace(url.searchParams.get("ws")!) : null;
+    return json(listAgents(w?.cwd).map(({ prompt, ...a }) => ({ ...a, prompt: prompt.slice(0, 2000) })));
   }
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/git(?:\/([a-z-]+))?$/))) {
     const w = getWorkspace(match[1]);

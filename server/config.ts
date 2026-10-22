@@ -56,6 +56,7 @@ export interface Config {
   skills: { enabled: boolean; dirs: string[] };
   /** changes to the built-in profiles, and new ones, by id */
   profiles: Record<string, Record<string, unknown>>;
+  helpers: { enabled: boolean; max_parallel: number; max_depth: number };
   pricing: Record<string, Price>;
 }
 
@@ -88,6 +89,7 @@ export const DEFAULT_CONFIG: Config = {
   context: { project_files: true },
   skills: { enabled: true, dirs: [] },
   profiles: {},
+  helpers: { enabled: true, max_parallel: 4, max_depth: 1 },
   // USD per million tokens, checked October 2026. Edit in orbit.toml when prices change.
   pricing: {
     "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 1, context: 1_000_000 },
