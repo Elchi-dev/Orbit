@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, BookOpen, FileDiff, FileText, GitBranch, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
+import { Archive, BookOpen, CalendarClock, FileDiff, FileText, GitBranch, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
 import { openInEditor } from "../../lib/open";
@@ -8,11 +8,13 @@ import type { Detail, Workspace } from "../../lib/types";
 import { ago, shortPath } from "../../lib/format";
 import { FolderPicker } from "../FolderPicker";
 import { GitPanel, type GitState } from "./GitPanel";
+import { MissionsPanel } from "./Missions";
 
 const DOCK: { id: Exclude<Drawer, null>; label: string; Icon: typeof Terminal }[] = [
   { id: "shell", label: "Shell", Icon: Terminal },
   { id: "files", label: "Changed files", Icon: FileDiff },
   { id: "git", label: "Git", Icon: GitBranch },
+  { id: "missions", label: "Missions", Icon: CalendarClock },
   { id: "memory", label: "Memory shelf", Icon: Pin },
   { id: "workspace", label: "Workspace settings", Icon: Settings2 },
 ];
@@ -94,6 +96,7 @@ export function DrawerHost({ ws, detail }: { ws: Workspace; detail?: Detail }) {
             {drawer === "shell" && <ShellDrawer ws={ws} detail={detail} />}
             {drawer === "files" && <FilesDrawer ws={ws} detail={detail} />}
             {drawer === "git" && <GitPanel ws={ws} />}
+            {drawer === "missions" && <MissionsPanel ws={ws} />}
             {drawer === "memory" && <MemoryDrawer ws={ws} detail={detail} />}
             {drawer === "workspace" && <WorkspaceDrawer ws={ws} />}
           </div>

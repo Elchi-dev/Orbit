@@ -3,7 +3,7 @@ import { api } from "./api";
 import type { Approval, Detail, Message, ServerState, StreamBlock, ToolCall, UsageEvent, Workspace } from "./types";
 
 export type View = { kind: "orrery" } | { kind: "ws"; id: string };
-export type Drawer = null | "shell" | "files" | "git" | "memory" | "workspace";
+export type Drawer = null | "shell" | "files" | "git" | "missions" | "memory" | "workspace";
 export interface Toast {
   id: number;
   title: string;
@@ -30,6 +30,7 @@ interface Store {
 
   /** text waiting to be put into a workspace's composer (from a deep link or the editor) */
   drafts: Record<string, string>;
+  missions: Record<string, import("../components/cockpit/Missions").Mission[]>;
   setIncoming: (wsId: string, text: string | null) => void;
   setView: (v: View) => void;
   setDrawer: (d: Drawer) => void;
@@ -62,6 +63,7 @@ export const useStore = create<Store>((set, get) => ({
   connected: false,
   send: () => {},
   drafts: {},
+  missions: {},
   setIncoming: (wsId, text) => {
     const drafts = { ...get().drafts };
     if (text) drafts[wsId] = text;
@@ -210,6 +212,9 @@ export const useStore = create<Store>((set, get) => ({
       case "pins":
       case "file_changed":
         if (s.details[wsId!]) get().loadDetail(wsId!);
+        break;
+      case "missions":
+        set({ missions: { ...s.missions, [wsId!]: e.missions } });
         break;
       case "compacted":
         get().loadDetail(wsId!);

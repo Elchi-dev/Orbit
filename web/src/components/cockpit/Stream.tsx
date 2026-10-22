@@ -44,10 +44,14 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 function UserTurn({ turn, onRetry }: { turn: Turn; onRetry: (text: string) => void }) {
-  const text = turn.blocks
+  const raw = turn.blocks
     .filter((b) => b.type === "text" && !b.text?.startsWith("<attachment"))
     .map((b) => b.text)
     .join("\n");
+  // a mission's request ends with a note to Claude; show it as a quiet label instead
+  const mission = raw.match(/\n\n\[Orbit: this is the mission "([^"]*)"(?: \((?:started by its webhook|on its schedule)\))?[^\]]*\]$/);
+  const text = mission ? raw.slice(0, mission.index) : raw;
+  const how = raw.includes("(started by its webhook)") ? ", started by its webhook" : raw.includes("(on its schedule)") ? ", on its schedule" : "";
   const attachments = turn.blocks.filter((b) => b.type === "image" || b.type === "document" || b.text?.startsWith("<attachment"));
   return (
     <div className="turn you">
@@ -72,6 +76,11 @@ function UserTurn({ turn, onRetry }: { turn: Turn; onRetry: (text: string) => vo
           </div>
         )}
         {text && <p className="user-text">{text}</p>}
+        {mission && (
+          <span className="muted small mission-tag">
+            Mission “{mission[1] || "untitled"}”{how}
+          </span>
+        )}
       </div>
     </div>
   );

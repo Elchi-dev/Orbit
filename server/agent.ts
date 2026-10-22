@@ -213,7 +213,16 @@ async function autoTitle(ws: WorkspaceRow) {
 
 export const WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_uses: 5 };
 
-export async function runTurn(wsId: string, userContent: any[], opts: { effort?: string; web?: boolean } = {}) {
+export interface TurnOptions {
+  effort?: string;
+  web?: boolean;
+  /** a mission: no one is watching, so nothing may wait for an answer */
+  unattended?: boolean;
+  /** approval mode for this run only */
+  mode?: "rules" | "auto";
+}
+
+export async function runTurn(wsId: string, userContent: any[], opts: TurnOptions = {}) {
   if (running.has(wsId)) throw new Error("This workspace is already working");
   const ac = new AbortController();
   running.set(wsId, ac);
@@ -313,7 +322,8 @@ export async function runTurn(wsId: string, userContent: any[], opts: { effort?:
         broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
       }
       const jctx = judgeContext(wsId);
-      const decisions = await Promise.all(calls.map((call) => decide(ws, call, jctx)));
+      const gateWs = opts.mode ? { ...ws, mode: opts.mode } : ws;
+      const decisions = await Promise.all(calls.map((call) => decide(gateWs, call, jctx, { unattended: opts.unattended })));
 
       const results: any[] = [];
       for (let i = 0; i < calls.length; i++) {
@@ -382,6 +392,7 @@ export async function runTurn(wsId: string, userContent: any[], opts: { effort?:
   }
   const ws = getWorkspace(wsId);
   if (ws && endReason === "done") autoTitle(ws);
+  return endReason;
 }
 
 /** Clear history. Optionally ask the scribe for a summary first so the agent keeps the thread. */

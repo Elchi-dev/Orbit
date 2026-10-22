@@ -24,6 +24,7 @@ import {
   pull as gitPull,
   init as gitInit,
 } from "./git";
+import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
@@ -81,6 +82,7 @@ if (flag("no-open")) process.env.ORBIT_NO_OPEN = "1";
 loadConfig();
 const cfg = config();
 syncMcp();
+startScheduler();
 const PORT = Number(flag("port") ?? process.env.PORT ?? cfg.server.port);
 const HOST = flag("host") ?? process.env.HOST ?? cfg.server.host;
 const TOKEN = crypto.randomUUID();
@@ -418,6 +420,33 @@ async function api(req: Request, url: URL): Promise<Response> {
     });
   }
 
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/missions$/))) {
+    if (!getWorkspace(match[1])) return bad("No such workspace", 404);
+    if (m === "GET") return json(listMissions(match[1]));
+    if (m === "POST") {
+      try {
+        return json(createMission(match[1], await body()));
+      } catch (e) {
+        return bad((e as Error).message);
+      }
+    }
+  }
+  if ((match = p.match(/^\/api\/missions\/(m_\w+)(?:\/(run))?$/))) {
+    try {
+      if (match[2] === "run" && m === "POST") {
+        launch(match[1], "manual").catch(() => {});
+        return json({ started: true });
+      }
+      if (m === "PATCH") return json(updateMission(match[1], await body()));
+      if (m === "DELETE") {
+        deleteMission(match[1]);
+        return json({ ok: true });
+      }
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/compact$/)) && m === "POST") {
     if (!getWorkspace(match[1])) return bad("No such workspace", 404);
     try {
@@ -555,6 +584,21 @@ try {
         return new Response("{}", { headers: { "content-type": "application/json", "set-cookie": `orbit_token=${TOKEN}; HttpOnly; SameSite=Strict; Path=/` } });
       }
       if (url.pathname === "/api/session") return json({});
+      // a mission's webhook: the token in the path is the key, so no session cookie is needed
+      const hook = url.pathname.match(/^\/hook\/([a-f0-9]{20})$/);
+      if (hook && req.method === "POST") {
+        const mission = byHook(hook[1]);
+        if (!mission) return bad("No mission with that hook", 404);
+        if (isRunning(mission.workspace_id)) return bad("The workspace is busy; try again when it's done", 409);
+        const raw = await req.text();
+        let extra = raw;
+        try {
+          const j = JSON.parse(raw);
+          extra = typeof j?.text === "string" ? j.text : JSON.stringify(j, null, 2);
+        } catch {}
+        launch(mission.id, "hook", extra.slice(0, 20_000)).catch(() => {});
+        return json({ started: true, mission: mission.title || mission.id }, 202);
+      }
       if (url.pathname.startsWith("/api/")) {
         if (!authed(req)) return bad("Unauthorized: reload the page", 401);
         try {

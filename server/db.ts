@@ -91,6 +91,21 @@ CREATE TABLE IF NOT EXISTS secrets (
   iv BLOB NOT NULL,
   data BLOB NOT NULL
 );
+CREATE TABLE IF NOT EXISTS missions (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT '',
+  prompt TEXT NOT NULL,
+  schedule TEXT NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'rules',
+  hook TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  next_run INTEGER,
+  last_run INTEGER,
+  last_status TEXT,
+  last_text TEXT,
+  created_at INTEGER NOT NULL
+);
 CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(text, message_id UNINDEXED, workspace_id UNINDEXED);
 `);
 

@@ -206,7 +206,7 @@ ${call.subject.slice(0, 4000)}${guardNote(call)}`;
   }
 }
 
-export async function decide(ws: WorkspaceRow, call: PendingCall, ctx: JudgeContext): Promise<Decision> {
+export async function decide(ws: WorkspaceRow, call: PendingCall, ctx: JudgeContext, opts: { unattended?: boolean } = {}): Promise<Decision> {
   const c = config();
   if (isUiTool(call.name)) return { allow: true, decidedBy: "builtin" };
   if (c.permissions.skip_readonly && isReadOnly(call.name, call.input)) return { allow: true, decidedBy: "readonly" };
@@ -215,7 +215,10 @@ export async function decide(ws: WorkspaceRow, call: PendingCall, ctx: JudgeCont
   if (rule && rule.verdict !== "ask")
     return { allow: rule.verdict === "allow", decidedBy: "rule", reason: `${rule.verdict === "allow" ? "Allowed" : "Blocked"} by rule "${rule.pattern}"` };
 
-  const mode = (ws.mode as Mode) ?? c.permissions.default_mode;
+  let mode = (ws.mode as Mode) ?? c.permissions.default_mode;
+  // nobody is there to answer: manual becomes rules-only, and "ask" means no
+  if (opts.unattended && mode === "manual") mode = "rules";
+  if (opts.unattended && rule?.verdict === "ask") return { allow: false, decidedBy: "rule", reason: `Rule "${rule.pattern}" says ask, and this run is unattended` };
   if (!rule && mode === "rules") return { allow: false, decidedBy: "mode", reason: "Rules-only mode and no rule allows this" };
 
   if (!rule && mode === "auto") {
@@ -228,6 +231,7 @@ export async function decide(ws: WorkspaceRow, call: PendingCall, ctx: JudgeCont
       return { allow: true, decidedBy: "judge", reason: j.reason, judgeMs: j.ms };
     }
     if (j.verdict === "deny") return { allow: false, decidedBy: "judge", reason: j.reason, judgeMs: j.ms };
+    if (opts.unattended) return { allow: false, decidedBy: "judge", reason: `The judge wasn't sure and nobody was there to ask: ${j.reason}`, judgeMs: j.ms };
     const u = await askUser(ws, call, j);
     return { allow: u.allow, decidedBy: "user", reason: u.note ?? (u.allow ? "You allowed it" : "You denied it"), judgeMs: j.ms };
   }
