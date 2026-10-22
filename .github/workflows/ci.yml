@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Types
+        run: bun run typecheck
+      - name: Tests
+        run: bun test
+      - name: Build the interface
+        run: bunx vite build
+      - name: End to end against a running server (mock model)
+        run: |
+          ORBIT_HOME=$RUNNER_TEMP/orbit ORBIT_MOCK=1 ORBIT_NO_OPEN=1 PORT=7799 bun server/index.ts &
+          for i in $(seq 1 20); do curl -fs http://localhost:7799/ >/dev/null && break; sleep 0.5; done
+          bun scripts/smoke.ts http://localhost:7799
+      - name: No dashes in source and docs
+        run: bun scripts/lint-text.ts
