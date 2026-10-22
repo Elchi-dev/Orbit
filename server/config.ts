@@ -44,7 +44,7 @@ export interface Config {
     judge_notes: string;
     rules: Rule[];
   };
-  ui_tools: { set_title: boolean; set_planet: boolean; notify: boolean; pin: boolean; show: boolean; widget: boolean; auto_title: boolean };
+  ui_tools: { set_title: boolean; set_planet: boolean; notify: boolean; pin: boolean; show: boolean; widget: boolean; auto_title: boolean; docs: boolean; whiteboard: boolean };
   ui: { motion: "full" | "calm" | "off"; sound: boolean; house_style: boolean };
   budget: { daily_usd: number; workspace_usd: number };
   safety: { undo_journal: boolean; undo_max_bytes: number; command_timeout_s: number };
@@ -78,7 +78,7 @@ export const DEFAULT_CONFIG: Config = {
     judge_notes: "",
     rules: [],
   },
-  ui_tools: { set_title: true, set_planet: true, notify: true, pin: true, show: true, widget: false, auto_title: true },
+  ui_tools: { set_title: true, set_planet: true, notify: true, pin: true, show: true, widget: false, auto_title: true, docs: true, whiteboard: true },
   ui: { motion: "full", sound: false, house_style: true },
   budget: { daily_usd: 20, workspace_usd: 5 },
   safety: { undo_journal: true, undo_max_bytes: 2_000_000, command_timeout_s: 300 },

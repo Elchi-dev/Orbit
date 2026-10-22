@@ -23,6 +23,7 @@ import { decide, cancelApprovals, type PendingCall } from "./gate";
 import { allowedBy, findTool, subjectOf, toolDefs } from "./tools";
 import { killShell } from "./shell";
 import { canDelegate, helpersOf, listAgents } from "./helpers";
+import { docsBrief } from "./docs";
 import { recordUsage } from "./usage";
 import { priceFor } from "./config";
 
@@ -90,6 +91,16 @@ function systemPrompt(ws: WorkspaceRow) {
   if (ui.set_title || ui.set_planet || ui.show || ui.pin || ui.notify || ui.widget)
     parts.push(
       `You can change Orbit's interface with the ui_* tools. Use them when they help: rename the workspace when the topic is clear, pin durable facts, show a chart when numbers are easier to see, notify when a long task ends. Don't overuse them.`,
+    );
+  if (ui.docs && allowedBy(getProfile(ws.profile), "doc_write", ws)) {
+    const docs = docsBrief(ws.id);
+    parts.push(
+      `Docs are Markdown documents you and the user share in the Docs tab beside the conversation (doc_write, doc_edit, doc_read, doc_comment). Put work worth keeping and discussing there (plans, specs, findings, drafts) rather than in a long reply, and say in a line that you did. The user edits docs and comments on passages; when they do, read the doc, answer each comment and resolve what you dealt with.${docs ? `\nDocs here:\n${docs}` : ""}`,
+    );
+  }
+  if (ui.whiteboard && allowedBy(getProfile(ws.profile), "whiteboard", ws))
+    parts.push(
+      `The whiteboard (whiteboard, whiteboard_read) is a canvas the user sees in the Board tab. Use it when laying things out helps: options side by side, a flow with arrows, screenshots to compare, a checklist, references. Group related items in frames. It's for the user to look at and rearrange, so keep items short.`,
     );
   if (c.ui.house_style) parts.push(HOUSE_STYLE);
   if (c.profile.about.trim()) parts.push(`About the user:\n${c.profile.about.trim()}`);

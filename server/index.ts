@@ -1,6 +1,8 @@
+import { addComment, createDoc, deleteDoc, docView, getDoc, listDocs, resolveComment, saveDoc } from "./docs";
+import { apply as applyBoard, assetPath, getBoard, isImagePath, saveAsset } from "./board";
 import { discardHelper, helpersOf, helperView, listAgents, mergeHelper } from "./helpers";
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
-import { join, resolve, dirname, extname } from "node:path";
+import { join, resolve, dirname, extname, sep } from "node:path";
 import { homedir } from "node:os";
 import { loadConfig, config, saveConfig, deepMerge, CONFIG_PATH, ORBIT_DIR, type Config } from "./config";
 import { db, now, uid, getWorkspace, listMessages, workspaceStats, costSince, startOfDay, startOfMonth, type WorkspaceRow } from "./db";
@@ -490,6 +492,83 @@ async function api(req: Request, url: URL): Promise<Response> {
     } catch (e) {
       return bad((e as Error).message);
     }
+  }
+  // ---------- docs ----------
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/docs$/))) {
+    if (!getWorkspace(match[1])) return bad("No such workspace", 404);
+    if (m === "GET") return json(listDocs(match[1]).map(({ agent_body, ...d }) => d));
+    if (m === "POST") {
+      const b = await body();
+      return json(docView(createDoc(match[1], String(b.title ?? "Untitled"), String(b.body ?? ""), "user")));
+    }
+  }
+  if ((match = p.match(/^\/api\/docs\/([\w]+)$/))) {
+    const d = getDoc(match[1]);
+    if (!d) return bad("No such doc", 404);
+    if (m === "GET") return json(docView(d));
+    if (m === "PUT") {
+      const b = await body();
+      try {
+        return json(docView(saveDoc(d, { title: b.title, body: b.body }, "user", typeof b.version === "number" ? b.version : undefined)));
+      } catch (e) {
+        return json({ error: (e as Error).message, doc: docView(getDoc(d.id)!) }, 409);
+      }
+    }
+    if (m === "DELETE") {
+      deleteDoc(d);
+      return json({ ok: true });
+    }
+  }
+  if ((match = p.match(/^\/api\/docs\/([\w]+)\/comments(?:\/([\w]+))?$/)) && m === "POST") {
+    const d = getDoc(match[1]);
+    if (!d) return bad("No such doc", 404);
+    const b = await body();
+    try {
+      if (match[2]) resolveComment(d, match[2], !!b.resolved, "user");
+      else {
+        if (!String(b.body ?? "").trim()) return bad("Write something first");
+        addComment(d, { author: "user", body: String(b.body), quote: b.quote, parent_id: b.parent_id ?? null });
+      }
+      return json(docView(getDoc(d.id)!));
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  // ---------- whiteboard ----------
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/board$/))) {
+    if (!getWorkspace(match[1])) return bad("No such workspace", 404);
+    if (m === "GET") return json(getBoard(match[1]));
+    if (m === "POST") {
+      const b = await body();
+      try {
+        return json(applyBoard(match[1], Array.isArray(b.ops) ? b.ops : [], "user").board);
+      } catch (e) {
+        return bad((e as Error).message);
+      }
+    }
+  }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/assets$/)) && m === "POST") {
+    if (!getWorkspace(match[1])) return bad("No such workspace", 404);
+    try {
+      const name = saveAsset(new Uint8Array(await req.arrayBuffer()), (req.headers.get("content-type") ?? "").split(";")[0]);
+      return json({ name, src: `asset:${name}` });
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if ((match = p.match(/^\/api\/assets\/([\w.-]+)$/)) && m === "GET") {
+    const f = assetPath(match[1]);
+    if (!f || !existsSync(f)) return bad("No such image", 404);
+    // svg could carry script; served as an attachment-safe image with a strict policy
+    return new Response(Bun.file(f), { headers: { "cache-control": "private, max-age=86400", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'", "x-content-type-options": "nosniff" } });
+  }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/image$/)) && m === "GET") {
+    const w = getWorkspace(match[1]);
+    if (!w) return bad("No such workspace", 404);
+    const rel = url.searchParams.get("path") ?? "";
+    const full = resolve(w.cwd, rel);
+    if (!full.startsWith(resolve(w.cwd) + sep) || !isImagePath(full) || !existsSync(full)) return bad("No such image in the workspace", 404);
+    return new Response(Bun.file(full), { headers: { "cache-control": "no-cache", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'", "x-content-type-options": "nosniff" } });
   }
   if ((match = p.match(/^\/api\/shots\/([\w.-]+\.png)$/)) && m === "GET") {
     const f = shotPath(match[1]);

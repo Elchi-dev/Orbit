@@ -1,4 +1,6 @@
 import { canDelegate, delegate } from "./helpers";
+import { addComment, createDoc, docsBrief, editPassage, findDoc, readForAgent, resolveComment, saveDoc } from "./docs";
+import { apply, COLORS, KINDS, readForAgent as readBoard } from "./board";
 import { openPreview, previewState, resolveTarget } from "./preview";
 import { isLocalUrl, screenshot } from "./screenshot";
 import { profileAllows, type Profile } from "./profiles";
@@ -488,6 +490,147 @@ const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: "doc_write",
+    description:
+      "Create a Markdown doc the user reads, edits and comments on in the Docs tab next to the conversation, or replace a whole doc. Use docs for anything worth keeping and discussing: plans, specs, research notes, decisions, drafts. Leave id out to create one. For changes to part of a doc use doc_edit.",
+    input_schema: obj({ title: str("The doc's title"), content: str("The whole doc, in Markdown"), id: str("An existing doc's id, to replace it") }, ["content"]),
+    readOnly: true,
+    ui: "docs",
+    async run(input, ctx) {
+      const content = String(input?.content ?? "");
+      if (input?.id) {
+        const d = findDoc(ctx.ws.id, input.id);
+        if (!d) return { content: `No doc ${input.id} here.`, isError: true };
+        const fresh = saveDoc(d, { body: content, title: input.title }, "agent");
+        return { content: `Replaced "${fresh.title}" (${fresh.id}), version ${fresh.version}.` };
+      }
+      const d = createDoc(ctx.ws.id, String(input?.title ?? content.match(/^#\s+(.+)/m)?.[1] ?? "Untitled"), content, "agent");
+      return { content: `Created "${d.title}" (${d.id}). The user sees it in the Docs tab.` };
+    },
+  },
+  {
+    name: "doc_edit",
+    description: "Change one passage of a doc: old_text must appear exactly once. Read the doc first if the user may have edited it.",
+    input_schema: obj({ id: str("The doc's id or exact title"), old_text: str("The exact passage to replace"), new_text: str("What replaces it") }, ["id", "old_text", "new_text"]),
+    readOnly: true,
+    ui: "docs",
+    async run(input, ctx) {
+      const d = findDoc(ctx.ws.id, input?.id);
+      if (!d) return { content: `No doc ${input?.id} here.`, isError: true };
+      if (d.updated_by === "user" && d.agent_body !== d.body && !d.body.includes(String(input.old_text ?? "")))
+        return { content: "The user edited this doc since you last read it and that passage isn't there any more. Read it with doc_read first.", isError: true };
+      try {
+        const fresh = saveDoc(d, { body: editPassage(d.body, String(input.old_text ?? ""), String(input.new_text ?? "")) }, "agent");
+        return { content: `Edited "${fresh.title}", version ${fresh.version}.` };
+      } catch (e) {
+        return { content: (e as Error).message, isError: true };
+      }
+    },
+  },
+  {
+    name: "doc_read",
+    description: "Read a doc with its open comments and what the user changed since you last read it. Leave id out to list the docs in this workspace.",
+    input_schema: obj({ id: str("The doc's id or exact title") }, []),
+    readOnly: true,
+    parallel: true,
+    ui: "docs",
+    async run(input, ctx) {
+      if (!input?.id) {
+        const list = docsBrief(ctx.ws.id);
+        return { content: list ? `Docs here:\n${list}` : "No docs in this workspace yet." };
+      }
+      const d = findDoc(ctx.ws.id, input.id);
+      if (!d) return { content: `No doc ${input.id} here.`, isError: true };
+      return { content: readForAgent(d) };
+    },
+  },
+  {
+    name: "doc_comment",
+    description: "Answer a comment on a doc (reply_to its id), mark a thread resolved, or leave your own comment on a passage (quote it) for the user.",
+    input_schema: obj(
+      {
+        id: str("The doc's id or exact title"),
+        body: str("Your comment or reply"),
+        reply_to: str("The id of the comment you answer"),
+        quote: str("For a new comment: the passage it's about"),
+        resolve: { type: "boolean", description: "Mark the thread you reply to as resolved" },
+      },
+      ["id"],
+    ),
+    readOnly: true,
+    ui: "docs",
+    async run(input, ctx) {
+      const d = findDoc(ctx.ws.id, input?.id);
+      if (!d) return { content: `No doc ${input?.id} here.`, isError: true };
+      try {
+        if (input.body) addComment(d, { author: "agent", body: String(input.body), quote: input.quote, parent_id: input.reply_to ?? null });
+        if (input.resolve && input.reply_to) resolveComment(d, input.reply_to, true, "agent");
+        return { content: input.resolve ? "Replied and resolved." : "Comment added." };
+      } catch (e) {
+        return { content: (e as Error).message, isError: true };
+      }
+    },
+  },
+  {
+    name: "whiteboard",
+    description: `Lay things out for the user on the workspace's whiteboard, a canvas in the Board tab: sticky notes, text, checklists, screenshots and images, links, files, frames that group items, and arrows. Send a batch of ops in one call. Items without x and y are placed in the next free spot (inside a frame if you name one). Give an added item a ref to use it in later ops of the same batch. Image src: a screenshot name from the screenshot tool (like 1712345678-1280.png) or a path to an image in the workspace. Colors: ${COLORS.join(", ")}. Read the board with whiteboard_read first when the user may have changed it.`,
+    input_schema: obj(
+      {
+        ops: {
+          type: "array",
+          description: "Changes, applied in order",
+          items: obj(
+            {
+              op: { type: "string", enum: ["add", "update", "move", "remove", "connect", "disconnect", "clear"] },
+              kind: { type: "string", enum: [...KINDS] },
+              ref: str("add: a name for this item within the batch"),
+              id: str("update, move, remove: the item's id or ref"),
+              frame: str("add: put the item inside this frame (id or ref)"),
+              title: str("Heading of a frame, checklist, link or image"),
+              text: str("Note or text content (Markdown for text)"),
+              color: { type: "string", enum: [...COLORS] },
+              src: str("image: screenshot name or a workspace path"),
+              url: str("link: the address"),
+              path: str("file: a path in the workspace"),
+              items: { type: "array", items: obj({ text: str("A line"), done: { type: "boolean" } }, ["text"]), description: "checklist lines" },
+              x: { type: "number" },
+              y: { type: "number" },
+              w: { type: "number" },
+              h: { type: "number" },
+              from: str("connect: item id or ref"),
+              to: str("connect: item id or ref"),
+              label: str("connect: text on the arrow"),
+            },
+            ["op"],
+          ),
+        },
+      },
+      ["ops"],
+    ),
+    readOnly: true,
+    ui: "whiteboard",
+    async run(input, ctx) {
+      try {
+        const { board, added } = apply(ctx.ws.id, Array.isArray(input?.ops) ? input.ops : [], "agent");
+        const made = Object.entries(added).map(([r, id]) => (r === id ? id : `${r}=${id}`));
+        return { content: `Board updated: ${board.items.length} items, ${board.edges.length} arrows.${made.length ? ` Added ${made.join(", ")}.` : ""}` };
+      } catch (e) {
+        return { content: (e as Error).message, isError: true };
+      }
+    },
+  },
+  {
+    name: "whiteboard_read",
+    description: "Read the whiteboard: every item with its id, position and content, the arrows, and what the user changed since you last looked.",
+    input_schema: obj({}, []),
+    readOnly: true,
+    parallel: true,
+    ui: "whiteboard",
+    async run(_input, ctx) {
+      return { content: readBoard(ctx.ws.id) };
+    },
+  },
+  {
     name: "ui_pin",
     description: "Save a fact to this workspace's memory shelf. Pinned facts are included in every future turn here.",
     input_schema: obj({ text: str("The fact to remember, one or two sentences") }, ["text"]),
@@ -569,7 +712,8 @@ export function isReadOnly(name: string, input: any) {
   return typeof t.readOnly === "function" ? t.readOnly(input) : t.readOnly;
 }
 export function isUiTool(name: string) {
-  return name.startsWith("ui_") || name === "preview_open";
+  // these only change Orbit's own interface and data, never the computer
+  return name.startsWith("ui_") || name.startsWith("doc_") || name.startsWith("whiteboard") || name === "preview_open";
 }
 
 /** The text a rule pattern is matched against, e.g. "rm -rf build", "write /home/me/x.ts". */
