@@ -40,7 +40,7 @@ and nothing important hides behind hover.
 | **Start buttons** (Launch, Get started, Send) | with their screen | a portal opens from the middle onto a turning galaxy, the label goes white, the arrow lifts | dips to 97% | the galaxy flashes open for the press, then closes | still |
 | **Primary** (peach, lavender) | with their screen | 4% lighter, lifts 1 px | 97%, drops the lift | same as press | still |
 | **Outline and ghost** | with their screen | background fades in | 97% | background flashes | still |
-| **Icon buttons** (dock, toolbars) | with their screen | background fades in, icon nudges 1 px toward its meaning (arrow up goes up) | 92% | same as press | a badge breathes only while something is live |
+| **Icon buttons** (dock, toolbars) | with their screen | background fades in; arrows nudge toward where they point | 92% | same as press | a badge breathes only while something is live |
 | **Disabled** | | nothing | nothing | nothing | 40% opacity |
 | **Kill switch** | when a run starts, scales in | turns red | 92% | same | still |
 
@@ -56,11 +56,11 @@ and nothing important hides behind hover.
 | | Appears | Disappears | Hover | Notes |
 | --- | --- | --- | --- | --- |
 | **Popovers and menus** | fade and grow from where they were opened, `--t-move`, spring | fade and shrink toward the same point, faster | | origin follows the trigger |
-| **Drawers** (shell, review, git...) | slide in from the dock side with a fade | slide back, faster | | content inside fades in after the drawer lands |
+| **Drawers** (shell, review, git...) | slide in from the dock side with a fade and a spring | slide back | | |
 | **Side panel** (Preview, Docs, Board) | slides in from the right while the conversation narrows | reverse | | the divider glows peach while dragged |
 | **Panel tabs** | | | text brightens | the peach underline glides to the new tab |
 | **Modals** (Settings, palette) | the page dims, the card rises 12 px and fades in | reverse, faster | | Esc closes |
-| **Toasts** | slide in from the right with a spring, with Ori in the matching pose | slide out right | pause their timer | stack shifts smoothly |
+| **Toasts** | slide in from the right with a spring, with Ori in the matching pose | slide out right, faster | | the stack shifts smoothly |
 | **Approval eclipse** | the page dims, the eclipse grows from small, the card rises | the card drops, the eclipse shrinks | | the corona turns and breathes while it waits |
 | **Cards** (lanes, planets list, doc rows, missions) | fade up 6 px, staggered 30 ms | fade out | lift 1 px, border brightens | |
 
@@ -74,13 +74,13 @@ and nothing important hides behind hover.
 | **Tool rows** | fade in; a spinner while running; the verdict dot pops once when decided | expanding is a height spring |
 | **Helper lanes** | fade up, staggered; a sweep runs along the bottom while working | lifts on hover |
 | **Plan** | items check off with a small pop | the progress bar eases |
-| **Steering note** | flies from the composer into the stream | |
+| **Steering note** | rises into the stream like any message of yours, marked as sent mid-run | |
 
 ### Places
 
 | | Enter | Leave | Idle |
 | --- | --- | --- | --- |
-| **The Orrery** | planets fade in from the sun outward | | orbits turn; busy planets turn faster and spark; a waiting planet pulses peach; helpers circle as moons |
+| **The Orrery** | the sky settles in from slightly closer | | orbits turn; busy planets turn faster and spark; a waiting planet pulses peach; helpers circle as moons |
 | **Planet hover** | grows with a spring, glow brightens, label steps aside | | |
 | **Into a workspace** | the screen scales up from the planet as if flying in | scales down back to the sky | |
 | **Empty places** | Ori fades in with the matching pose | | Ori idles (bob, blink) |
