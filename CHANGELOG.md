@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`orbit check`** tries real work against the API in a throwaway Orbit:
+  tools, approvals, the judge guarding a folder outside the workspace, web
+  search, helpers, docs and the board, compaction, steering and screenshots.
+  It asks for the key without showing it, caps spending at $3, deletes
+  everything afterwards and writes a report without the key.
+
 ## 0.4.1 (2026-10-22)
 
 A design release: Orbit gets a mascot, a guide and motion that says what

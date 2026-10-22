@@ -62,10 +62,15 @@ if (flag("help") || argv.includes("-h")) {
   orbit --port 7778     use another port
   orbit --no-open       don't open the browser
   orbit --mock          run with a fake model (no API calls), for trying the interface
+  orbit check           try real work against the API in a throwaway Orbit (about $0.30 to $1)
   orbit --version
 
   Config: ~/.orbit/orbit.toml   Data: ~/.orbit/orbit.db   (set ORBIT_HOME to move both)`);
   process.exit(0);
+}
+if (argv[0] === "check") {
+  const { runCheck } = await import("./check");
+  await runCheck(argv.slice(1), VERSION);
 }
 // a folder given on the command line opens as a workspace
 const VALUE_FLAGS = new Set(["--port", "--host"]);

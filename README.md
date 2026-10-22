@@ -360,6 +360,9 @@ microphone, Firefox on a real GPU (the 3D sky was checked with software
 WebGL, the flat sky by itself),
 Windows beyond building the binary.
 
+To try it against the real API yourself: `orbit check`. It runs ten real
+tasks in a throwaway Orbit, usually for $0.30 to $1, and writes a report.
+
 The test bar: 141 tests named after what they protect, including the rule
 that once let an allow rule be stretched with `;`, flags that turn a read-only
 command into a write, a mission that must refuse instead of waiting, a page on
