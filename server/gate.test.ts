@@ -163,3 +163,17 @@ describe("full autonomy", () => {
     expect(riskOf({ id: "d", name: "bash", input: {}, subject: "rm -rf /tmpx" }, "/tmp")).not.toBeNull();
   });
 });
+
+describe("who may call the API", () => {
+  test("only Orbit's own origin, not another local port", async () => {
+    const { originAllowed } = await import("./origin");
+    expect(originAllowed(null, "localhost:7777")).toBe(true);
+    expect(originAllowed("http://localhost:7777", "localhost:7777")).toBe(true);
+    expect(originAllowed("http://localhost:3000", "localhost:7777")).toBe(false);
+    expect(originAllowed("http://127.0.0.1:7778", "localhost:7777")).toBe(false);
+    expect(originAllowed("https://evil.example", "localhost:7777")).toBe(false);
+    expect(originAllowed("null", "localhost:7777")).toBe(false);
+    expect(originAllowed("http://localhost:5173", "localhost:7777", true)).toBe(true);
+    expect(originAllowed("http://localhost:5173", "localhost:7777", false)).toBe(false);
+  });
+});

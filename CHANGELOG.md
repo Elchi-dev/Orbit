@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- The API accepted requests from any page on localhost, whatever its port.
+  Cookies are not tied to a port, so a page served by a local dev server could
+  have used your Orbit session. Only Orbit's own origin is accepted now.
+
 ## 0.2.0 (2026-10-22)
 
 Orbit works with what you already use, and looks quieter doing it.

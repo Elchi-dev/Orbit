@@ -31,6 +31,7 @@ import { getProfile, listProfiles } from "./profiles";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
+import { originAllowed } from "./origin";
 
 declare const ORBIT_VERSION: string;
 const VERSION = typeof ORBIT_VERSION === "string" ? ORBIT_VERSION : "dev";
@@ -104,13 +105,7 @@ function hostOk(req: Request) {
   return LOCAL_HOSTS.test(req.headers.get("host") ?? "");
 }
 function originOk(req: Request) {
-  const o = req.headers.get("origin");
-  if (!o) return true;
-  try {
-    return LOCAL_HOSTS.test(new URL(o).host) || new URL(o).host === req.headers.get("host");
-  } catch {
-    return false;
-  }
+  return originAllowed(req.headers.get("origin"), req.headers.get("host"));
 }
 function authed(req: Request) {
   return hostOk(req) && originOk(req) && cookieToken(req) === TOKEN;
