@@ -7,7 +7,7 @@ import { config, loadConfig } from "./config";
 
 loadConfig();
 
-function workspace(mode: "manual" | "auto" | "rules") {
+function workspace(mode: "manual" | "auto" | "rules" | "full") {
   const id = `w_${mode}_${Math.random().toString(36).slice(2, 8)}`;
   db.run("INSERT INTO workspaces (id, title, cwd, mode, created_at, updated_at) VALUES (?,?,?,?,?,?)", [id, "test", "/tmp", mode, now(), now()]);
   return db.query<any, [string]>("SELECT * FROM workspaces WHERE id = ?").get(id)!;
@@ -130,5 +130,36 @@ describe("decide", () => {
     } finally {
       config().permissions.skip_readonly = true;
     }
+  });
+});
+
+describe("full autonomy", () => {
+  const call = (command: string) => ({ id: `f_${Math.random()}`, name: "bash", input: { command }, subject: command });
+  test("allows ordinary work without asking anyone", async () => {
+    for (const cmd of ["npm install", "rm -rf ./dist build", "mkdir -p src && touch src/a.ts", "pnpm create vite app"]) {
+      const d = await decide(workspace("full"), call(cmd), ctx);
+      expect(d).toMatchObject({ allow: true, decidedBy: "full" });
+    }
+  });
+  test("sends what reaches outside the folder or escalates to the judge, and unsure means no", async () => {
+    process.env.ORBIT_MOCK = "1"; // the mock judge always answers "not sure"
+    for (const cmd of ["rm -rf ~/projects", "rm -rf /", "sudo apt-get install x", "rm -rf ../other", "kubectl delete ns prod", "cd x; dd if=/dev/zero of=/dev/sda"]) {
+      const d = await decide(workspace("full"), call(cmd), ctx);
+      expect(d.allow).toBe(false);
+      expect(d.decidedBy).toBe("judge");
+    }
+    delete process.env.ORBIT_MOCK;
+  });
+  test("a block rule still wins", async () => {
+    const ws = workspace("full");
+    addRule(ws.id, "npm publish*", "deny");
+    expect((await decide(ws, call("npm publish --tag next"), ctx)).allow).toBe(false);
+  });
+  test("files written inside the folder are fine, outside are not", async () => {
+    const { riskOf } = await import("./gate");
+    expect(riskOf({ id: "a", name: "write_file", input: {}, subject: "write /tmp/a.ts" }, "/tmp")).toBeNull();
+    expect(riskOf({ id: "b", name: "write_file", input: {}, subject: "write /etc/hosts" }, "/tmp")).not.toBeNull();
+    expect(riskOf({ id: "c", name: "bash", input: {}, subject: "rm -rf /tmp/build" }, "/tmp")).toBeNull();
+    expect(riskOf({ id: "d", name: "bash", input: {}, subject: "rm -rf /tmpx" }, "/tmp")).not.toBeNull();
   });
 });

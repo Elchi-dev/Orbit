@@ -201,6 +201,7 @@ const VERDICT: Record<string, { label: string; tone: string }> = {
   user: { label: "you", tone: "peach" },
   builtin: { label: "interface", tone: "quiet" },
   mode: { label: "blocked", tone: "bad" },
+  full: { label: "full autonomy", tone: "quiet" },
 };
 
 function Verdict({ call }: { call?: ToolCall }) {

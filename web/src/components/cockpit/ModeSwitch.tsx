@@ -1,10 +1,11 @@
-import { Hand, ListChecks, Scale } from "lucide-react";
+import { Hand, ListChecks, Scale, Zap } from "lucide-react";
 import type { Mode } from "../../lib/types";
 
 const MODES: { id: Mode; label: string; tip: string; Icon: typeof Hand }[] = [
   { id: "manual", label: "Manual", tip: "You approve every action that isn't read-only or covered by a rule", Icon: Hand },
   { id: "auto", label: "Auto", tip: "A judge model approves safe actions and asks you about the rest", Icon: Scale },
   { id: "rules", label: "Rules", tip: "Only your rules decide; anything else is blocked. For unattended runs", Icon: ListChecks },
+  { id: "full", label: "Full", tip: "Claude decides on its own. Only what reaches outside the folder or escalates goes to the judge", Icon: Zap },
 ];
 
 export function ModeSwitch({ value, onChange, compact }: { value: Mode; onChange: (m: Mode) => void; compact?: boolean }) {

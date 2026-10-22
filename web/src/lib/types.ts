@@ -1,4 +1,4 @@
-export type Mode = "manual" | "auto" | "rules";
+export type Mode = "manual" | "auto" | "rules" | "full";
 
 export interface PlanetStyle {
   color: string;

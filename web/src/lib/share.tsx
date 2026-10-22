@@ -33,7 +33,7 @@ function label(name: string, input: any): string {
   }
 }
 
-const WHO: Record<string, string> = { readonly: "read-only", rule: "your rule", judge: "judge", user: "you", builtin: "interface" };
+const WHO: Record<string, string> = { readonly: "read-only", rule: "your rule", judge: "judge", user: "you", builtin: "interface", full: "full autonomy" };
 
 function Page({ ws, detail }: { ws: Workspace; detail: Detail }) {
   const turns: { role: string; blocks: any[] }[] = [];

@@ -219,7 +219,7 @@ export interface TurnOptions {
   /** a mission: no one is watching, so nothing may wait for an answer */
   unattended?: boolean;
   /** approval mode for this run only */
-  mode?: "rules" | "auto";
+  mode?: "rules" | "auto" | "full";
 }
 
 export async function runTurn(wsId: string, userContent: any[], opts: TurnOptions = {}) {

@@ -7,7 +7,7 @@ export const CONFIG_PATH = join(ORBIT_DIR, "orbit.toml");
 mkdirSync(ORBIT_DIR, { recursive: true });
 
 export type Verdict = "allow" | "deny" | "ask";
-export type Mode = "manual" | "auto" | "rules";
+export type Mode = "manual" | "auto" | "rules" | "full";
 export interface Rule {
   pattern: string;
   verdict: Verdict;
