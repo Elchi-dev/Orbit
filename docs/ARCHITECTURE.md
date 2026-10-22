@@ -46,6 +46,10 @@ browser only ever talks to it.
 | `server/preview.ts` | The preview server on its own port: workspace files under a random token, reload events, dev server detection |
 | `server/screenshot.ts` | Headless screenshots through an installed Chrome-family browser, with console messages |
 | `server/origin.ts` | Which origin may call the API: only Orbit's own |
+| `server/helpers.ts` | Helpers (subagents): agent definitions, the `delegate` tool, child workspaces, worktrees, reports, merge and discard |
+| `server/annotate.ts` | The comment script every previewed page gets, and the proxy that puts it into dev server pages |
+| `server/docs.ts` | Docs shared by Claude and you: versions, comment threads, what changed since Claude's last read |
+| `server/board.ts` | The whiteboard: items, arrows, batched changes, placement, uploaded images |
 
 ### One turn
 
@@ -60,8 +64,9 @@ browser only ever talks to it.
 4. The finished reply is stored as the API returned it. Thinking blocks are
    sent back unchanged in later requests, as the API requires.
 5. If the reply asks for tools, every call is registered, all of them go
-   through the gate at the same time, and the allowed ones run in order.
-   Shell output is forwarded live.
+   through the gate at the same time, and the allowed ones run: read-only
+   tools and helpers side by side (four at a time by default), everything
+   else in order. Shell output is forwarded live.
 6. The results are stored as the next user message and the loop continues
    until the reply ends without tools, the budget is used up, or you stop it.
 
@@ -72,9 +77,24 @@ blocks and the citations on the answer are stored and sent back as they came;
 a turn the API pauses during a long search is sent back to let it finish. With
 search off, earlier searches go back as plain text.
 
+A message you send while Claude works waits in the workspace's inbox and
+joins the run at its next step, marked as sent mid-run.
+
 A mission runs the same loop with `unattended` set: the gate turns Manual into
 Rules, a rule that says "ask" into no, and an unsure judge into no, so nothing
 ever waits for an answer.
+
+### Helpers
+
+A helper is a workspace with a parent. `delegate` creates one from an agent
+definition (built in, or a Markdown file in `.claude/agents` or
+`.orbit/agents`), runs the same loop in it and returns its last reply as a
+report, with the files it changed and its cost. It gets the parent's approval
+mode, never more; its tools can be narrowed by the definition, its writes by
+the folders it was given (the gate refuses the rest), and with `isolate` it
+works in a git worktree on its own branch under `.orbit/worktrees`, which is
+added to `.git/info/exclude`. Helpers can't start helpers. Stopping the parent
+stops them; deleting it removes them and their unmerged worktrees.
 
 ### What Claude is told
 
@@ -116,6 +136,11 @@ the shell's process tree; the next command starts a fresh shell.
 | `pins` | the memory shelf |
 | `secrets` | the API key, AES-256-GCM |
 | `search` | full-text index over messages (FTS5); incognito workspaces are left out |
+| `docs`, `doc_comments` | shared Markdown docs, their versions and the text as Claude last read it; comment threads |
+| `boards` | one whiteboard per workspace: items and arrows as JSON, a version, the version Claude last saw |
+
+Helpers live in `workspaces` too, with `parent_id`, `agent`, `scope`, `tools`,
+`branch` and `report` set.
 
 ### Events
 
@@ -123,7 +148,8 @@ The server pushes one stream of events to every open tab: `message`,
 `block_start`, `delta`, `block_stop`, `speed`, `usage`, `tool_call`,
 `tool_output`, `approval_request`, `approval_resolved`, `workspace`,
 `turn_start`, `turn_end`, `cleared`, `compacted`, `missions`, `mcp`, `file_changed`,
-`notify` and `error`. The tab sends
+`queued`, `helper`, `doc`, `doc_deleted`, `board`, `preview`, `plan`, `notify`
+and `error`. The tab sends
 `send`, `approval`, `stop` and `kill`.
 
 ## Interface
@@ -134,7 +160,7 @@ The server pushes one stream of events to every open tab: `message`,
 | --- | --- |
 | `lib/store.ts` | All state, one store; applies server events |
 | `components/orrery/` | The home screen. `OrreryScene` is the 3D sky (planet surfaces, the sun, nebula and dust are shaders); `FlatOrrery` is the same layout without WebGL |
-| `components/cockpit/` | A workspace: the conversation, tool rows, composer with slash commands and dictation, telemetry, the dock and its panels (shell, review, git, missions, memory, workspace) |
+| `components/cockpit/` | A workspace: the conversation, tool rows, helper lanes, composer with slash commands and dictation, telemetry, the dock and its panels (shell, review, git, missions, memory, workspace), and the side panel with Preview, Docs and Board |
 | `components/Integrations.tsx`, `components/McpPage.tsx` | Settings pages for the editor and the 100 programs, and for MCP servers |
 | `lib/slash.ts`, `lib/share.tsx` | Slash commands; saving a workspace as one HTML page |
 | `components/Approval.tsx` | The approval eclipse |
@@ -152,9 +178,18 @@ by default). Workspace files are served under a random token per workspace,
 HTML gets a few lines that reload the page when a file in the folder changes,
 and nothing outside the folder is served. Because it is another origin, and
 the API accepts only its own, a page being built can't use your session. A dev
-server is shown at its own address. While Claude streams a `write_file` for an
+server is shown through a small proxy on a port of its own, so its pages get
+the comment script too; requests, redirects and websockets (hot reload) pass
+through unchanged. While Claude streams a `write_file` for an
 HTML file, the interface reads the half-arrived content out of the tool input
 and draws it without its scripts; the real page takes over once it is written.
+
+Comments on the preview work through a script in every previewed page. It
+talks to the interface only with `postMessage`: in comment mode it outlines
+what's under the pointer and reports the element you click (a selector, its
+text and a slice of its HTML), and it draws numbered pins for the comments.
+When the comments go to Claude, the screenshot's address carries the pins, so
+the script draws them into the picture.
 
 Screenshots start the installed browser headless with a window of the asked
 width, let timers and requests settle, and read console messages from its log.

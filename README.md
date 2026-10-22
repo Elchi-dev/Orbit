@@ -153,6 +153,44 @@ each can be changed or copied into your own (Settings, Profiles, or
 
 ---
 
+## Helpers that work side by side
+
+![Three helpers sent at once: one measures, one builds on its own branch, one reviews](docs/images/helpers.webp)
+
+Claude can hand parts of a task to **helpers**: separate agents with their own
+context, shell and model. Several sent in one reply run at the same time.
+
+- **You watch them work.** Each helper shows what it's doing right now, then
+  its report, cost and time. Open one for its whole run.
+- **You can talk to them.** Send a message to a running helper and it joins
+  its next step. Claude can follow up with the same helper, which keeps what
+  it learned.
+- **They don't collide.** A builder can be given the folders it may write to
+  (writes elsewhere are refused, in every mode) and its own git worktree and
+  branch. When it's done you **Merge** (the changes come back staged) or
+  discard it.
+- **They never get more than the workspace that sent them.** Same approval
+  mode, same gate, and their questions come up where you are.
+- **Agent files you already have work.** Explorer, builder, reviewer and
+  tester are built in; Markdown agents from `.claude/agents` and
+  `.orbit/agents` are picked up as they are.
+
+In the Orrery, helpers circle their planet as small moons.
+
+---
+
+## Point at it, write it down, lay it out
+
+A panel beside the conversation holds three things, each a click in the dock.
+
+| | |
+| --- | --- |
+| ![Comments pinned to elements of a page in the preview](docs/images/comments.webp) | **Comment on the preview.** Click Comment, then anything on the page, and say what should change. The comments collect in a list and go to Claude together, with a screenshot showing numbered pins, the element's selector and its HTML. Works for dev servers too, hot reload included. |
+| ![A doc with a highlighted passage and a comment thread](docs/images/docs.webp) | **Docs.** Plans, specs and notes as Markdown that you and Claude both edit. Select a passage to comment on it; Claude answers in the thread and resolves it. When it reads the doc again it sees exactly what you changed. |
+| ![The whiteboard with three options in a frame, a checklist and an arrow](docs/images/board.webp) | **Whiteboard.** Claude lays out options, flows, screenshots and checklists; you move, resize, edit, draw arrows and drop in images. It reads back what you changed. Docs and the board are each a switch. |
+
+---
+
 ## Works with what you already use
 
 - **The 100 programs developers use most**, from git, Docker and kubectl to
@@ -233,7 +271,10 @@ bun install && bun run build            # binaries in release/
 | **Missions** | Requests that run on a schedule or from a local webhook, unattended, with a report and a notification. |
 | **Context** | Project instruction files, skills, MCP servers, the 100 known programs, smart compaction of older history. |
 | **Profiles** | Pair, Terminal, Autopilot, Frontend and Research, or your own: approvals, tools, layout, effort and instructions per kind of work. A plan checklist Claude keeps while it works. |
-| **Preview** | Live preview of files and dev servers, the page drawn while it is written, widths from phone to laptop, screenshots for you and for Claude. |
+| **Preview** | Live preview of files and dev servers, the page drawn while it is written, widths from phone to laptop, screenshots for you and for Claude, and comments on any element. |
+| **Helpers** | Subagents that run in parallel, each a workspace you can open and talk to, with folder limits, their own worktree and branch, and a report. |
+| **Docs and the whiteboard** | Markdown docs you both edit and comment on, and a canvas for notes, screenshots, checklists, frames and arrows. |
+| **Steering** | Send a message while Claude works and it joins the run at the next step. |
 | **Sharing** | Export to Markdown, or save a workspace as one HTML page that opens anywhere. |
 
 Everything lives in one SQLite file in `~/.orbit`, next to `orbit.toml`. The
@@ -246,7 +287,7 @@ annotated config is [orbit.example.toml](orbit.example.toml).
 - Long sessions against the live API, and fixing what they turn up
 - Hunk by hunk review, secrets for MCP servers from the encrypted store
 - Knowledge files per workspace and automatic memory
-- Replay, and parallel helpers drawn as moons around a planet
+- Replay of a finished run, helpers side by side
 - A phone companion with pairing, voice out, other providers
 
 Reasons and order: [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -277,20 +318,24 @@ detection for the shell and the 100 known programs, rules, three modes and the
 judge, approvals with "Always allow", the undo journal, review and kill switch,
 budgets, compaction, missions, MCP servers, the git panel, skills and project
 instructions, the editor links and extension, profiles and Full mode, the plan,
-the live preview and screenshots, the whole interface, single binaries for five
+the live preview and screenshots, steering, helpers with worktrees, comments on
+the preview (also through a real Vite dev server with hot reload), docs, the
+whiteboard, the whole interface, single binaries for five
 platforms and the installers.
 
 Not yet: long sessions against the live API (everything above was driven by
-the mock model, test servers and unit tests), web search and MCP against real
+the mock model, test servers and unit tests), helpers run by a real model on
+a real project, web search and MCP against real
 services, the extension inside a real editor, dictation with a real
 microphone, the 3D sky in Firefox (checked with the flat fallback only),
 Windows beyond building the binary.
 
-The test bar: 124 tests named after what they protect, including the rule
+The test bar: 141 tests named after what they protect, including the rule
 that once let an allow rule be stretched with `;`, flags that turn a read-only
 command into a write, a mission that must refuse instead of waiting, a page on
-another local port that must not reach the API, and a preview that must not
-serve anything outside its folder. CI
+another local port that must not reach the API, a preview that must not
+serve anything outside its folder, and a helper that must not write outside
+the folders it was given. CI
 starts a real server and drives it end to end over HTTP and WebSocket, checks
 that the compatibility page matches the catalog, and runs the extension
 against a stand-in editor. Every screen was checked with data at desktop width

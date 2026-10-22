@@ -79,6 +79,13 @@ notify = true       # desktop notifications when something finishes or needs you
 pin = true          # facts pinned to the workspace's memory shelf
 show = true         # charts and formatted notes in the conversation
 widget = false      # small interactive HTML tools, sandboxed, without network
+docs = true         # Markdown docs you and Claude both edit and comment on
+whiteboard = true   # a canvas for notes, screenshots, options and flows
+
+[helpers]
+enabled = true      # Claude may hand work to helpers (subagents) with the delegate tool
+max_parallel = 4    # helpers and read-only tools running at the same time
+max_depth = 1       # helpers can't send helpers of their own
 
 [ui]
 motion = "full"     # "full", "calm" (the sky almost still) or "off"

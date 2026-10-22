@@ -7,9 +7,22 @@ code is `server/gate.ts`; the tests that hold it to this page are
 
 ## 1. Interface tools
 
-`ui_set_title`, `ui_set_planet`, `ui_notify`, `ui_pin`, `ui_show` and
-`ui_widget` only change Orbit itself, so they are always allowed. Switch any
-of them off in Settings, Interface, and Claude no longer sees it.
+`ui_set_title`, `ui_set_planet`, `ui_notify`, `ui_pin`, `ui_show`,
+`ui_widget`, `preview_open`, the doc tools (`doc_write`, `doc_edit`,
+`doc_read`, `doc_comment`) and the whiteboard tools only change Orbit itself,
+never your files, so they are always allowed. Switch any of them off in
+Settings, Interface, and Claude no longer sees it.
+
+`delegate`, which starts a helper, is allowed the same way: starting one does
+nothing on its own. Everything the helper then does passes this gate like any
+other action (see Helpers below).
+
+## 1a. A helper's folders
+
+A helper given a list of folders (`paths`) may write only there. `write_file`
+and `edit_file` anywhere else are refused before rules or modes are looked at,
+in every mode including Full. Shell commands are not confined this way; they
+go through the steps below like any other command.
 
 ## 2. Read-only actions
 
@@ -168,3 +181,11 @@ saved.
 The journal covers Orbit's file tools only. A shell command that deletes or
 rewrites files (`rm`, `sed -i`, a build) is not journaled; that is what the
 gate is for.
+
+## Helpers
+
+A helper runs under its parent's approval mode and never a looser one, with
+the same rules and judge notes. Its questions come up in its own view and in
+the parent's, labelled with the helper's name. When the parent runs
+unattended (a mission, or a profile that never asks), so do its helpers.
+Stopping the parent stops its helpers.

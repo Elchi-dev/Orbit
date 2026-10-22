@@ -24,6 +24,21 @@ share the session (fixed in 0.3.0; before, any localhost origin was accepted).
 read-only server on another port, under a random token per workspace, and
 never outside the workspace folder. Being another origin, they can't call
 Orbit's API. A page drawn while it is being written runs no scripts at all.
+Dev servers are shown through a proxy that also binds to loopback, on its own
+port, so they are another origin as well. The comment script Orbit adds to
+previewed pages talks to Orbit only by `postMessage`, opens no connection and
+can only switch comment mode and draw pins.
+
+**Helpers.** A helper gets its parent's approval mode, never a looser one, and
+passes the same gate. Folder limits are enforced by the gate for Orbit's file
+tools; shell commands in a helper are judged like any other command, not
+confined to its folders. Worktrees live inside the repository under
+`.orbit/worktrees` and are removed when you discard the helper or delete its
+workspace.
+
+**Images on the whiteboard** are served from `~/.orbit/assets`, from your
+screenshots, or from the workspace folder (images only, nothing outside it),
+with a content policy that lets an SVG run nothing.
 
 **Actions you did not want.** Every action passes the gate
 ([docs/PERMISSIONS.md](docs/PERMISSIONS.md)): read-only detection, your rules,

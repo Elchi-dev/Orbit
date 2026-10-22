@@ -18,31 +18,37 @@ Profiles (Pair, Terminal, Autopilot, Frontend, Research, your own), Full
 mode, the terminal layout, the plan, the live preview with pages drawn while
 they are written, and screenshots for you and for Claude.
 
-## 0.4: use it every day
+## Done in 0.4
+
+Steering a running task, helpers (subagents) that run in parallel with their
+own worktrees, comments on any element in the preview, docs shared by Claude
+and you, and the whiteboard.
+
+## 0.5: use it every day
 
 - **Long-session hardening.** Run it against the live API for days of real
   work and fix what breaks. The mock model and the tests cover the paths, not
   the surprises. This is the most important item on the list.
-- **Pick an element in the preview** and talk about it ("make this
-  bigger"), and a performance and accessibility check next to screenshots.
+- **A performance and accessibility check** next to screenshots in the
+  preview.
+- **Docs in the repository.** Keep a doc as a Markdown file in the workspace
+  folder when you want it in git, not only in Orbit.
 - **Hunk by hunk review.** Review already keeps or undoes whole files; some
   changes want a finer cut.
 - **Secrets for MCP servers** from Orbit's encrypted store instead of
   `orbit.toml`.
 
-## 0.5: memory and knowledge
+## 0.6: memory and knowledge
 
 - **Knowledge files per workspace.** A docs folder indexed locally, searched by
   a tool instead of pasted into every request.
 - **Automatic memory.** Facts from past workspaces offered to the memory shelf,
   each one editable, with answers saying which memories they used.
 
-## 0.6: watching it work
+## 0.7: watching it work
 
 - **Replay.** Scrub a timeline to watch a finished run happen again, commands
-  and file changes included.
-- **Parallel helpers.** Split a task into helpers, drawn as moons around the
-  workspace's planet, each with its own stream.
+  and file changes included, helpers side by side.
 
 ## Later
 

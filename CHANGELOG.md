@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.4.0 (2026-10-22)
+
+Claude works with helpers, and you talk about the work where it is: on the
+page, in a doc, on a board.
+
+### Added
+
+- **Helpers (subagents).** Claude hands parts of a task to helpers with the
+  `delegate` tool; several sent in one reply run at the same time, as do
+  read-only tools. Each helper is a workspace of its own you can open, watch
+  and send messages to, shown in the conversation as a lane with what it's
+  doing, then its report, cost and time. Helpers get their parent's approval
+  mode and nothing more, can be limited to folders (writes elsewhere are
+  refused in every mode) and can work in their own git worktree and branch,
+  merged or discarded with a click. Explorer, builder, reviewer and tester
+  are built in; agent files from `.claude/agents` and `.orbit/agents` work as
+  they are. In the Orrery, helpers are moons around their planet.
+- **Steering.** A message sent while Claude works joins the run at its next
+  step instead of waiting for the end.
+- **Comments on the preview.** Click Comment, point at anything on the page
+  and say what to change. The comments go to Claude together, with a
+  screenshot showing numbered pins and each element's selector and HTML. Dev
+  servers are shown through a local proxy so this works there too, with hot
+  reload passing through.
+- **Docs.** Markdown documents in a workspace that Claude and you both edit.
+  Comment on any passage, reply, resolve; Claude reads what you changed since
+  its last look as a diff, with the open threads.
+- **Whiteboard.** A canvas for notes, text, checklists, images and
+  screenshots, links, files, frames and arrows. Claude sends batches of
+  changes and new items find a free spot; you pan, zoom, drag, resize, edit,
+  connect, and drop or paste images.
+- **The side panel** holds Preview, Docs and Board as tabs, and follows Claude
+  to where it's working unless you closed it or are typing in it.
+
+### Changed
+
+- Approval questions from a helper also show in the workspace that sent it.
+- Screenshots taken from the interface can be taller than the window, so
+  comments further down a page are in the picture.
+
 ## 0.3.0 (2026-10-22)
 
 Orbit takes the shape of the work: a careful pair, a terminal, an autopilot,
