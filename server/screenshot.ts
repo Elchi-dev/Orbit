@@ -81,10 +81,13 @@ function parseConsole(stderr: string): string[] {
 }
 
 /** Load a page in headless Chrome at a width and capture what it shows. */
-export async function screenshot(url: string, width = 1280, opts: { height?: number; full?: boolean; timeoutMs?: number } = {}): Promise<Shot> {
+export const isLocalUrl = (u: string) => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/.test(u);
+
+export async function screenshot(url: string, width = 1280, opts: { height?: number; full?: boolean; timeoutMs?: number; remote?: boolean } = {}): Promise<Shot> {
   const chrome = findChrome();
   if (!chrome) throw new Error("No Chrome, Chromium, Edge or Brave found. Install one, or set ORBIT_CHROME to a browser's path.");
-  if (!/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/.test(url)) throw new Error("Screenshots are for local pages (localhost or 127.0.0.1).");
+  if (!/^https?:\/\//.test(url)) throw new Error("A screenshot needs an http or https address.");
+  if (!opts.remote && !isLocalUrl(url)) throw new Error("Screenshots of other sites need to be asked for explicitly.");
   const w = Math.max(240, Math.min(3840, Math.round(width)));
   const h = opts.full ? 4000 : Math.max(240, Math.min(4000, Math.round(opts.height ?? VIEWPORT_HEIGHT(w))));
   const dir = join(tmpdir(), `orbit-shot-${crypto.randomUUID().slice(0, 8)}`);

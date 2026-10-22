@@ -1,5 +1,5 @@
 import { openPreview, previewState, resolveTarget } from "./preview";
-import { screenshot } from "./screenshot";
+import { isLocalUrl, screenshot } from "./screenshot";
 import { profileAllows, type Profile } from "./profiles";
 import { loadSkill } from "./context";
 import { callMcp, mcpSubject, mcpTools } from "./mcp";
@@ -160,7 +160,7 @@ const TOOLS: ToolDef[] = [
   {
     name: "screenshot",
     description:
-      "Look at a page the way a person would: load it in a headless browser at one or more widths and get the screenshots back, plus the page's console messages and errors. target is a path in the workspace or a local URL; leave it out for what the preview shows. Use it to check your own frontend work before calling it done.",
+      "Look at a page the way a person would: load it in a headless browser at one or more widths and get the screenshots back, plus the page's console messages and errors. target is a path in the workspace, a local URL, or any https URL (another site, for reference; that passes the approval gate like a fetch). Leave it out for what the preview shows. Use it to check your own frontend work before calling it done.",
     input_schema: obj(
       {
         target: str("A path in the workspace or a http://localhost URL; empty for the current preview"),
@@ -169,14 +169,16 @@ const TOOLS: ToolDef[] = [
       },
       [],
     ),
-    readOnly: true,
+    // looking at your own pages only reads; loading another site goes out, like fetch_url
+    readOnly: (i) => !/^https?:\/\//.test(String(i?.target ?? "")) || isLocalUrl(String(i.target)),
     async run(input, ctx) {
       const cur = previewState(ctx.ws.id);
       const target = String(input?.target || cur?.target || "").trim();
       if (!target) return { content: "Nothing to look at: give a target or open the preview first.", isError: true };
+      const remote = /^https?:\/\//.test(target) && !isLocalUrl(target);
       let url: string;
       try {
-        url = resolveTarget(ctx.ws.id, target).url;
+        url = remote ? target : resolveTarget(ctx.ws.id, target).url;
       } catch (e) {
         return { content: (e as Error).message, isError: true };
       }
@@ -186,7 +188,7 @@ const TOOLS: ToolDef[] = [
       let consoleLines: string[] = [];
       for (const w of widths) {
         try {
-          const s = await screenshot(url, w, { full: !!input?.full });
+          const s = await screenshot(url, w, { full: !!input?.full, remote });
           blocks.push({ type: "text", text: `${target} at ${w} px:` });
           blocks.push({ type: "image", source: { type: "base64", media_type: "image/png", data: s.image } });
           names.push(s.file);
@@ -537,6 +539,8 @@ export function subjectOf(name: string, input: any, cwd: string): string {
       return `read ${resolvePath(cwd, input?.path ?? ".")}`;
     case "fetch_url":
       return `fetch ${input?.url ?? ""}`;
+    case "screenshot":
+      return /^https?:\/\//.test(String(input?.target ?? "")) ? `fetch ${input.target}` : `screenshot ${input?.target ?? ""}`;
     default:
       if (name.startsWith("mcp__")) return mcpSubject(name, input);
       return `${name} ${JSON.stringify(input ?? {})}`;

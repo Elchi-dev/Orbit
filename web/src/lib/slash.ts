@@ -36,6 +36,7 @@ export const BUILTINS: SlashItem[] = [
   { name: "shell", hint: "Open the shell panel", kind: "action" },
   { name: "files", hint: "Open the changed files", kind: "action" },
   { name: "open", hint: "Open the folder in your editor", kind: "action" },
+  { name: "shot", hint: "Screenshot a site or a page into the message", args: "url or path, then a width", kind: "action" },
   { name: "share", hint: "Save this workspace as one HTML page you can send", kind: "action" },
   { name: "export", hint: "Download this workspace as Markdown", kind: "action" },
   { name: "settings", hint: "Open Settings", kind: "action" },
@@ -90,6 +91,19 @@ export async function runSlash(name: string, args: string, ctx: SlashCtx): Promi
       return;
     case "open":
       return openInEditor(ws.id);
+    case "shot": {
+      const [target, w] = args.trim().split(/\s+/);
+      if (!target) return say("Give an address or a path", "warn", "/shot https://example.com 390");
+      say("Taking the screenshot", "info");
+      try {
+        const r = await api.post<{ image: string; console: string[]; width: number }>(`/api/workspaces/${ws.id}/screenshot`, { target, width: Number(w) || 1280 });
+        const name = `${target.replace(/^https?:\/\//, "").replace(/[^\w.-]+/g, "-").slice(0, 40)}-${r.width}.png`;
+        window.dispatchEvent(new CustomEvent("orbit:attach", { detail: { workspaceId: ws.id, name, mediaType: "image/png", data: r.image, note: r.console.length ? `Console:\n${r.console.join("\n")}` : "" } }));
+        return say("Screenshot attached", "good");
+      } catch (e) {
+        return say("No screenshot", "warn", (e as Error).message);
+      }
+    }
     case "share": {
       const detail = st.details[ws.id];
       if (!detail) return say("Still loading", "warn");

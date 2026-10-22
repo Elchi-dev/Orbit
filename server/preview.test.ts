@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { db, now } from "./db";
 import { noticeServer, openPreview, previewState, startPreviewServer } from "./preview";
+import { findChrome, screenshot } from "./screenshot";
 
 const port = startPreviewServer(0);
 function workspace() {
@@ -64,4 +65,35 @@ describe("the live preview", () => {
     expect(new TextDecoder().decode(value ?? new Uint8Array())).toContain("reload");
     reader.cancel();
   });
+});
+
+describe("screenshots", () => {
+  test("console lines from older and newer Chrome are read", async () => {
+    const { _parseConsole } = await import("./screenshot");
+    const err = [
+      '[1:1:1022/1.1:INFO:CONSOLE(12)] "hello", source: http://127.0.0.1:9/app.js (12)',
+      '[1:1:1022/1.1:INFO:CONSOLE:3] "Uncaught TypeError: x is undefined", source: http://127.0.0.1:9/ (3)',
+      "[1:1:1022/1.1:WARNING:something_else.cc(1)] noise",
+    ].join("\n");
+    expect(_parseConsole(err)).toEqual(["log: hello (/app.js:12)", "error: Uncaught TypeError: x is undefined (/:3)"]);
+  });
+
+  test("looking at your own pages only reads; another site goes through the gate like a fetch", async () => {
+    const { isReadOnly, subjectOf } = await import("./tools");
+    expect(isReadOnly("screenshot", { target: "index.html" })).toBe(true);
+    expect(isReadOnly("screenshot", { target: "http://localhost:5173/" })).toBe(true);
+    expect(isReadOnly("screenshot", { target: "https://stripe.com" })).toBe(false);
+    expect(subjectOf("screenshot", { target: "https://stripe.com" }, "/")).toBe("fetch https://stripe.com");
+  });
+
+  test.skipIf(!findChrome())("captures a served page at a width, with its console, even with the reload stream open", async () => {
+    const { id, cwd } = workspace();
+    writeFileSync(join(cwd, "index.html"), "<h1>Shot</h1><script>console.error('nope')</script>");
+    const st = openPreview(id, ".");
+    const s = await screenshot(st.url, 390);
+    expect(s.width).toBe(390);
+    expect(Buffer.from(s.image, "base64").subarray(1, 4).toString()).toBe("PNG");
+    expect(s.console.join("\n")).toContain("nope");
+    await expect(screenshot("https://example.com", 390)).rejects.toThrow("asked for explicitly");
+  }, 40_000);
 });

@@ -25,7 +25,7 @@ import {
   init as gitInit,
 } from "./git";
 import { screenshot, shotPath } from "./screenshot";
-import { closePreview, openPreview, previewState, startPreviewServer } from "./preview";
+import { closePreview, openPreview, previewState, resolveTarget, startPreviewServer } from "./preview";
 import { keep, reviewList, revert, revertAll } from "./review";
 import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
@@ -460,7 +460,10 @@ async function api(req: Request, url: URL): Promise<Response> {
     if (!getWorkspace(match[1])) return bad("No such workspace", 404);
     const b = await body();
     try {
-      const s = await screenshot(String(b.url ?? ""), Number(b.width) || 1280, { full: !!b.full });
+      // your own action: any address, or a path in the workspace
+      const target = String(b.url ?? b.target ?? "").trim();
+      const url = /^https?:\/\//.test(target) ? target : resolveTarget(match[1], target || ".").url;
+      const s = await screenshot(url, Number(b.width) || 1280, { full: !!b.full, remote: true });
       return json({ image: s.image, console: s.console, width: s.width, file: s.file });
     } catch (e) {
       return bad((e as Error).message);
