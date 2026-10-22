@@ -181,6 +181,120 @@ workspace({ title: "Migrate CI to Bun", dir: "ci", style: { color: "#E58C78", su
 workspace({ title: "Thesis notes", dir: "thesis", style: { color: "#3E5BC8", surface: "gas", rings: false }, minutesAgo: 240, tokens: 820_000 });
 workspace({ title: "Landing page copy", dir: "landing", style: { color: "#8FB3C6", surface: "ice", rings: false }, minutesAgo: 12 * 24 * 60, tokens: 40_000 });
 
+// 7. helpers: one lead sends three helpers at once
+{
+  const calls = { a: "toolu_demo_helper_a", b: "toolu_demo_helper_b", c: "toolu_demo_helper_c" };
+  const { wid, cwd } = workspace({
+    title: "Speed up CI",
+    dir: "acme-web",
+    style: { color: "#D9A85B", surface: "rock", rings: true },
+    mode: "auto",
+    minutesAgo: 1,
+    steps: [
+      { user: "CI takes 14 minutes. Find out where the time goes and cut it, without skipping any tests." },
+      {
+        assistant: [
+          { type: "text", text: "Three separate jobs, so three helpers at once: one measures, one splits the end to end suite on its own branch, one reviews the cache setup." },
+          { type: "tool_use", id: calls.a, name: "delegate", input: { agent: "explorer", name: "Where the 14 minutes go", task: "Read the last 20 CI runs in .github/workflows and the logs in ci-logs/. Report the slowest steps with their median time." } },
+          { type: "tool_use", id: calls.b, name: "delegate", input: { agent: "builder", name: "Shard the e2e suite", isolate: true, paths: ["e2e", ".github/workflows"], task: "Split the Playwright suite in e2e/ into 4 shards in CI. Keep every test. Run it locally to check the shards add up to the full suite." } },
+          { type: "tool_use", id: calls.c, name: "delegate", input: { agent: "reviewer", name: "Check the dependency cache", task: "Review how .github/workflows/ci.yml caches node_modules and the Playwright browsers. Report anything that makes the cache miss." } },
+        ],
+        results: [
+          { id: calls.a, content: "Helper finished. Report: e2e 8m 40s, install 2m 10s, unit tests 1m 30s." },
+          { id: calls.b, content: "Helper finished on branch orbit/shard-the-e2e-suite-4f2a." },
+          { id: calls.c, content: "Helper finished. Report: the cache key includes the lockfile hash and the run id." },
+        ],
+      },
+      {
+        assistant: [
+          {
+            type: "text",
+            text: "Most of the time was the end to end suite running on one machine, and a dependency cache that never hit.\n\n- **Shards:** the e2e suite now runs on 4 machines; all 186 tests still run, about 2m 30s each. It's on its own branch for you to merge.\n- **Cache:** the key included `github.run_id`, so every run started cold. Dropping it saves about 2 minutes.\n\nTogether that should bring CI from 14 minutes to about 5.",
+          },
+        ],
+      },
+    ],
+    calls: [
+      { id: calls.a, by: "builtin", ms: 41_000 },
+      { id: calls.b, by: "builtin", ms: 188_000 },
+      { id: calls.c, by: "builtin", ms: 36_000 },
+    ],
+  });
+  const helper = (o: { call: string; agent: string; title: string; model: string; report: string; branch?: string; cost: number; task: string; work: string }) => {
+    const hid = id("w_");
+    db.run(
+      "INSERT INTO workspaces (id, title, cwd, mode, style, titled, parent_id, agent, model, helper_state, report, branch, call_id, created_at, updated_at) VALUES (?,?,?,?,?,1,?,?,?,?,?,?,?,?,?)",
+      [hid, o.title, cwd, "auto", "{}", wid, o.agent, o.model, "done", o.report, o.branch ?? "", o.call, t0 - 3 * MIN, t0 - MIN],
+    );
+    db.run("INSERT INTO messages (id, workspace_id, role, content, created_at) VALUES (?,?,?,?,?)", [id("m_"), hid, "user", JSON.stringify([{ type: "text", text: o.task }]), t0 - 3 * MIN]);
+    db.run("INSERT INTO messages (id, workspace_id, role, content, created_at) VALUES (?,?,?,?,?)", [id("m_"), hid, "assistant", JSON.stringify([{ type: "text", text: `${o.work}\n\n${o.report}` }]), t0 - MIN]);
+    db.run("INSERT INTO usage (workspace_id, kind, model, input, output, cache_read, cache_write, cost, created_at) VALUES (?,?,?,?,?,?,?,?,?)", [hid, "pilot", o.model, 30000, 4000, 90000, 6000, o.cost, t0 - MIN]);
+  };
+  helper({
+    call: calls.a,
+    agent: "explorer",
+    title: "Where the 14 minutes go",
+    model: "claude-sonnet-5-5",
+    cost: 0.21,
+    task: "Read the last 20 CI runs in .github/workflows and the logs in ci-logs/. Report the slowest steps with their median time.",
+    work: "Reading the workflow and the 20 newest logs.",
+    report: "Outcome: done, 20 runs measured.\n\n- **e2e** 8m 40s median, one machine (`ci.yml:48`)\n- **install** 2m 10s, the cache never hits\n- **unit tests** 1m 30s, already parallel\n\nFiles changed: none.",
+  });
+  helper({
+    call: calls.b,
+    agent: "builder",
+    title: "Shard the e2e suite",
+    model: "claude-opus-5-5",
+    cost: 1.36,
+    branch: "orbit/shard-the-e2e-suite-4f2a",
+    task: "Split the Playwright suite in e2e/ into 4 shards in CI. Keep every test. Run it locally to check the shards add up to the full suite.",
+    work: "Adding a matrix of four shards and running each locally.",
+    report: "Outcome: done. 4 shards, 186 tests, the same 186 as before.\n\n- `ci.yml`: a `shard: [1, 2, 3, 4]` matrix and `--shard=${{ matrix.shard }}/4`\n- each shard about 2m 30s locally\n\nFiles changed: .github/workflows/ci.yml, e2e/playwright.config.ts",
+  });
+  helper({
+    call: calls.c,
+    agent: "reviewer",
+    title: "Check the dependency cache",
+    model: "claude-opus-5-5",
+    cost: 0.34,
+    task: "Review how .github/workflows/ci.yml caches node_modules and the Playwright browsers. Report anything that makes the cache miss.",
+    work: "Reading the cache steps.",
+    report: "Outcome: one real problem.\n\n1. **High:** the key ends in `${{ github.run_id }}` (`ci.yml:22`), so it never matches. Use the lockfile hash alone.\n2. Low: the Playwright browsers aren't cached at all.\n\nFiles changed: none.",
+  });
+}
+
+// 8. a doc with comments, and a whiteboard
+{
+  const { createDoc, addComment, getDoc } = await import("../server/docs");
+  const { apply } = await import("../server/board");
+  const lp = db.query<{ id: string }, []>("SELECT id FROM workspaces WHERE title = 'Landing page copy'").get()!.id;
+  db.run("UPDATE workspaces SET updated_at = ? WHERE id = ?", [t0 - 20 * MIN, lp]);
+  const d = createDoc(
+    lp,
+    "Launch plan",
+    "# Launch plan\n\n## Goal\nShip the public beta on the 14th with the API, the docs and a status page.\n\n## Steps\n1. Freeze the API on the 7th; only fixes after that.\n2. Write the getting started guide and the API reference.\n3. Set up the status page and the alerts behind it.\n4. Invite the first 50 people from the waiting list.\n\n## Risks\n- The billing provider still needs to approve the account.\n- Two of the five integration tests fail on Windows.\n",
+    "agent",
+  );
+  const c = addComment(d, { author: "user", quote: "Write the getting started guide and the API reference.", body: "Can the API reference come later? It takes longer than the guide." });
+  addComment(getDoc(d.id)!, { author: "agent", parent_id: c.id, body: "Yes. The reference can be generated from the OpenAPI file in a day, so I moved it to after the freeze and kept the guide in step 2." });
+  addComment(getDoc(d.id)!, { author: "user", quote: "Invite the first 50 people", body: "Make it 30, support is just two of us." });
+  const host = db.query<{ id: string }, []>("SELECT id FROM workspaces WHERE title = 'Hosting cost comparison'").get()!.id;
+  apply(
+    host,
+    [
+      { op: "add", kind: "frame", ref: "opts", title: "Three ways to host it", x: 0, y: 0, w: 780, h: 260 },
+      { op: "add", kind: "note", ref: "a", frame: "opts", text: "Hetzner\n137 CHF a month\nCheapest, backups extra", color: "mint" },
+      { op: "add", kind: "note", ref: "b", frame: "opts", text: "UpCloud\n217 CHF a month\nManaged backups", color: "sky" },
+      { op: "add", kind: "note", ref: "c", frame: "opts", text: "Infomaniak\n241 CHF a month\nSwiss, green power", color: "lavender" },
+      { op: "add", kind: "checklist", ref: "todo", title: "Before we pick", x: 0, y: 320, items: [{ text: "Check egress pricing", done: true }, { text: "Ask about IPv6", done: false }, { text: "Test a restore from backup", done: false }] },
+      { op: "add", kind: "text", ref: "rec", x: 330, y: 330, w: 450, text: "**Recommendation:** Hetzner, with a nightly offsite backup. The savings pay for the backup twice over." },
+      { op: "add", kind: "link", ref: "l", x: 330, y: 470, url: "https://www.hetzner.com/cloud", title: "Hetzner Cloud pricing" },
+      { op: "connect", from: "a", to: "rec", label: "pick" },
+    ],
+    "agent",
+  );
+}
+
 db.run("INSERT INTO pins (workspace_id, text, created_at) SELECT id, 'The API package is published to npm as @acme/api; never change exported types without a major version.', ? FROM workspaces WHERE title = 'Fix tests after zod 4'", [t0]);
 
 console.log(`demo data in ${home}`);
