@@ -23,7 +23,7 @@ describe("the library", () => {
   test("every built-in skill has a name, a description that says when, and no dashes", () => {
     for (const [path, text] of Object.entries(LIBRARY).filter(([p]) => p.startsWith("skills/"))) {
       expect(text, path).toMatch(/^---\nname: [a-z0-9-]+\ndescription: Use when .{20,}\n---/);
-      expect(text, path).not.toMatch(/[–—]/);
+      expect(text, path).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`));
     }
   });
 
