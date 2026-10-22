@@ -39,7 +39,7 @@ export function Palette() {
       { key: "settings", label: "Open settings", Icon: Settings2, run: () => setOverlay("settings") },
     ].filter((a) => !ql || a.label.toLowerCase().includes(ql));
     const ws = Object.values(workspaces)
-      .filter((w) => !ql || w.title.toLowerCase().includes(ql))
+      .filter((w) => !w.parent_id && (!ql || w.title.toLowerCase().includes(ql)))
       .sort((a, b) => b.updated_at - a.updated_at)
       .slice(0, 8)
       .map((w) => ({ key: w.id, label: w.title, sub: ago(w.updated_at), Icon: Orbit, run: () => setView({ kind: "ws", id: w.id }) }));

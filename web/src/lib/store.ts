@@ -147,6 +147,12 @@ export const useStore = create<Store>((set, get) => ({
       const w = get().workspaces[id];
       if (w) set({ workspaces: { ...get().workspaces, [id]: { ...w, ...patch } } });
     };
+    // a helper's state shows in its parent's list as well
+    const patchHelper = (id: string, patch: Partial<import("./types").Helper>) => {
+      const pid = get().workspaces[id]?.parent_id;
+      const p = pid ? get().workspaces[pid] : undefined;
+      if (p?.helpers?.some((h) => h.id === id)) patchWs(pid!, { helpers: p.helpers.map((h) => (h.id === id ? { ...h, ...patch } : h)) });
+    };
     switch (e.type) {
       case "hello":
         set({ server: e.state, approvals: e.state.approvals });
@@ -165,10 +171,12 @@ export const useStore = create<Store>((set, get) => ({
       }
       case "turn_start":
         patchWs(wsId!, { running: true });
+        patchHelper(wsId!, { running: true });
         set({ live: { ...s.live, [wsId!]: {} } });
         break;
       case "turn_end":
         patchWs(wsId!, { running: false });
+        patchHelper(wsId!, { running: false });
         set({ streams: { ...get().streams, [wsId!]: undefined }, live: { ...get().live, [wsId!]: {} } });
         get().loadServer();
         if (e.reason === "done" && document.hidden) notify("Orbit", `${get().workspaces[wsId!]?.title ?? "A workspace"} finished`);
@@ -214,11 +222,13 @@ export const useStore = create<Store>((set, get) => ({
       case "approval_request":
         set({ approvals: [...s.approvals.filter((a) => a.id !== e.id), e] });
         patchWs(wsId!, { pending: (s.workspaces[wsId!]?.pending ?? 0) + 1 });
+        patchHelper(wsId!, { pending: (s.workspaces[wsId!]?.pending ?? 0) + 1 });
         if (document.hidden) notify("Orbit needs you", `${e.workspaceTitle}: ${e.subject.slice(0, 80)}`);
         break;
       case "approval_resolved":
         set({ approvals: s.approvals.filter((a) => a.id !== e.id) });
         patchWs(wsId!, { pending: Math.max(0, (s.workspaces[wsId!]?.pending ?? 1) - 1) });
+        patchHelper(wsId!, { pending: Math.max(0, (s.workspaces[wsId!]?.pending ?? 1) - 1) });
         break;
       case "pins":
       case "file_changed":
@@ -231,6 +241,22 @@ export const useStore = create<Store>((set, get) => ({
           // a page Claude opens shows up; closing the pane stays your call
           previewOpen: e.url && !cur ? { ...s.previewOpen, [wsId!]: true } : s.previewOpen,
         });
+        break;
+      }
+      case "helper": {
+        const h = e.helper as import("./types").Helper;
+        const parent = s.workspaces[wsId!];
+        if (parent) {
+          const list = [...(parent.helpers ?? []).filter((x) => x.id !== h.id), { ...(parent.helpers ?? []).find((x) => x.id === h.id), ...h }];
+          patchWs(wsId!, { helpers: list.sort((a, b) => a.created_at - b.created_at) });
+        }
+        const child = get().workspaces[h.id];
+        if (child) patchWs(h.id, { helper_state: h.state, report: h.report, title: h.title });
+        else
+          api
+            .get<any>(`/api/workspaces/${h.id}`)
+            .then((d) => set({ workspaces: { ...get().workspaces, [h.id]: d.workspace } }))
+            .catch(() => {});
         break;
       }
       case "queued":

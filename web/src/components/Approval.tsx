@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, CheckCheck, MessageSquareText, Scale, ShieldQuestion, X } from "lucide-react";
 import { useStore } from "../lib/store";
+import { agentLabel } from "../lib/helpers";
 import type { Approval as A } from "../lib/types";
 
 function headline(a: A) {
@@ -23,8 +24,10 @@ export function ApprovalEclipse() {
   const view = useStore((s) => s.view);
   const approvals = useStore((s) => s.approvals);
   const send = useStore((s) => s.send);
-  const current = view.kind === "ws" ? approvals.find((a) => a.workspaceId === view.id) : undefined;
-  const queued = view.kind === "ws" ? approvals.filter((a) => a.workspaceId === view.id).length : 0;
+  // a helper's questions come up in its parent as well as in its own view
+  const here = (a: A) => view.kind === "ws" && (a.workspaceId === view.id || a.parentId === view.id);
+  const current = approvals.find(here);
+  const queued = approvals.filter(here).length;
   const [pattern, setPattern] = useState("");
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
@@ -74,7 +77,16 @@ export function ApprovalEclipse() {
             transition={{ type: "spring", stiffness: 220, damping: 24 }}
           >
             <span className="eclipse-ws">
-              <ShieldQuestion size={15} /> {current.workspaceTitle} {queued > 1 && <span className="muted">, {queued - 1} more waiting</span>}
+              <ShieldQuestion size={15} />{" "}
+              {current.parentId ? (
+                <span className="approval-helper">
+                  {agentLabel(current.agent)} helper, {current.workspaceTitle}
+                  {view.kind === "ws" && view.id !== current.parentId ? `, for ${current.parentTitle}` : ""}
+                </span>
+              ) : (
+                current.workspaceTitle
+              )}{" "}
+              {queued > 1 && <span className="muted">, {queued - 1} more waiting</span>}
             </span>
             <h1 id="ask-title" className="display">
               {headline(current)}

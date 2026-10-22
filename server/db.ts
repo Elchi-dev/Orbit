@@ -123,6 +123,7 @@ for (const sql of [
   "ALTER TABLE workspaces ADD COLUMN base TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE workspaces ADD COLUMN report TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE workspaces ADD COLUMN helper_state TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE workspaces ADD COLUMN call_id TEXT NOT NULL DEFAULT ''",
 ]) {
   try {
     db.exec(sql);
@@ -155,6 +156,7 @@ export interface WorkspaceRow {
   base: string;
   report: string;
   helper_state: string;
+  call_id: string;
   created_at: number;
   updated_at: number;
 }

@@ -143,7 +143,7 @@ const TOOLS: ToolDef[] = [
     parallel: true,
     async run(input, ctx) {
       const { runTurn } = await import("./agent");
-      return delegate(ctx.ws, input, { unattended: ctx.unattended, signal: ctx.signal, run: runTurn });
+      return delegate(ctx.ws, { ...input, call_id: ctx.toolCallId }, { unattended: ctx.unattended, signal: ctx.signal, run: runTurn });
     },
   },
   {

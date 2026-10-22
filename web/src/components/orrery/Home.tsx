@@ -52,7 +52,7 @@ export function Home() {
   const send = useStore((s) => s.send);
   const motionPref = server?.config.ui.motion ?? "full";
 
-  const list = useMemo(() => Object.values(workspaces).filter((w) => !w.archived), [workspaces]);
+  const list = useMemo(() => Object.values(workspaces).filter((w) => !w.archived && !w.parent_id), [workspaces]);
   const [text, setText] = useState("");
   const [opts, setOpts] = useState(false);
   const [listOpen, setListOpen] = useState(false);

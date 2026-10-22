@@ -27,6 +27,29 @@ export interface Workspace {
   running: boolean;
   pending: number;
   messageCount: number;
+  parent_id?: string | null;
+  agent?: string;
+  branch?: string;
+  helper_state?: HelperState;
+  report?: string;
+  helpers?: Helper[];
+}
+
+export type HelperState = "running" | "done" | "failed" | "stopped" | "merged" | "discarded" | "";
+export interface Helper {
+  id: string;
+  title: string;
+  agent: string;
+  model: string | null;
+  state: HelperState;
+  branch: string;
+  report: string;
+  parent_id: string;
+  cwd: string;
+  call_id: string;
+  created_at: number;
+  running?: boolean;
+  pending?: number;
 }
 
 export interface Block {
@@ -92,6 +115,9 @@ export interface Approval {
   id: string;
   workspaceId: string;
   workspaceTitle?: string;
+  parentId?: string | null;
+  parentTitle?: string | null;
+  agent?: string | null;
   name: string;
   input: any;
   subject: string;

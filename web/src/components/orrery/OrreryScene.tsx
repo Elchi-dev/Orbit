@@ -1,3 +1,4 @@
+import { helpersBusy, helpersLine, needsYou } from "../../lib/helpers";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Billboard, OrbitControls, Stars } from "@react-three/drei";
@@ -189,6 +190,42 @@ function Pulse({ size }: { size: number }) {
   );
 }
 
+
+/** Helpers circle their workspace as moons: bright and quick while they work, dim when done. */
+function Moons({ ws, size, motion }: { ws: Workspace; size: number; motion: number }) {
+  const list = (ws.helpers ?? []).filter((h) => h.state !== "discarded" && h.state !== "merged").slice(-6);
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const angles = useRef<number[]>([]);
+  useFrame((_, dt) => {
+    list.forEach((h, i) => {
+      const m = refs.current[i];
+      if (!m) return;
+      const busy = h.running || h.state === "running";
+      angles.current[i] = (angles.current[i] ?? (i * 2.39996) % (Math.PI * 2)) + dt * Math.max(motion, 0.1) * (busy ? 1.6 : 0.35) * (1 - i * 0.06);
+      const r = size * (1.75 + i * 0.32);
+      const a = angles.current[i];
+      // each moon on its own tilted plane, so several don't share one line
+      const tilt = 0.25 + i * 0.22;
+      m.position.set(Math.cos(a) * r, Math.sin(a) * r * Math.sin(tilt) * 0.6, Math.sin(a) * r * Math.cos(tilt));
+    });
+  });
+  if (!list.length) return null;
+  return (
+    <>
+      {list.map((h, i) => {
+        const busy = h.running || h.state === "running";
+        const tone = h.pending ? "#FFB199" : busy ? "#E6DEFF" : h.state === "failed" || h.state === "stopped" ? "#C98A7C" : "#8F86B3";
+        return (
+          <mesh key={h.id} ref={(el) => (refs.current[i] = el)}>
+            <sphereGeometry args={[Math.max(0.035, size * 0.16), 20, 20]} />
+            <meshBasicMaterial color={tone} transparent opacity={busy ? 1 : 0.7} />
+          </mesh>
+        );
+      })}
+    </>
+  );
+}
+
 interface PlanetProps {
   ws: Workspace;
   radius: number;
@@ -212,7 +249,7 @@ function Planet({ ws, radius, speed, phase, size, motion, hovered, setHover, onS
   const color = useMemo(() => new THREE.Color(ws.style?.color ?? "#B8A6FF"), [ws.style?.color]);
   const surface = SURFACE_INDEX[ws.style?.surface ?? "gas"] ?? 0;
   const seed = useMemo(() => seedOf(ws.id) * 10, [ws.id]);
-  const busy = ws.running;
+  const busy = ws.running || !!ws.helpers?.some((h) => h.running);
 
   useEffect(() => {
     if (group.current) positions.set(ws.id, { v: group.current.position, size });
@@ -233,7 +270,7 @@ function Planet({ ws, radius, speed, phase, size, motion, hovered, setHover, onS
     if (atmo.current) atmo.current.uniforms.uHover.value = hoverV.current;
   });
 
-  const glowColor = ws.pending ? new THREE.Color("#FFB199") : busy ? new THREE.Color("#C9BBFF") : color.clone().lerp(new THREE.Color("#E6DEFF"), 0.4);
+  const glowColor = ws.pending || ws.helpers?.some((h) => h.pending) ? new THREE.Color("#FFB199") : busy ? new THREE.Color("#C9BBFF") : color.clone().lerp(new THREE.Color("#E6DEFF"), 0.4);
 
   return (
     <group ref={group}>
@@ -277,6 +314,7 @@ function Planet({ ws, radius, speed, phase, size, motion, hovered, setHover, onS
         </mesh>
         {ws.style?.rings && <Rings size={size} color={ws.style.color} />}
       </group>
+      <Moons ws={ws} size={size} motion={motion} />
       {busy && <Sparks size={size} />}
       {ws.pending > 0 && <Pulse size={size} />}
     </group>
@@ -375,14 +413,14 @@ export function OrreryScene({ workspaces, onSelect, motion }: { workspaces: Work
             aria-label={`Open ${ws.title}`}
           >
             <span className="pl-title">{ws.title}</span>
-            <span className={`pl-state ${ws.pending ? "need" : ws.running ? "busy" : ""}`}>
-              {ws.pending ? (
+            <span className={`pl-state ${needsYou(ws) ? "need" : ws.running || helpersBusy(ws) ? "busy" : ""}`}>
+              {needsYou(ws) ? (
                 <>
                   <AlertCircle size={12} /> needs you
                 </>
-              ) : ws.running ? (
+              ) : ws.running || helpersBusy(ws) ? (
                 <>
-                  <Loader2 size={12} className="spin" /> working
+                  <Loader2 size={12} className="spin" /> {helpersLine(ws)}
                 </>
               ) : (
                 ago(ws.updated_at)

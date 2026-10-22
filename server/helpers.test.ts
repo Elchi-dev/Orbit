@@ -102,7 +102,7 @@ describe("running helpers", () => {
     const t0 = performance.now();
     expect(await runTurn(parent.id, [{ type: "text", text: "use helpers for this" }])).toBe("done");
     const helpers = helpersOf(parent.id);
-    expect(helpers.map((h) => h.agent).sort()).toEqual(["explorer", "tester"]);
+    expect(helpers.map((h) => h.agent).sort()).toEqual(["builder", "explorer"]);
     for (const h of helpers) {
       expect(h.helper_state).toBe("done");
       expect(h.report).toBeTruthy();

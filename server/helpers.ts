@@ -177,6 +177,8 @@ export interface DelegateInput {
   isolate?: boolean;
   model?: string;
   helper?: string;
+  /** the delegate call that started it, so the interface can show the helper in place */
+  call_id?: string;
 }
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32) || "helper";
@@ -213,8 +215,8 @@ export async function createHelper(parent: WorkspaceRow, input: DelegateInput): 
     .filter(Boolean)
     .join("\n\n");
   db.run(
-    `INSERT INTO workspaces (id, title, cwd, model, mode, style, system_prompt, judge_notes, incognito, titled, profile, parent_id, agent, scope, tools, branch, base, helper_state, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO workspaces (id, title, cwd, model, mode, style, system_prompt, judge_notes, incognito, titled, profile, parent_id, agent, scope, tools, branch, base, helper_state, call_id, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       title,
@@ -234,6 +236,7 @@ export async function createHelper(parent: WorkspaceRow, input: DelegateInput): 
       branch,
       base,
       "running",
+      input.call_id ?? "",
       now(),
       now(),
     ],
@@ -244,7 +247,7 @@ export async function createHelper(parent: WorkspaceRow, input: DelegateInput): 
 }
 
 export function helperView(w: WorkspaceRow) {
-  return { id: w.id, title: w.title, agent: w.agent, model: w.model, state: w.helper_state, branch: w.branch, report: w.report, parent_id: w.parent_id, cwd: w.cwd, created_at: w.created_at };
+  return { id: w.id, title: w.title, agent: w.agent, model: w.model, state: w.helper_state, branch: w.branch, report: w.report, parent_id: w.parent_id, cwd: w.cwd, call_id: w.call_id, created_at: w.created_at };
 }
 
 function setState(w: WorkspaceRow, state: string, report?: string) {
@@ -288,6 +291,7 @@ export async function delegate(parent: WorkspaceRow, input: DelegateInput, opts:
     const prev = getWorkspace(input.helper);
     if (!prev || prev.parent_id !== parent.id) return { content: `No helper ${input.helper} here.`, isError: true };
     w = prev;
+    if (input.call_id) db.run("UPDATE workspaces SET call_id = ? WHERE id = ?", [input.call_id, w.id]);
   } else {
     try {
       w = await createHelper(parent, input);

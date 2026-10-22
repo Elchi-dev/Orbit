@@ -1,3 +1,4 @@
+import { helpersBusy, helpersLine, needsYou } from "../../lib/helpers";
 import { useEffect, useRef } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import type { Workspace } from "../../lib/types";
@@ -61,14 +62,14 @@ export function FlatOrrery({ workspaces, onSelect, motion }: { workspaces: Works
           />
           <span className="planet-label">
             <span className="pl-title">{l.ws.title}</span>
-            <span className={`pl-state ${l.ws.pending ? "need" : l.ws.running ? "busy" : ""}`}>
-              {l.ws.pending ? (
+            <span className={`pl-state ${needsYou(l.ws) ? "need" : l.ws.running || helpersBusy(l.ws) ? "busy" : ""}`}>
+              {needsYou(l.ws) ? (
                 <>
                   <AlertCircle size={12} /> needs you
                 </>
-              ) : l.ws.running ? (
+              ) : l.ws.running || helpersBusy(l.ws) ? (
                 <>
-                  <Loader2 size={12} className="spin" /> working
+                  <Loader2 size={12} className="spin" /> {helpersLine(l.ws)}
                 </>
               ) : (
                 ago(l.ws.updated_at)

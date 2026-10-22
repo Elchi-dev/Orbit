@@ -2,7 +2,7 @@
 import { catalogGuard, groupHasGuard } from "./catalog";
 import { dirname } from "node:path";
 import { config, type Mode, type Verdict } from "./config";
-import { db, now, type WorkspaceRow } from "./db";
+import { db, getWorkspace, now, type WorkspaceRow } from "./db";
 import { complete } from "./anthropic";
 import { broadcast } from "./hub";
 import { isReadOnly, isUiTool, resolvePath } from "./tools";
@@ -107,11 +107,12 @@ interface Waiting {
   wsId: string;
   call: PendingCall;
   resolve: (d: { allow: boolean; note?: string }) => void;
+  card?: Record<string, unknown>;
 }
 const waiting = new Map<string, Waiting>();
 
 export function pendingApprovals() {
-  return [...waiting.values()].map((w) => ({ workspaceId: w.wsId, ...w.call }));
+  return [...waiting.values()].map((w) => ({ ...w.card, ...w.call, workspaceId: w.wsId }));
 }
 
 export function resolveApproval(id: string, decision: "allow" | "deny" | "always", pattern?: string, note?: string) {
@@ -136,17 +137,23 @@ export function cancelApprovals(wsId: string) {
 
 function askUser(ws: WorkspaceRow, call: PendingCall, judge?: { verdict: string; reason: string }) {
   return new Promise<{ allow: boolean; note?: string }>((resolve) => {
-    waiting.set(call.id, { wsId: ws.id, call, resolve });
-    broadcast("approval_request", {
+    // a helper's question shows in its parent too, where the user usually is
+    const parent = ws.parent_id ? getWorkspace(ws.parent_id) : null;
+    const card = {
       id: call.id,
       workspaceId: ws.id,
       workspaceTitle: ws.title,
+      parentId: parent?.id ?? null,
+      parentTitle: parent?.title ?? null,
+      agent: ws.parent_id ? ws.agent : null,
       name: call.name,
       input: call.input,
       subject: call.subject,
       suggestion: suggestPattern(call.name, call.subject),
       judge: judge ?? null,
-    });
+    };
+    waiting.set(call.id, { wsId: ws.id, call, resolve, card });
+    broadcast("approval_request", card);
   });
 }
 

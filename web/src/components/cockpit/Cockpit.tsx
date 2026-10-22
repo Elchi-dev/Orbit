@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertCircle, EyeOff, Folder, Pencil, Sparkles, SquareArrowOutUpRight } from "lucide-react";
+import { AlertCircle, ChevronRight, EyeOff, Folder, Pencil, Sparkles, SquareArrowOutUpRight } from "lucide-react";
 import { useStore } from "../../lib/store";
 import { ProfilePicker } from "../profiles/ProfilePicker";
 import { PlanBar } from "./PlanBar";
+import { AgentIcon, HelperBar } from "./Helpers";
+import { agentLabel } from "../../lib/helpers";
 import { PreviewPane } from "./Preview";
 import { openInEditor } from "../../lib/open";
 import { shortPath, tokens } from "../../lib/format";
@@ -105,6 +107,7 @@ export function Cockpit({ id }: { id: string }) {
     window.addEventListener("pointerup", up);
   };
   const approvals = useStore((s) => s.approvals);
+  const workspaces = useStore((s) => s.workspaces);
   const setView = useStore((s) => s.setView);
   const patch = useStore((s) => s.patchWorkspace);
   const send = useStore((s) => s.send);
@@ -127,7 +130,9 @@ export function Cockpit({ id }: { id: string }) {
   const profileOfWs = server?.profiles.find((p) => p.id === ws.profile);
   const showPreview = previewOpen ?? !!(profileOfWs?.preview || hasPreview);
   const layout = server?.profiles.find((p) => p.id === ws.profile)?.layout ?? "log";
-  const others = approvals.filter((a) => a.workspaceId !== id);
+  // a helper's questions are answered here too, so they don't count as another workspace
+  const others = approvals.filter((a) => a.workspaceId !== id && a.parentId !== id && !(ws.parent_id && a.workspaceId === ws.parent_id));
+  const parent = ws.parent_id ? workspaces[ws.parent_id] : undefined;
 
   return (
     <div className={`cockpit layout-${layout}`}>
@@ -136,7 +141,20 @@ export function Cockpit({ id }: { id: string }) {
           <button className="btn b-ghost home-btn" onClick={() => setView({ kind: "orrery" })} data-tip="Back to the Orrery" data-tip-side="bottom" aria-label="Back to all workspaces">
             <Logo />
           </button>
-          <span className="planet-dot" style={{ background: ws.style?.color }} aria-hidden="true" />
+          {parent ? (
+            <>
+              <button className="btn b-ghost sz-s crumb-parent" onClick={() => setView({ kind: "ws", id: parent.id })} data-tip="Back to the workspace that sent it" data-tip-side="bottom">
+                <span className="planet-dot" style={{ background: parent.style?.color }} aria-hidden="true" />
+                <span>{parent.title}</span>
+              </button>
+              <ChevronRight size={14} className="crumb-sep" aria-hidden="true" />
+              <span className="helper-chip">
+                <AgentIcon agent={ws.agent} size={13} /> {agentLabel(ws.agent)}
+              </span>
+            </>
+          ) : (
+            <span className="planet-dot" style={{ background: ws.style?.color }} aria-hidden="true" />
+          )}
           <Title id={ws.id} title={ws.title} />
           {ws.incognito ? (
             <span className="chip chip-ro" title="Incognito: deleted when you leave">
@@ -176,6 +194,7 @@ export function Cockpit({ id }: { id: string }) {
       <main className={`cockpit-main ${showPreview ? "split" : ""}`} style={showPreview ? ({ "--split": `${split}%` } as any) : undefined}>
         <div className="work">
           {detail ? <Stream ws={ws} detail={detail} /> : <div className="loading">Loading…</div>}
+          {ws.parent_id && <HelperBar ws={ws} />}
           <PlanBar ws={ws} />
           <Composer ws={ws} />
         </div>

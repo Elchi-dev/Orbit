@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowDown, Check, ChevronDown, Copy, FileText, Globe, Image as ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useStore } from "../../lib/store";
 import type { Block, Detail, Message, StreamBlock, Workspace } from "../../lib/types";
+import { HelperLanes } from "./Helpers";
 import { Markdown, TerminalTool, ThoughtTrail, ToolCapsule, UiPanel, Widget } from "./Blocks";
 
 interface Turn {
@@ -101,7 +102,7 @@ interface Source {
  */
 function prepare(blocks: (Block | StreamBlock)[], streaming?: boolean) {
   const sources = new Map<string, Source>();
-  const items: ({ kind: "text"; text: string; live: boolean } | { kind: "search"; block: any; result?: any; live: boolean } | { kind: "block"; b: any; i: number; live: boolean })[] = [];
+  const items: ({ kind: "text"; text: string; live: boolean } | { kind: "search"; block: any; result?: any; live: boolean } | { kind: "block"; b: any; i: number; live: boolean } | { kind: "helpers"; blocks: any[]; live: boolean })[] = [];
   blocks.forEach((b: any, i) => {
     if (!b) return;
     const live = !!streaming && i === blocks.length - 1;
@@ -126,6 +127,15 @@ function prepare(blocks: (Block | StreamBlock)[], streaming?: boolean) {
       return;
     }
     if (b.type === "server_tool_use") return items.push({ kind: "search", block: b, live });
+    // delegate calls sent together run together, so they're shown side by side
+    if (b.type === "tool_use" && b.name === "delegate") {
+      const prev = items[items.length - 1];
+      if (prev?.kind === "helpers") {
+        prev.blocks.push(b);
+        prev.live = live;
+      } else items.push({ kind: "helpers", blocks: [b], live });
+      return;
+    }
     items.push({ kind: "block", b, i, live });
   });
   return { items, sources: [...sources.values()] };
@@ -144,6 +154,7 @@ function AssistantBlocks({ blocks, detail, streaming, wsId }: { blocks: (Block |
               {it.live && <span className="caret" aria-hidden="true" />}
             </div>
           );
+        if (it.kind === "helpers") return <HelperLanes key={k} blocks={it.blocks} calls={detail.calls} parentId={wsId} />;
         if (it.kind === "search") return <WebSearchRow key={k} block={it.block} result={it.result} live={it.live} />;
         const b = it.b;
         if (b.type === "thinking") {

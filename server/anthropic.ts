@@ -302,6 +302,11 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
     blocks.push({ type: "text", text: "Both widths hold up: the list stacks on the phone, the header stays on one line, and the console is clean. It's in `index.html`; open it in the preview or straight in a browser." });
   } else if (afterTool) {
     blocks.push({ type: "text", text: "Done. The command finished and the output looks right. Anything else?" });
+  } else if (req.tools?.some((t: any) => t.name === "delegate") && /\b(helpers?|in parallel)\b/.test(lastText)) {
+    blocks.push({ type: "text", text: "Two separate jobs, so two helpers at once." });
+    const id = () => "toolu_" + crypto.randomUUID().slice(0, 12);
+    blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "explorer", name: "Map the folder", task: "List the files in the workspace folder and say what each one is for." } });
+    blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "builder", name: "Clear out dist", task: "Clean out the old dist folder before the next release." } });
   } else if (req.tools?.some((t: any) => t.type?.startsWith("web_search")) && /search|latest|current|news|price/.test(lastText)) {
     const id = "srvtoolu_" + crypto.randomUUID().slice(0, 12);
     blocks.push({ type: "server_tool_use", id, name: "web_search", input: { query: lastText.slice(0, 60) } });
@@ -337,11 +342,6 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
         ],
       },
     });
-  } else if (req.tools?.some((t: any) => t.name === "delegate") && /\b(helpers?|in parallel)\b/.test(lastText)) {
-    blocks.push({ type: "text", text: "Two separate questions, so two helpers at once." });
-    const id = () => "toolu_" + crypto.randomUUID().slice(0, 12);
-    blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "explorer", name: "Map the folder", task: "List the files in the workspace folder and say what each one is for." } });
-    blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "tester", name: "Run the tests", task: "Run the test suite and report what fails." } });
   } else if (/delete|remove|clean/.test(lastText)) {
     const command = /snapshot|backup/.test(lastText) ? "rm -rf ./old-snapshots/2025-*" : /build|dist/.test(lastText) ? "rm -rf ./dist ./build" : "rm -rf ./tmp";
     blocks.push({ type: "text", text: "I'll remove those with one delete in the workspace folder." });
