@@ -24,6 +24,7 @@ import {
   pull as gitPull,
   init as gitInit,
 } from "./git";
+import { findSkills, projectInstructions } from "./context";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
@@ -404,6 +405,16 @@ async function api(req: Request, url: URL): Promise<Response> {
     } catch (e) {
       return bad((e as Error).message);
     }
+  }
+
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/context$/)) && m === "GET") {
+    const w = getWorkspace(match[1]);
+    if (!w) return bad("No such workspace", 404);
+    const c = config();
+    return json({
+      files: c.context.project_files ? projectInstructions(w.cwd).map((f) => ({ path: f.path, chars: f.text.length, cut: f.cut })) : [],
+      skills: findSkills(w.cwd).map((s) => ({ name: s.name, description: s.description, source: s.source, dir: s.dir })),
+    });
   }
 
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/clear$/)) && m === "POST") {

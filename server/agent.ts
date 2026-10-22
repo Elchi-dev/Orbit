@@ -1,4 +1,5 @@
 // The agent loop: stream a reply, gate and run its tool calls, feed results back, repeat until done.
+import { findSkills, projectInstructions } from "./context";
 import { briefing } from "./catalog";
 import { platform, release, userInfo } from "node:os";
 import { config } from "./config";
@@ -68,6 +69,22 @@ function systemPrompt(ws: WorkspaceRow) {
   if (c.profile.about.trim()) parts.push(`About the user:\n${c.profile.about.trim()}`);
   if (c.profile.instructions.trim()) parts.push(`The user's standing instructions:\n${c.profile.instructions.trim()}`);
   if (ws.system_prompt.trim()) parts.push(`Instructions for this workspace:\n${ws.system_prompt.trim()}`);
+  if (c.context.project_files) {
+    const files = projectInstructions(ws.cwd);
+    if (files.length)
+      parts.push(
+        `The project describes itself in these files from the workspace folder. Follow them like the user's instructions, unless the user says otherwise:\n${files
+          .map((f) => `<file path="${f.path}">\n${f.text}${f.cut ? "\n(cut here; read the file for the rest)" : ""}\n</file>`)
+          .join("\n")}`,
+      );
+  }
+  const skills = findSkills(ws.cwd);
+  if (skills.length)
+    parts.push(
+      `Skills are folders of instructions for particular kinds of work. When one fits the task, call load_skill with its name before you start, then follow it.\n${skills
+        .map((s) => `- ${s.name}: ${s.description || "(no description)"}`)
+        .join("\n")}`,
+    );
   if (pins.length) parts.push(`Memory shelf (facts pinned in this workspace):\n${pins.map((p) => `- ${p.text}`).join("\n")}`);
   if (ws.summary.trim()) parts.push(`Summary of earlier work in this workspace (the history was cleared):\n${ws.summary.trim()}`);
   return parts.join("\n\n");

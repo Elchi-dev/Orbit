@@ -52,6 +52,8 @@ export interface Config {
   profile: { about: string; instructions: string };
   integrations: { editor: string; briefing: boolean };
   mcp: { servers: Record<string, McpServer> };
+  context: { project_files: boolean };
+  skills: { enabled: boolean; dirs: string[] };
   pricing: Record<string, Price>;
 }
 
@@ -81,6 +83,8 @@ export const DEFAULT_CONFIG: Config = {
   profile: { about: "", instructions: "" },
   integrations: { editor: "auto", briefing: true },
   mcp: { servers: {} },
+  context: { project_files: true },
+  skills: { enabled: true, dirs: [] },
   // USD per million tokens, checked October 2026. Edit in orbit.toml when prices change.
   pricing: {
     "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 1, context: 1_000_000 },

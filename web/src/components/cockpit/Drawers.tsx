@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, FileDiff, GitBranch, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
+import { Archive, BookOpen, FileDiff, FileText, GitBranch, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
 import { openInEditor } from "../../lib/open";
@@ -212,6 +212,58 @@ function MemoryDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
   );
 }
 
+interface ContextInfo {
+  files: { path: string; chars: number; cut: boolean }[];
+  skills: { name: string; description: string; source: string; dir: string }[];
+}
+
+/** What Claude reads from the folder besides your messages: instruction files and skills. */
+function ContextList({ ws }: { ws: Workspace }) {
+  const [info, setInfo] = useState<ContextInfo | null>(null);
+  useEffect(() => {
+    api.get<ContextInfo>(`/api/workspaces/${ws.id}/context`).then(setInfo).catch(() => {});
+  }, [ws.id, ws.cwd]);
+  if (!info) return null;
+  return (
+    <div className="ctx-list">
+      <span className="form-label">Read from the folder</span>
+      {info.files.length === 0 ? (
+        <p className="muted small">No AGENTS.md, CLAUDE.md or editor rules here. Add one and Claude follows it.</p>
+      ) : (
+        <ul className="file-list">
+          {info.files.map((f) => (
+            <li key={f.path} className="row-react">
+              <FileText size={15} />
+              <span className="mono file-path">{f.path}</span>
+              <span className="muted small num">{f.cut ? "cut to 20k" : f.chars < 1000 ? `${f.chars} chars` : `${Math.round(f.chars / 1000)}k chars`}</span>
+              <button className="btn b-ghost icon-btn sm file-open" aria-label="Open in editor" data-tip="Open in editor" onClick={() => openInEditor(ws.id, f.path)}>
+                <SquareArrowOutUpRight size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <span className="form-label">Skills</span>
+      {info.skills.length === 0 ? (
+        <p className="muted small">None found in .claude/skills, ~/.orbit/skills or ~/.claude/skills.</p>
+      ) : (
+        <ul className="file-list">
+          {info.skills.map((s) => (
+            <li key={s.name} className="row-react" title={s.dir}>
+              <BookOpen size={15} />
+              <span className="ctx-skill">
+                <b>{s.name}</b>
+                <span className="muted small">{s.description}</span>
+              </span>
+              <span className="muted small">{s.source === "project" ? "this project" : s.source === "claude" ? "~/.claude" : "Orbit"}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function WorkspaceDrawer({ ws }: { ws: Workspace }) {
   const server = useStore((s) => s.server);
   const patch = useStore((s) => s.patchWorkspace);
@@ -257,6 +309,7 @@ function WorkspaceDrawer({ ws }: { ws: Workspace }) {
       <button className="btn b-lav sz-m" onClick={save}>
         {saved ? "Saved" : "Save"}
       </button>
+      <ContextList ws={ws} />
       <hr className="sep" />
       <p className="muted small">
         Created {ago(ws.created_at)}. {ws.incognito ? "Incognito: deleted when you leave." : ""}

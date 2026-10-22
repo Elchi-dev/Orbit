@@ -103,7 +103,7 @@ export function Settings() {
           <AnimatePresence mode="wait">
             <motion.div key={tab} className="set-page" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }}>
               {tab === "mcp" && <McpPage draft={draft} setServers={(servers) => setDraft({ ...draft, mcp: { servers } })} />}
-              {tab === "integrations" && <IntegrationsPage draft={draft} set={(v) => set("integrations", v)} />}
+              {tab === "integrations" && <IntegrationsPage draft={draft} set={(v) => set("integrations", v)} setCtx={(v) => set("context", v)} setSkills={(v) => set("skills", v)} />}
               {tab === "key" && (
                 <>
                   <h2>Anthropic API key</h2>

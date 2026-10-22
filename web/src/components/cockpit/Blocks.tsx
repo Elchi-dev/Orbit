@@ -5,6 +5,7 @@ import rehypeHighlight from "rehype-highlight";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AppWindow,
+  BookOpen,
   Boxes,
   Bell,
   Brain,
@@ -136,6 +137,7 @@ const TOOL_ICON: Record<string, LucideIcon> = {
   ui_pin: Pin,
   ui_show: PanelTop,
   ui_widget: AppWindow,
+  load_skill: BookOpen,
 };
 
 const base = (p: string) => (p ? p.split(/[\\/]/).filter(Boolean).slice(-2).join("/") : "");
@@ -164,6 +166,8 @@ export function toolLabel(name: string, input: any): ReactNode {
       } catch {}
       return <>Fetched {code(host)}</>;
     }
+    case "load_skill":
+      return <>Loaded the skill {code(input?.name ?? "")}</>;
     case "ui_set_title":
       return <>Renamed the workspace to “{input?.title}”</>;
     case "ui_set_planet":

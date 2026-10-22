@@ -132,6 +132,8 @@ export interface Config {
   profile: { about: string; instructions: string };
   integrations: { editor: string; briefing: boolean };
   mcp: { servers: Record<string, McpServer> };
+  context: { project_files: boolean };
+  skills: { enabled: boolean; dirs: string[] };
   pricing: Record<string, { input: number; output: number; cache_write: number; cache_read: number; context: number }>;
 }
 

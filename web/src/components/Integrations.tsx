@@ -4,7 +4,17 @@ import { api } from "../lib/api";
 import type { Config, Integrations as Data } from "../lib/types";
 
 /** Settings page: the editor Orbit opens files in, and the 100 programs it knows. */
-export function IntegrationsPage({ draft, set }: { draft: Config; set: (v: Partial<Config["integrations"]>) => void }) {
+export function IntegrationsPage({
+  draft,
+  set,
+  setCtx,
+  setSkills,
+}: {
+  draft: Config;
+  set: (v: Partial<Config["integrations"]>) => void;
+  setCtx: (v: Partial<Config["context"]>) => void;
+  setSkills: (v: Partial<Config["skills"]>) => void;
+}) {
   const [data, setData] = useState<Data | null>(null);
   const [versions, setVersions] = useState<Record<string, string>>({});
   const [q, setQ] = useState("");
@@ -73,6 +83,21 @@ export function IntegrationsPage({ draft, set }: { draft: Config; set: (v: Parti
           aria-label="Tell Claude what's installed"
           onClick={() => set({ briefing: !draft.integrations.briefing })}
         />
+      </div>
+
+      <div className="toggle-row row-react">
+        <span>
+          <b>Follow the project's own instructions</b>
+          <span className="muted small">AGENTS.md, CLAUDE.md, Cursor, Windsurf and Copilot rules in the workspace folder go with every request.</span>
+        </span>
+        <button className="switch" role="switch" aria-checked={draft.context.project_files} aria-label="Follow project instructions" onClick={() => setCtx({ project_files: !draft.context.project_files })} />
+      </div>
+      <div className="toggle-row row-react">
+        <span>
+          <b>Skills</b>
+          <span className="muted small">SKILL.md folders in .claude/skills, ~/.orbit/skills and ~/.claude/skills. Claude sees their names and loads one when it fits.</span>
+        </span>
+        <button className="switch" role="switch" aria-checked={draft.skills.enabled} aria-label="Skills" onClick={() => setSkills({ enabled: !draft.skills.enabled })} />
       </div>
 
       <div className="int-bar">

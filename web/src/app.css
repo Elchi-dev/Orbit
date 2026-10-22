@@ -541,3 +541,8 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius
 .src-n { flex: none; width: 18px; font-size: 12px; color: var(--star-3); }
 .web-toggle.on { color: var(--star); background: rgba(255, 255, 255, 0.07); }
 .web-toggle.on svg { color: var(--star); }
+.ctx-list { display: flex; flex-direction: column; gap: 6px; }
+.ctx-list .file-list { margin: 0 -10px 6px; }
+.ctx-skill { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ctx-skill b { font-weight: 550; font-size: 13.5px; }
+.ctx-skill .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

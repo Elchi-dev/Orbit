@@ -1,3 +1,4 @@
+import { loadSkill } from "./context";
 import { callMcp, mcpSubject, mcpTools } from "./mcp";
 import { catalogReadOnly, catalogUnsafe } from "./catalog";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs";
@@ -109,6 +110,15 @@ function walk(dir: string, out: string[], limit: number) {
 }
 
 const TOOLS: ToolDef[] = [
+  {
+    name: "load_skill",
+    description: "Load a skill's full instructions by name (the skills are listed in the system prompt). Returns the SKILL.md and the other files in its folder.",
+    input_schema: obj({ name: str("The skill's name") }, ["name"]),
+    readOnly: true,
+    async run(input, ctx) {
+      return loadSkill(ctx.ws.cwd, String(input?.name ?? ""));
+    },
+  },
   {
     name: "bash",
     description:
