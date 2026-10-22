@@ -89,19 +89,20 @@ function save(wsId: string, b: Board, by: "agent" | "user") {
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v) : d);
 const short = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
-/** The next free spot: inside a frame if one is given, else to the right of everything, wrapping into rows. */
+/**
+ * The next free spot, in reading order: inside a frame if one is given, else in a band
+ * 1600 wide that wraps into rows. Candidates are the area's corner and the right and
+ * bottom edges of what's already there, so items pack tightly without a grid.
+ */
 function place(items: Item[], w: number, h: number, frame?: Item): { x: number; y: number } {
-  const area = frame ? { x: frame.x + 24, y: frame.y + 56, w: frame.w - 48 } : { x: 0, y: 0, w: 1600 };
-  const inside = items.filter((i) => i.kind !== "frame" && (!frame || within(i, frame)));
-  const taken = frame ? inside : items;
-  // try positions row by row until one doesn't overlap
-  for (let y = area.y; y < area.y + 20_000; y += 40) {
-    for (let x = area.x; x + w <= area.x + Math.max(area.w, w); x += 40) {
-      const box = { x, y, w, h };
-      if (!taken.some((t) => overlaps(box, t))) return { x, y };
-    }
-  }
-  return { x: area.x, y: area.y + 20_000 };
+  const area = frame ? { x: frame.x + 24, y: frame.y + 56, w: Math.max(w, frame.w - 48) } : { x: 0, y: 0, w: Math.max(w, 1600) };
+  const taken = items.filter((i) => i.kind !== "frame" || !frame);
+  const xs = [area.x, ...taken.map((t) => t.x + t.w + GAP)].filter((x) => x >= area.x && x + w <= area.x + area.w);
+  const ys = [area.y, ...taken.map((t) => t.y + t.h + GAP)].filter((y) => y >= area.y);
+  const sx = [...new Set(xs)].sort((a, b) => a - b);
+  const sy = [...new Set(ys)].sort((a, b) => a - b);
+  for (const y of sy) for (const x of sx) if (!taken.some((t) => t !== frame && overlaps({ x, y, w, h }, t))) return { x, y };
+  return { x: area.x, y: Math.max(area.y, ...taken.map((t) => t.y + t.h + GAP)) };
 }
 const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
   a.x < b.x + b.w + GAP && a.x + a.w + GAP > b.x && a.y < b.y + b.h + GAP && a.y + a.h + GAP > b.y;
@@ -176,6 +177,10 @@ export function apply(wsId: string, ops: Op[], by: "agent" | "user", baseVersion
         const frame = o.frame != null ? find(o.frame) : undefined;
         const pos = o.x != null && o.y != null ? { x: num(o.x, 0), y: num(o.y, 0) } : place(b.items, w, h, frame);
         const item: Item = { id: short(), kind, ...pos, ...f, w, h, color: f.color ?? (kind === "note" ? "yellow" : undefined), by, updated_at: now() };
+        if (frame) {
+          frame.w = Math.max(frame.w, item.x + item.w + 24 - frame.x);
+          frame.h = Math.max(frame.h, item.y + item.h + 24 - frame.y);
+        }
         if (kind === "frame") b.items.unshift(item); // frames sit behind what's in them
         else b.items.push(item);
         if (o.ref) refs.set(String(o.ref), item.id);

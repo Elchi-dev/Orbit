@@ -21,8 +21,8 @@ function label(el){const t=el.localName,id=el.id?"#"+el.id:"",c=el.classList[0]?
 function show(el){if(!el){css(box,{display:"none"});css(tag,{display:"none"});return;}const r=el.getBoundingClientRect();
 css(box,{display:"block",left:r.left-2+"px",top:r.top-2+"px",width:r.width+4+"px",height:r.height+4+"px"});tag.textContent=label(el);css(tag,{display:"block",left:Math.max(0,r.left-2)+"px",top:(r.top>22?r.top-22:r.bottom+4)+"px"});}
 function draw(){layer.textContent="";for(const p of pins){let el=null;try{el=p.sel?document.querySelector(p.sel):null;}catch{}
-const r=el?el.getBoundingClientRect():null;const x=r?r.left+r.width*(p.px??0):p.x??20,y=r?r.top+r.height*(p.py??0):p.y??20;
-if(r&&p.outline){const o=document.createElement("div");css(o,{position:"fixed",left:r.left-2+"px",top:r.top-2+"px",width:r.width+4+"px",height:r.height+4+"px",border:"2px solid #FFB199",borderRadius:"4px"});layer.append(o);}
+const r=el?el.getBoundingClientRect():null;const x=r?r.left:p.x??20,y=r?r.top:p.y??20;
+if(r){const o=document.createElement("div");css(o,{position:"fixed",left:r.left-3+"px",top:r.top-3+"px",width:r.width+6+"px",height:r.height+6+"px",border:p.outline?"2px solid #FFB199":"1.5px dashed rgba(255,177,153,.9)",borderRadius:"4px"});layer.append(o);}
 const d=document.createElement("div");d.textContent=p.n;css(d,{position:"fixed",left:Math.max(2,x-11)+"px",top:Math.max(2,y-11)+"px",width:"22px",height:"22px",borderRadius:"50%",background:"#FFB199",color:"#2a1210",font:"700 12px/22px system-ui,sans-serif",textAlign:"center",boxShadow:"0 2px 8px rgba(0,0,0,.35),0 0 0 2px #fff"});layer.append(d);}}
 let raf=0;const redraw=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{draw();if(on&&hover)show(hover);});};
 addEventListener("scroll",redraw,true);addEventListener("resize",redraw);

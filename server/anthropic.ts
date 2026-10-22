@@ -233,6 +233,22 @@ export async function validateKey(key: string): Promise<{ ok: boolean; error?: s
 // ---------- mock model (ORBIT_MOCK=1) for offline UI work and tests ----------
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const MOCK_DOC = `# Launch plan
+
+## Goal
+Ship the public beta on the 14th with the API, docs and a status page.
+
+## Steps
+1. Freeze the API on the 7th; only fixes after that.
+2. Write the getting started guide and the API reference.
+3. Set up the status page and the alerts behind it.
+4. Invite the first 50 people from the waiting list.
+
+## Risks
+- The billing provider still needs to approve the account.
+- Two of the five integration tests fail on Windows.
+`;
+
 const MOCK_PAGE = `<!doctype html>
 <html lang="en">
 <head>
@@ -307,6 +323,31 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
     const id = () => "toolu_" + crypto.randomUUID().slice(0, 12);
     blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "explorer", name: "Map the folder", task: "List the files in the workspace folder and say what each one is for." } });
     blocks.push({ type: "tool_use", id: id(), name: "delegate", input: { agent: "builder", name: "Clear out dist", task: "Clean out the old dist folder before the next release." } });
+  } else if (req.tools?.some((t: any) => t.name === "doc_write") && /\b(doc|plan|spec)\b/.test(lastText) && !/comment|go through/.test(lastText)) {
+    blocks.push({ type: "text", text: "Writing the plan as a doc so we can both work on it." });
+    blocks.push({ type: "tool_use", id: "toolu_" + crypto.randomUUID().slice(0, 12), name: "doc_write", input: { title: "Launch plan", content: MOCK_DOC } });
+  } else if (req.tools?.some((t: any) => t.name === "doc_read") && /go through/.test(lastText) && /\bdoc\b|\(d_/.test(lastText) && !afterTool) {
+    const id = lastText.match(/\((d_[a-z0-9]+)\)/)?.[1] ?? "";
+    blocks.push({ type: "text", text: "Reading your comments." });
+    blocks.push({ type: "tool_use", id: "toolu_" + crypto.randomUUID().slice(0, 12), name: "doc_read", input: { id } });
+  } else if (req.tools?.some((t: any) => t.name === "whiteboard") && /\b(board|whiteboard|lay out|options)\b/.test(lastText)) {
+    blocks.push({ type: "text", text: "Laying the options out on the board." });
+    blocks.push({
+      type: "tool_use",
+      id: "toolu_" + crypto.randomUUID().slice(0, 12),
+      name: "whiteboard",
+      input: {
+        ops: [
+          { op: "add", kind: "frame", ref: "opts", title: "Three ways to host it", x: 0, y: 0, w: 820, h: 300 },
+          { op: "add", kind: "note", ref: "a", frame: "opts", text: "Hetzner\n137 CHF a month\nCheapest, backups extra", color: "mint" },
+          { op: "add", kind: "note", ref: "b", frame: "opts", text: "UpCloud\n217 CHF a month\nManaged backups", color: "sky" },
+          { op: "add", kind: "note", ref: "c", frame: "opts", text: "Infomaniak\n241 CHF a month\nSwiss, green power", color: "lavender" },
+          { op: "add", kind: "checklist", ref: "todo", title: "Before we pick", x: 0, y: 360, items: [{ text: "Check egress pricing", done: true }, { text: "Ask about IPv6", done: false }, { text: "Test restore from backup", done: false }] },
+          { op: "add", kind: "text", ref: "rec", x: 320, y: 360, w: 460, text: "**Recommendation:** Hetzner, with a nightly offsite backup. The savings pay for the backup twice over." },
+          { op: "connect", from: "a", to: "rec", label: "pick" },
+        ],
+      },
+    });
   } else if (req.tools?.some((t: any) => t.type?.startsWith("web_search")) && /search|latest|current|news|price/.test(lastText)) {
     const id = "srvtoolu_" + crypto.randomUUID().slice(0, 12);
     blocks.push({ type: "server_tool_use", id, name: "web_search", input: { query: lastText.slice(0, 60) } });

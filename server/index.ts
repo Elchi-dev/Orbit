@@ -487,7 +487,7 @@ async function api(req: Request, url: URL): Promise<Response> {
       // your own action: any address, or a path in the workspace
       const target = String(b.url ?? b.target ?? "").trim();
       const url = /^https?:\/\//.test(target) ? target : resolveTarget(match[1], target || ".").url;
-      const s = await screenshot(url, Number(b.width) || 1280, { full: !!b.full, remote: true });
+      const s = await screenshot(url, Number(b.width) || 1280, { full: !!b.full, height: Number(b.height) || undefined, remote: true });
       return json({ image: s.image, console: s.console, width: s.width, file: s.file });
     } catch (e) {
       return bad((e as Error).message);
