@@ -48,12 +48,14 @@ export interface Config {
   ui: { motion: "full" | "calm" | "off"; sound: boolean; house_style: boolean };
   budget: { daily_usd: number; workspace_usd: number };
   safety: { undo_journal: boolean; undo_max_bytes: number; command_timeout_s: number };
-  workspaces: { home: string };
+  workspaces: { home: string; default_profile: string };
   profile: { about: string; instructions: string };
   integrations: { editor: string; briefing: boolean };
   mcp: { servers: Record<string, McpServer> };
   context: { project_files: boolean };
   skills: { enabled: boolean; dirs: string[] };
+  /** changes to the built-in profiles, and new ones, by id */
+  profiles: Record<string, Record<string, unknown>>;
   pricing: Record<string, Price>;
 }
 
@@ -79,12 +81,13 @@ export const DEFAULT_CONFIG: Config = {
   ui: { motion: "full", sound: false, house_style: true },
   budget: { daily_usd: 20, workspace_usd: 5 },
   safety: { undo_journal: true, undo_max_bytes: 2_000_000, command_timeout_s: 300 },
-  workspaces: { home: join(homedir(), "orbit-workspaces") },
+  workspaces: { home: join(homedir(), "orbit-workspaces"), default_profile: "pair" },
   profile: { about: "", instructions: "" },
   integrations: { editor: "auto", briefing: true },
   mcp: { servers: {} },
   context: { project_files: true },
   skills: { enabled: true, dirs: [] },
+  profiles: {},
   // USD per million tokens, checked October 2026. Edit in orbit.toml when prices change.
   pricing: {
     "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 1, context: 1_000_000 },

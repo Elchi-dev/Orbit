@@ -1,3 +1,4 @@
+import { profileAllows, type Profile } from "./profiles";
 import { loadSkill } from "./context";
 import { callMcp, mcpSubject, mcpTools } from "./mcp";
 import { catalogReadOnly, catalogUnsafe } from "./catalog";
@@ -409,9 +410,19 @@ export function enabledTools(): ToolDef[] {
   }));
   return [...TOOLS.filter((t) => !t.ui || flags[t.ui]), ...mcp];
 }
-export function toolDefs() {
-  return enabledTools().map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
+/** The tools Claude is offered: everything switched on, narrowed by the workspace's profile. */
+export function toolDefs(profile?: Profile) {
+  return enabledTools()
+    .filter((t) => !profile || allowedBy(profile, t.name))
+    .map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
 }
+
+export function allowedBy(profile: Profile, name: string) {
+  if (name === "plan") return profile.plan;
+  if (PREVIEW_TOOLS.has(name)) return profile.preview;
+  return profileAllows(profile, name);
+}
+const PREVIEW_TOOLS = new Set(["preview_open", "screenshot"]);
 export function findTool(name: string) {
   return enabledTools().find((t) => t.name === name);
 }

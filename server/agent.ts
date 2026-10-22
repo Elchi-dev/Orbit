@@ -1,4 +1,5 @@
 // The agent loop: stream a reply, gate and run its tool calls, feed results back, repeat until done.
+import { getProfile } from "./profiles";
 import { findSkills, projectInstructions } from "./context";
 import { briefing } from "./catalog";
 import { platform, release, userInfo } from "node:os";
@@ -18,7 +19,7 @@ import {
 import { streamMessage, complete, ApiError, type RateInfo } from "./anthropic";
 import { broadcast } from "./hub";
 import { decide, cancelApprovals, type PendingCall } from "./gate";
-import { findTool, subjectOf, toolDefs } from "./tools";
+import { allowedBy, findTool, subjectOf, toolDefs } from "./tools";
 import { killShell } from "./shell";
 import { recordUsage } from "./usage";
 import { priceFor } from "./config";
@@ -68,6 +69,10 @@ function systemPrompt(ws: WorkspaceRow) {
   if (c.ui.house_style) parts.push(HOUSE_STYLE);
   if (c.profile.about.trim()) parts.push(`About the user:\n${c.profile.about.trim()}`);
   if (c.profile.instructions.trim()) parts.push(`The user's standing instructions:\n${c.profile.instructions.trim()}`);
+  const profile = getProfile(ws.profile);
+  if (profile.prompt.trim()) parts.push(`How to work here (the ${profile.name} profile):\n${profile.prompt.trim()}`);
+  if (profile.hands_off && !profile.prompt.includes("do not ask"))
+    parts.push("Nobody is watching this workspace live. Do not ask questions; decide, note the decision, and continue.");
   if (ws.system_prompt.trim()) parts.push(`Instructions for this workspace:\n${ws.system_prompt.trim()}`);
   if (c.context.project_files) {
     const files = projectInstructions(ws.cwd);
@@ -232,9 +237,13 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
     const userMsgId = insertMessage(wsId, "user", userContent);
     broadcast("message", { workspaceId: wsId, message: { id: userMsgId, role: "user", content: userContent, created_at: now() } });
 
-    for (let step = 0; step < 200; step++) {
+    const first = getWorkspace(wsId);
+    const steps = getProfile(first?.profile).max_steps || 200;
+    for (let step = 0; step < steps; step++) {
       const ws = getWorkspace(wsId);
       if (!ws) throw new Error("Workspace was deleted");
+      const profile = getProfile(ws.profile);
+      if (profile.hands_off) opts = { ...opts, unattended: true };
       const blocked = budgetBlock(ws);
       if (blocked) {
         broadcast("error", { workspaceId: wsId, message: blocked, kind: "budget" });
@@ -262,9 +271,9 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
           model,
           system: systemPrompt(ws),
           messages: buildMessages(wsId, { web: opts.web }),
-          tools: opts.web ? [...toolDefs(), WEB_SEARCH_TOOL] : toolDefs(),
+          tools: opts.web ? [...toolDefs(profile), WEB_SEARCH_TOOL] : toolDefs(profile),
           max_tokens: c.models.max_tokens,
-          effort: opts.effort || c.models.effort,
+          effort: opts.effort || profile.effort || c.models.effort,
           thinkingDisplay: c.models.thinking_display,
         },
         {
@@ -343,7 +352,7 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
           broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
           continue;
         }
-        const tool = findTool(call.name);
+        const tool = allowedBy(profile, call.name) ? findTool(call.name) : undefined;
         db.run("UPDATE tool_calls SET status = 'running' WHERE id = ?", [call.id]);
         broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
         const t0 = performance.now();

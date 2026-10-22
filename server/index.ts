@@ -27,6 +27,7 @@ import {
 import { keep, reviewList, revert, revertAll } from "./review";
 import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
+import { getProfile, listProfiles } from "./profiles";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
@@ -153,6 +154,7 @@ function stateSummary() {
     running: runningIds(),
     approvals: pendingApprovals(),
     budget: c.budget,
+    profiles: listProfiles(),
   };
 }
 
@@ -171,9 +173,10 @@ function createWorkspace(body: any) {
   const cwd = body.cwd ? resolve(tilde(String(body.cwd))) : join(resolve(tilde(c.workspaces.home)), `${slug(title)}-${id.slice(2, 7)}`);
   mkdirSync(cwd, { recursive: true });
   const style = { color: pick(PLANET_COLORS), surface: pick(SURFACES), rings: Math.random() < 0.25 };
+  const profile = getProfile(body.profile ? String(body.profile) : undefined);
   db.run(
-    "INSERT INTO workspaces (id, title, cwd, model, mode, style, system_prompt, incognito, titled, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-    [id, title, cwd, body.model ?? null, body.mode ?? c.permissions.default_mode, JSON.stringify(style), body.system_prompt ?? "", body.incognito ? 1 : 0, body.title ? 1 : 0, now(), now()],
+    "INSERT INTO workspaces (id, title, cwd, model, mode, style, system_prompt, incognito, titled, profile, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+    [id, title, cwd, body.model ?? null, body.mode ?? profile.mode, JSON.stringify(style), body.system_prompt ?? "", body.incognito ? 1 : 0, body.title ? 1 : 0, profile.id, now(), now()],
   );
   const w = getWorkspace(id)!;
   broadcast("workspace", { workspace: wsPayload(w) });
@@ -313,12 +316,14 @@ async function api(req: Request, url: URL): Promise<Response> {
     if (Array.isArray(patch?.permissions?.rules)) next.permissions.rules = patch.permissions.rules;
     // tables that can lose entries are replaced, not merged
     if (patch?.mcp?.servers) next.mcp.servers = patch.mcp.servers;
+    if (patch?.profiles) next.profiles = patch.profiles;
     saveConfig(next);
     syncMcp();
     broadcast("state", stateSummary());
     return json(next);
   }
 
+  if (p === "/api/profiles" && m === "GET") return json(listProfiles());
   if (p === "/api/mcp" && m === "GET") return json(mcpStatus());
   if ((match = p.match(/^\/api\/mcp\/([\w.-]+)\/reconnect$/)) && m === "POST") {
     await reconnect(match[1]);
@@ -362,7 +367,7 @@ async function api(req: Request, url: URL): Promise<Response> {
     if (m === "GET") return json(workspaceDetail(id));
     if (m === "PATCH") {
       const b = await body();
-      const allowed = ["title", "cwd", "model", "mode", "system_prompt", "judge_notes", "archived"] as const;
+      const allowed = ["title", "cwd", "model", "mode", "system_prompt", "judge_notes", "archived", "profile"] as const;
       for (const k of allowed) if (k in b) db.run(`UPDATE workspaces SET ${k} = ? WHERE id = ?`, [b[k], id]);
       if ("style" in b) db.run("UPDATE workspaces SET style = ? WHERE id = ?", [JSON.stringify(b.style), id]);
       if ("title" in b) db.run("UPDATE workspaces SET titled = 1 WHERE id = ?", [id]);
