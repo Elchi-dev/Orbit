@@ -13,6 +13,12 @@ import { Welcome } from "./components/ori/Welcome";
 import { Sky } from "./components/Sky";
 import { OriSheet } from "./components/ori/OriSheet";
 import { Tour, useGuideShortcut } from "./components/ori/Guide";
+import { setFaviconState, waveFavicon } from "./lib/favicon";
+
+// where the last click was, so a workspace grows out of the planet you clicked
+let lastPoint: { x: number; y: number } | null = null;
+if (typeof window !== "undefined") window.addEventListener("pointerdown", (e) => (lastPoint = { x: e.clientX, y: e.clientY }), true);
+const zoomOrigin = () => (lastPoint ? `${lastPoint.x}px ${lastPoint.y}px` : "50% 50%");
 
 function viewFromHash(): View {
   const m = location.hash.match(/^#\/w\/(\w+)/);
@@ -57,6 +63,15 @@ export function App() {
   const connected = useStore((s) => s.connected);
   const prevView = useRef<View>(view);
   useGuideShortcut();
+  // the tab: Ori waves once, then shows whether anything needs you or is running
+  const approvals = useStore((s) => s.approvals.length);
+  const busy = useStore((s) => Object.values(s.workspaces).some((w) => w.running));
+  useEffect(() => waveFavicon(), []);
+  useEffect(() => {
+    setFaviconState(approvals ? "needs" : busy ? "working" : null);
+    const base = document.title.replace(/^\(\d+\) /, "");
+    document.title = approvals ? `(${approvals}) ${base}` : base;
+  }, [approvals, busy]);
   const [welcome, setWelcome] = useState(() => location.hash === "#/welcome");
   useEffect(() => {
     const on = () => location.hash === "#/welcome" && setWelcome(true);
@@ -154,11 +169,11 @@ export function App() {
       {view.kind === "ws" && <Sky />}
       <AnimatePresence mode="wait">
         {view.kind === "orrery" ? (
-          <motion.div key="orrery" className="screen" initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+          <motion.div key="orrery" className="screen" style={{ transformOrigin: zoomOrigin() }} initial={{ opacity: 0, scale: 1.15 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.6, transition: { duration: 0.32, ease: [0.55, 0, 0.75, 0.1] } }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
             <Home />
           </motion.div>
         ) : (
-          <motion.div key={`ws-${view.id}`} className="screen" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+          <motion.div key={`ws-${view.id}`} className="screen" style={{ transformOrigin: zoomOrigin() }} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.22, ease: [0.55, 0, 0.75, 0.1] } }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
             <Cockpit id={view.id} />
           </motion.div>
         )}

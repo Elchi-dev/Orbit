@@ -280,7 +280,7 @@ export function Composer({ ws }: { ws: Workspace }) {
         )}
       </AnimatePresence>
       <form
-        className="composer glass"
+        className={`composer glass ${running ? "working" : ""}`}
         onSubmit={(e) => {
           e.preventDefault();
           submit();

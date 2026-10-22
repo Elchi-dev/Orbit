@@ -191,8 +191,8 @@ export function Home() {
               {list.length === 0 && <p className="muted">Nothing here yet. Start one below.</p>}
               {list
                 .sort((a, b) => b.updated_at - a.updated_at)
-                .map((w) => (
-                  <div key={w.id} className="ws-row row-react">
+                .map((w, n) => (
+                  <div key={w.id} className="ws-row row-react rise" style={{ "--i": n } as any}>
                     <button className="ws-row-main" onClick={() => setView({ kind: "ws", id: w.id })}>
                       <span className="ws-dot" style={{ background: w.style?.color }} />
                       <span className="ws-row-text">

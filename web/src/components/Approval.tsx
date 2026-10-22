@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, CheckCheck, MessageSquareText, Scale, ShieldQuestion, X } from "lucide-react";
 import { useStore } from "../lib/store";
+import { Ori } from "./ori/Ori";
 import { agentLabel } from "../lib/helpers";
 import type { Approval as A } from "../lib/types";
 
@@ -77,7 +78,7 @@ export function ApprovalEclipse() {
             transition={{ type: "spring", stiffness: 220, damping: 24 }}
           >
             <span className="eclipse-ws">
-              <ShieldQuestion size={15} />{" "}
+              <Ori pose="needs" size={30} still />{" "}
               {current.parentId ? (
                 <span className="approval-helper">
                   {agentLabel(current.agent)} helper, {current.workspaceTitle}

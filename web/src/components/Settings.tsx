@@ -93,6 +93,7 @@ export function Settings() {
           <h1 className="display">Settings</h1>
           {TABS.map(({ id, label, Icon }) => (
             <button key={id} className={`btn set-tab ${tab === id ? "on" : ""}`} onClick={() => setTab(id)} aria-current={tab === id}>
+              {tab === id && <motion.span layoutId="set-hl" className="set-hl" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
               <Icon size={17} /> {label}
               {tab === id && <motion.span layoutId="tab-glow" className="tab-glow" transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
             </button>

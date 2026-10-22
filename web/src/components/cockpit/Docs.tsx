@@ -382,8 +382,8 @@ export function DocsPane({ ws }: { ws: Workspace }) {
         </OriEmpty>
       ) : (
         <ul className="doc-list">
-          {docs.map((d) => (
-            <li key={d.id}>
+          {docs.map((d, n) => (
+            <li key={d.id} className="rise" style={{ "--i": n } as any}>
               <button className="btn doc-row" onClick={() => selectDoc(ws.id, d.id)}>
                 <FileText size={16} className="doc-row-icon" />
                 <span className="doc-row-main">

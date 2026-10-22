@@ -1,4 +1,5 @@
 import { FileText, LayoutDashboard, MonitorPlay, X } from "lucide-react";
+import { motion } from "motion/react";
 import { useStore } from "../../lib/store";
 import type { PanelTab, Workspace } from "../../lib/types";
 import { PreviewPane } from "./Preview";
@@ -35,6 +36,7 @@ export function SidePanel({ ws, tab }: { ws: Workspace; tab: PanelTab }) {
             onClick={() => openPanel(ws.id, id)}
           >
             <Icon size={14} /> {label}
+            {current === id && <motion.span layoutId={`sp-ul-${ws.id}`} className="sp-ul" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
             {fresh?.[id] && current !== id && <span className="sp-dot" aria-label="new from Claude" />}
           </button>
         ))}

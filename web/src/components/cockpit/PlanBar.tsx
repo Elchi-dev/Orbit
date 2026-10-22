@@ -29,7 +29,7 @@ export function PlanBar({ ws }: { ws: Workspace }) {
             {plan.map((i, n) => (
               <li key={n} className={`plan-item s-${i.status}`}>
                 <span className="plan-mark" aria-label={i.status}>
-                  {i.status === "done" ? <Check size={13} /> : i.status === "doing" ? <CircleDashed size={13} className="spin-slow" /> : i.status === "skipped" ? <Minus size={13} /> : <Circle size={11} />}
+                  {i.status === "done" ? <Check size={13} className="pop-in" /> : i.status === "doing" ? <CircleDashed size={13} className="spin-slow" /> : i.status === "skipped" ? <Minus size={13} /> : <Circle size={11} />}
                 </span>
                 <span className="plan-text">{i.text}</span>
               </li>
