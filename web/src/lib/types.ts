@@ -20,6 +20,7 @@ export interface Workspace {
   archived: number;
   incognito: number;
   profile: string;
+  plan: PlanItem[];
   created_at: number;
   updated_at: number;
   stats: { tokens: number; cost: number; last_ctx: number };
@@ -219,4 +220,9 @@ export interface Profile {
   prompt: string;
   max_steps: number;
   builtin?: boolean;
+}
+
+export interface PlanItem {
+  text: string;
+  status: "todo" | "doing" | "done" | "skipped";
 }

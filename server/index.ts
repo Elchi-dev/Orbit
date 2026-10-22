@@ -128,7 +128,11 @@ function wsPayload(w: WorkspaceRow) {
   const stats = workspaceStats(w.id);
   const pending = pendingApprovals().filter((p) => p.workspaceId === w.id).length;
   const msgCount = db.query<{ n: number }, [string]>("SELECT COUNT(*) AS n FROM messages WHERE workspace_id = ?").get(w.id)!.n;
-  return { ...w, style: JSON.parse(w.style || "{}"), stats, running: isRunning(w.id), pending, messageCount: msgCount };
+  let plan: unknown[] = [];
+  try {
+    plan = JSON.parse(w.plan || "[]");
+  } catch {}
+  return { ...w, style: JSON.parse(w.style || "{}"), plan, stats, running: isRunning(w.id), pending, messageCount: msgCount };
 }
 
 function publicConfig() {

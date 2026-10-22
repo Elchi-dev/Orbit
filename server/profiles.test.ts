@@ -45,3 +45,19 @@ describe("profiles", () => {
     delete process.env.ORBIT_MOCK;
   });
 });
+
+describe("the plan", () => {
+  test("is saved on the workspace and offered only where the profile has it", async () => {
+    const { findTool } = await import("./tools");
+    const { getWorkspace } = await import("./db");
+    const id = `w_${Math.random().toString(36).slice(2, 10)}`;
+    db.run("INSERT INTO workspaces (id, title, cwd, mode, created_at, updated_at) VALUES (?,?,?,?,?,?)", [id, "t", "/tmp", "manual", now(), now()]);
+    const ws = getWorkspace(id)!;
+    const r = await findTool("plan")!.run({ items: [{ text: "a", status: "done" }, { text: "b", status: "weird" }, { text: "" }] }, { ws, toolCallId: "p", onOutput: () => {} });
+    expect(r.content).toBe("Plan saved: 1 of 2 done.");
+    expect(JSON.parse(getWorkspace(id)!.plan)).toEqual([{ text: "a", status: "done" }, { text: "b", status: "todo" }]);
+    config().profiles = { pair: { plan: false } };
+    expect(toolDefs(getProfile("pair")).map((t) => t.name)).not.toContain("plan");
+    config().profiles = {};
+  });
+});

@@ -18,6 +18,7 @@ import {
   FolderOpen,
   FolderSearch,
   Globe,
+  ListTodo,
   Loader2,
   Orbit,
   PanelTop,
@@ -138,6 +139,7 @@ const TOOL_ICON: Record<string, LucideIcon> = {
   ui_show: PanelTop,
   ui_widget: AppWindow,
   load_skill: BookOpen,
+  plan: ListTodo,
 };
 
 const base = (p: string) => (p ? p.split(/[\\/]/).filter(Boolean).slice(-2).join("/") : "");
@@ -165,6 +167,11 @@ export function toolLabel(name: string, input: any): ReactNode {
         host = new URL(input.url).host;
       } catch {}
       return <>Fetched {code(host)}</>;
+    }
+    case "plan": {
+      const items: any[] = Array.isArray(input?.items) ? input.items : [];
+      const d = items.filter((i) => i.status === "done").length;
+      return <>Updated the plan, {d} of {items.length} done</>;
     }
     case "load_skill":
       return <>Loaded the skill {code(input?.name ?? "")}</>;

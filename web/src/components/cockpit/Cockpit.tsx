@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, EyeOff, Folder, Pencil, Sparkles, SquareArrowOutUpRight } from "lucide-react";
 import { useStore } from "../../lib/store";
 import { ProfilePicker } from "../profiles/ProfilePicker";
+import { PlanBar } from "./PlanBar";
 import { openInEditor } from "../../lib/open";
 import { shortPath, tokens } from "../../lib/format";
 import { Logo } from "../Logo";
@@ -142,6 +143,7 @@ export function Cockpit({ id }: { id: string }) {
 
       <main className="cockpit-main">
         {detail ? <Stream ws={ws} detail={detail} /> : <div className="loading">Loading…</div>}
+        <PlanBar ws={ws} />
         <Composer ws={ws} />
       </main>
       <Dock ws={ws} detail={detail} />

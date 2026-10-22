@@ -113,6 +113,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5(text, message_id UNINDEXED,
 for (const sql of [
   "ALTER TABLE snapshots ADD COLUMN reviewed INTEGER NOT NULL DEFAULT 0",
   "ALTER TABLE workspaces ADD COLUMN profile TEXT NOT NULL DEFAULT 'pair'",
+  "ALTER TABLE workspaces ADD COLUMN plan TEXT NOT NULL DEFAULT '[]'",
 ]) {
   try {
     db.exec(sql);
@@ -136,6 +137,7 @@ export interface WorkspaceRow {
   archived: number;
   incognito: number;
   profile: string;
+  plan: string;
   created_at: number;
   updated_at: number;
 }

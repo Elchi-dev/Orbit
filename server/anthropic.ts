@@ -258,6 +258,21 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
       citations: [{ type: "web_search_result_location", url: "https://bun.com/blog", title: "Bun blog", encrypted_index: "mock", cited_text: "Install is faster in this release." }],
     });
     blocks.push({ type: "text", text: " Node.js shipped a security update the same week." , citations: [{ type: "web_search_result_location", url: "https://nodejs.org/en/blog", title: "Node.js blog", encrypted_index: "mock", cited_text: "Security releases for all active lines." }] });
+  } else if (req.tools?.some((t: any) => t.name === "plan") && /\b(build|make|create)\b/.test(lastText)) {
+    blocks.push({ type: "text", text: "Planning this first." });
+    blocks.push({
+      type: "tool_use",
+      id: "toolu_" + crypto.randomUUID().slice(0, 12),
+      name: "plan",
+      input: {
+        items: [
+          { text: "Pick the stack: one index.html, no build step", status: "done" },
+          { text: "Lay out the page: list, input, filters", status: "doing" },
+          { text: "Store todos in localStorage", status: "todo" },
+          { text: "Check it at phone and desktop width", status: "todo" },
+        ],
+      },
+    });
   } else if (/delete|remove|clean/.test(lastText)) {
     const command = /snapshot|backup/.test(lastText) ? "rm -rf ./old-snapshots/2025-*" : /build|dist/.test(lastText) ? "rm -rf ./dist ./build" : "rm -rf ./tmp";
     blocks.push({ type: "text", text: "I'll remove those with one delete in the workspace folder." });

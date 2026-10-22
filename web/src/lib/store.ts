@@ -213,6 +213,9 @@ export const useStore = create<Store>((set, get) => ({
       case "file_changed":
         if (s.details[wsId!]) get().loadDetail(wsId!);
         break;
+      case "plan":
+        patchWs(wsId!, { plan: e.plan });
+        break;
       case "missions":
         set({ missions: { ...s.missions, [wsId!]: e.missions } });
         break;

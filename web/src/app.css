@@ -614,3 +614,22 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border-radius
 .prof-edit { display: flex; flex-direction: column; gap: 14px; }
 .prof-icons { display: flex; gap: 2px; flex-wrap: wrap; }
 .prof-icons .icon-btn.on { background: rgba(255, 255, 255, 0.1); color: var(--peach); }
+
+/* plan */
+.plan { max-width: 760px; width: calc(100% - 44px); margin: 0 auto 8px; border-radius: var(--r-l); background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.plan-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 12px; border: 0; background: none; cursor: pointer; text-align: left; color: var(--star-2); font-size: 13.5px; }
+.plan-head:hover { color: var(--star); }
+.plan-meter { flex: none; width: 46px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.plan-meter i { display: block; height: 100%; background: var(--lav); border-radius: 2px; transition: width 0.6s var(--glide); }
+.plan-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--star); font-weight: 550; }
+.plan-count { flex: none; font-size: 12.5px; color: var(--star-3); }
+.plan-list { list-style: none; margin: 0; padding: 0 12px 10px; max-height: 220px; overflow-y: auto; }
+.plan-item { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; font-size: 13.5px; color: var(--star-2); }
+.plan-mark { flex: none; width: 16px; display: grid; place-items: center; color: var(--star-3); transform: translateY(2px); }
+.plan-item.s-done .plan-mark { color: var(--good); }
+.plan-item.s-done .plan-text { color: var(--star-3); }
+.plan-item.s-doing { color: var(--star); }
+.plan-item.s-doing .plan-mark { color: var(--lav); }
+.plan-item.s-skipped .plan-text { text-decoration: line-through; color: var(--star-3); }
+.spin-slow { animation: spin 3s linear infinite; }
+@media (max-width: 860px) { .plan { width: calc(100% - 20px); } }

@@ -112,6 +112,32 @@ function walk(dir: string, out: string[], limit: number) {
 
 const TOOLS: ToolDef[] = [
   {
+    name: "plan",
+    description:
+      "Write or update your plan for the current task as a checklist the user sees above the composer. Send the whole list every time. Use it for work with more than two steps: write it before you start, mark one item doing at a time, and mark items done (or skipped, with the reason in the text) as you go.",
+    input_schema: obj(
+      {
+        items: {
+          type: "array",
+          description: "The whole plan, in order",
+          items: obj({ text: str("One step, a short line"), status: { type: "string", enum: ["todo", "doing", "done", "skipped"] } }, ["text", "status"]),
+        },
+      },
+      ["items"],
+    ),
+    readOnly: true,
+    async run(input, ctx) {
+      const items = (Array.isArray(input?.items) ? input.items : [])
+        .slice(0, 60)
+        .map((i: any) => ({ text: String(i?.text ?? "").slice(0, 300), status: ["todo", "doing", "done", "skipped"].includes(i?.status) ? i.status : "todo" }))
+        .filter((i: any) => i.text);
+      db.run("UPDATE workspaces SET plan = ? WHERE id = ?", [JSON.stringify(items), ctx.ws.id]);
+      broadcast("plan", { workspaceId: ctx.ws.id, plan: items });
+      const done = items.filter((i: any) => i.status === "done").length;
+      return { content: `Plan saved: ${done} of ${items.length} done.` };
+    },
+  },
+  {
     name: "load_skill",
     description: "Load a skill's full instructions by name (the skills are listed in the system prompt). Returns the SKILL.md and the other files in its folder.",
     input_schema: obj({ name: str("The skill's name") }, ["name"]),
