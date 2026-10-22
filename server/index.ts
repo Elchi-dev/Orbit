@@ -9,6 +9,21 @@ import { addClient, removeClient, broadcast } from "./hub";
 import { runTurn, stop, kill, isRunning, clearHistory, runningIds, lastRate } from "./agent";
 import { resolveApproval, pendingApprovals, allRules, addRule } from "./gate";
 import { dropShell } from "./shell";
+import {
+  state as gitState,
+  diff as gitDiff,
+  stage as gitStage,
+  stageAll as gitStageAll,
+  unstage as gitUnstage,
+  discard as gitDiscard,
+  commit as gitCommit,
+  draftMessage as gitDraft,
+  checkout as gitSwitch,
+  createBranch as gitBranch,
+  push as gitPush,
+  pull as gitPull,
+  init as gitInit,
+} from "./git";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
 
@@ -355,6 +370,32 @@ async function api(req: Request, url: URL): Promise<Response> {
       return json({ ok: true });
     }
   }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/git(?:\/([a-z-]+))?$/))) {
+    const w = getWorkspace(match[1]);
+    if (!w) return bad("No such workspace", 404);
+    const action = match[2] ?? "";
+    try {
+      if (!action && m === "GET") return json(await gitState(w.cwd));
+      if (action === "diff" && m === "GET") return json({ diff: await gitDiff(w.cwd, url.searchParams.get("path") ?? "", url.searchParams.get("staged") === "1") });
+      if (m !== "POST") return bad("Not found", 404);
+      const b = await body();
+      if (action === "stage") await (b.all ? gitStageAll(w.cwd) : gitStage(w.cwd, b.paths));
+      else if (action === "unstage") await gitUnstage(w.cwd, b.paths);
+      else if (action === "discard") await gitDiscard(w.cwd, b.paths);
+      else if (action === "commit") await gitCommit(w.cwd, String(b.message ?? ""), !!b.all);
+      else if (action === "draft") return json({ message: await gitDraft(w.id, w.cwd) });
+      else if (action === "switch") await gitSwitch(w.cwd, String(b.branch ?? ""));
+      else if (action === "branch") await gitBranch(w.cwd, String(b.branch ?? ""));
+      else if (action === "push") await gitPush(w.cwd);
+      else if (action === "pull") await gitPull(w.cwd);
+      else if (action === "init") await gitInit(w.cwd);
+      else return bad("Not found", 404);
+      return json(await gitState(w.cwd));
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/clear$/)) && m === "POST") {
     const { keepSummary } = await body();
     return json(await clearHistory(match[1], !!keepSummary));

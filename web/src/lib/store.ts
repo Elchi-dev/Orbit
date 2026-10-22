@@ -3,7 +3,7 @@ import { api } from "./api";
 import type { Approval, Detail, Message, ServerState, StreamBlock, ToolCall, UsageEvent, Workspace } from "./types";
 
 export type View = { kind: "orrery" } | { kind: "ws"; id: string };
-export type Drawer = null | "shell" | "files" | "memory" | "workspace";
+export type Drawer = null | "shell" | "files" | "git" | "memory" | "workspace";
 export interface Toast {
   id: number;
   title: string;

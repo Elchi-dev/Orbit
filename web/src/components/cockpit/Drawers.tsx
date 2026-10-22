@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, FileDiff, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
+import { Archive, FileDiff, GitBranch, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
 import { openInEditor } from "../../lib/open";
 import type { Detail, Workspace } from "../../lib/types";
 import { ago, shortPath } from "../../lib/format";
 import { FolderPicker } from "../FolderPicker";
+import { GitPanel, type GitState } from "./GitPanel";
 
 const DOCK: { id: Exclude<Drawer, null>; label: string; Icon: typeof Terminal }[] = [
   { id: "shell", label: "Shell", Icon: Terminal },
   { id: "files", label: "Changed files", Icon: FileDiff },
+  { id: "git", label: "Git", Icon: GitBranch },
   { id: "memory", label: "Memory shelf", Icon: Pin },
   { id: "workspace", label: "Workspace settings", Icon: Settings2 },
 ];
@@ -19,7 +21,17 @@ export function Dock({ ws, detail }: { ws: Workspace; detail?: Detail }) {
   const drawer = useStore((s) => s.drawer);
   const setDrawer = useStore((s) => s.setDrawer);
   const calls = Object.values(detail?.calls ?? {});
+  const [gitCount, setGitCount] = useState(0);
+  // how many files differ from the last commit; refreshed when a run ends
+  useEffect(() => {
+    if (ws.running) return;
+    api
+      .get<GitState>(`/api/workspaces/${ws.id}/git`)
+      .then((s) => setGitCount((s.staged?.length ?? 0) + (s.changes?.length ?? 0)))
+      .catch(() => setGitCount(0));
+  }, [ws.id, ws.running, drawer]);
   const badges: Record<string, number | boolean> = {
+    git: gitCount,
     shell: calls.some((c) => c.name === "bash" && c.status === "running"),
     files: (detail?.snapshots ?? []).filter((s) => !s.restored).length,
     memory: detail?.pins.length ?? 0,
@@ -81,6 +93,7 @@ export function DrawerHost({ ws, detail }: { ws: Workspace; detail?: Detail }) {
           <div className="drawer-body">
             {drawer === "shell" && <ShellDrawer ws={ws} detail={detail} />}
             {drawer === "files" && <FilesDrawer ws={ws} detail={detail} />}
+            {drawer === "git" && <GitPanel ws={ws} />}
             {drawer === "memory" && <MemoryDrawer ws={ws} detail={detail} />}
             {drawer === "workspace" && <WorkspaceDrawer ws={ws} />}
           </div>
