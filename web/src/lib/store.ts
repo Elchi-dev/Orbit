@@ -28,6 +28,9 @@ interface Store {
   connected: boolean;
   send: (msg: object) => void;
 
+  /** text waiting to be put into a workspace's composer (from a deep link or the editor) */
+  drafts: Record<string, string>;
+  setIncoming: (wsId: string, text: string | null) => void;
   setView: (v: View) => void;
   setDrawer: (d: Drawer) => void;
   setOverlay: (o: Store["overlay"]) => void;
@@ -58,6 +61,13 @@ export const useStore = create<Store>((set, get) => ({
   overlay: null,
   connected: false,
   send: () => {},
+  drafts: {},
+  setIncoming: (wsId, text) => {
+    const drafts = { ...get().drafts };
+    if (text) drafts[wsId] = text;
+    else delete drafts[wsId];
+    set({ drafts });
+  },
 
   setView: (v) => {
     set({ view: v, drawer: null });

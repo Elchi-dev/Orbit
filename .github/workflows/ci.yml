@@ -27,3 +27,7 @@ jobs:
           bun scripts/smoke.ts http://localhost:7799
       - name: No dashes in source and docs
         run: bun scripts/lint-text.ts
+      - name: Compatibility page matches the catalog
+        run: bun scripts/gen-compat.ts --check
+      - name: Editor extension
+        run: node integrations/vscode/test.js

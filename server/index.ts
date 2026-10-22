@@ -9,6 +9,7 @@ import { addClient, removeClient, broadcast } from "./hub";
 import { runTurn, stop, kill, isRunning, clearHistory, runningIds, lastRate } from "./agent";
 import { resolveApproval, pendingApprovals, allRules, addRule } from "./gate";
 import { dropShell } from "./shell";
+import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
 
 declare const ORBIT_VERSION: string;
@@ -30,6 +31,8 @@ if (flag("help") || argv.includes("-h")) {
   console.log(`orbit ${VERSION}: your own AI workspace on localhost
 
   orbit                 start and open http://localhost:7777
+  orbit .               open this folder as a workspace (starts Orbit if needed)
+  orbit ~/code/api      the same for any folder
   orbit --port 7778     use another port
   orbit --no-open       don't open the browser
   orbit --mock          run with a fake model (no API calls), for trying the interface
@@ -38,6 +41,23 @@ if (flag("help") || argv.includes("-h")) {
   Config: ~/.orbit/orbit.toml   Data: ~/.orbit/orbit.db   (set ORBIT_HOME to move both)`);
   process.exit(0);
 }
+// a folder given on the command line opens as a workspace
+const VALUE_FLAGS = new Set(["--port", "--host"]);
+const positional = argv.find((a, i) => !a.startsWith("-") && !VALUE_FLAGS.has(argv[i - 1] ?? ""));
+const OPEN_PATH = positional ? resolve(positional.replace(/^~(?=$|[\\/])/, homedir())) : null;
+if (OPEN_PATH && !existsSync(OPEN_PATH)) {
+  console.error(`  No such folder: ${OPEN_PATH}`);
+  process.exit(1);
+}
+const openHash = () => (OPEN_PATH ? `/#/open?path=${encodeURIComponent(OPEN_PATH)}` : "");
+
+function openBrowser(target: string) {
+  const opener = process.platform === "darwin" ? ["open", target] : process.platform === "win32" ? ["cmd", "/c", "start", "", target] : ["xdg-open", target];
+  try {
+    Bun.spawn(opener, { stdout: "ignore", stderr: "ignore" });
+  } catch {}
+}
+
 if (flag("mock")) process.env.ORBIT_MOCK = "1";
 if (flag("no-open")) process.env.ORBIT_NO_OPEN = "1";
 
@@ -275,6 +295,35 @@ async function api(req: Request, url: URL): Promise<Response> {
     return json(next);
   }
 
+  if (p === "/api/integrations" && m === "GET") return json({ ...listIntegrations(url.searchParams.has("rescan")), editors: editorChoices() });
+  if (p === "/api/integrations/versions" && m === "GET") return json(await probeVersions());
+  if (p === "/api/open" && m === "POST") {
+    const b = await body();
+    const ws = getWorkspace(String(b.workspaceId ?? ""));
+    if (!ws) return bad("No such workspace");
+    const r = openInEditor(ws.cwd, String(b.path ?? "."), Number(b.line) || undefined, b.app ? String(b.app) : undefined, b.find ? String(b.find) : undefined);
+    return r.ok ? json(r) : bad(r.error ?? "Couldn't open it");
+  }
+
+  if (p === "/api/workspaces/open" && m === "POST") {
+    // find the newest workspace for a folder, or make one; used by `orbit <folder>` and the editor extensions
+    let path = String((await body()).path ?? "").replace(/^~(?=$|[\\/])/, homedir());
+    if (!path || !existsSync(path)) return bad("That folder doesn't exist");
+    path = resolve(path);
+    const isFile = !statSync(path).isDirectory();
+    // the workspace for this folder, or for the nearest folder above it, newest first
+    const rows = db
+      .query<{ id: string; cwd: string }, []>("SELECT id, cwd FROM workspaces WHERE archived = 0 AND incognito = 0 ORDER BY updated_at DESC")
+      .all();
+    const sep = process.platform === "win32" ? "\\" : "/";
+    const near = rows
+      .filter((r) => path === r.cwd || path.startsWith(r.cwd.endsWith(sep) ? r.cwd : r.cwd + sep))
+      .sort((a, b) => b.cwd.length - a.cwd.length)[0];
+    if (isFile && !near) path = dirname(path);
+    const w = near ? getWorkspace(near.id)! : createWorkspace({ cwd: path, title: path.split(/[\\/]/).filter(Boolean).pop() ?? "Workspace" });
+    return json(wsPayload(w));
+  }
+
   if (p === "/api/workspaces" && m === "GET") return json(listWorkspaces());
   if (p === "/api/workspaces" && m === "POST") return json(wsPayload(createWorkspace(await body())));
 
@@ -461,7 +510,15 @@ try {
     },
   });
 } catch (e) {
-  console.error(`\n  Orbit could not start on ${HOST}:${PORT}: ${(e as Error).message}\n  Is another Orbit already running? Set PORT=7778 to use another port.\n`);
+  // already running? then hand the folder to it instead of failing
+  const running = `http://localhost:${PORT}`;
+  const alive = await fetch(`${running}/api/session`, { signal: AbortSignal.timeout(1500) }).then((r) => r.ok).catch(() => false);
+  if (alive) {
+    console.log(`  Orbit is already running at ${running}${OPEN_PATH ? `, opening ${OPEN_PATH} there` : ""}.`);
+    if (!process.env.ORBIT_NO_OPEN) openBrowser(running + openHash());
+    process.exit(0);
+  }
+  console.error(`\n  Orbit could not start on ${HOST}:${PORT}: ${(e as Error).message}\n  Set PORT=7778 to use another port.\n`);
   process.exit(1);
 }
 
@@ -473,12 +530,7 @@ console.log(`
       config ${CONFIG_PATH}
 `);
 
-if (cfg.server.open_browser && !process.env.ORBIT_NO_OPEN) {
-  const opener = process.platform === "darwin" ? ["open", url] : process.platform === "win32" ? ["cmd", "/c", "start", "", url] : ["xdg-open", url];
-  try {
-    Bun.spawn(opener, { stdout: "ignore", stderr: "ignore" });
-  } catch {}
-}
+if ((cfg.server.open_browser || OPEN_PATH) && !process.env.ORBIT_NO_OPEN) openBrowser(url + openHash());
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, () => {

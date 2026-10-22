@@ -17,6 +17,37 @@ function viewFromHash(): View {
   return m ? { kind: "ws", id: m[1] } : { kind: "orrery" };
 }
 
+/**
+ * #/open?path=/abs/folder&file=src/a.ts&line=12&text=... comes from `orbit <folder>`
+ * and the editor extensions: find or make the workspace for that folder, and put any
+ * text into its composer without sending it.
+ */
+async function handleOpenLink(): Promise<boolean> {
+  if (!location.hash.startsWith("#/open?")) return false;
+  const q = new URLSearchParams(location.hash.slice("#/open?".length));
+  history.replaceState(null, "", "#/");
+  const path = q.get("path");
+  if (!path) return false;
+  try {
+    const ws = await api.post<{ id: string }>("/api/workspaces/open", { path });
+    const file = q.get("file");
+    const line = q.get("line");
+    const end = q.get("end");
+    const sel = q.get("text");
+    let draft = "";
+    if (file && sel) draft = `In \`${file}\`${line ? `, line${end && end !== line ? `s ${line} to ${end}` : ` ${line}`}` : ""}:\n\n\`\`\`\n${sel}\n\`\`\`\n\n`;
+    else if (file) draft = `\`${file}\`${line ? ` line ${line}` : ""}: `;
+    else if (sel) draft = sel;
+    await useStore.getState().loadWorkspaces();
+    if (draft) useStore.getState().setIncoming(ws.id, draft);
+    useStore.getState().setView({ kind: "ws", id: ws.id });
+    return true;
+  } catch (e) {
+    useStore.getState().toast({ title: "Couldn't open that folder", body: (e as Error).message, tone: "warn" });
+    return false;
+  }
+}
+
 export function App() {
   const server = useStore((s) => s.server);
   const view = useStore((s) => s.view);
@@ -29,10 +60,15 @@ export function App() {
       await ensureSession();
       await useStore.getState().loadServer();
       connectSocket();
+      if (await handleOpenLink()) return;
       const v = viewFromHash();
       if (v.kind === "ws") useStore.getState().setView(v);
     })().catch(() => setTimeout(() => location.reload(), 2000));
     const onPop = () => {
+      if (location.hash.startsWith("#/open?")) {
+        handleOpenLink();
+        return;
+      }
       const v = viewFromHash();
       useStore.setState({ view: v, drawer: null });
       if (v.kind === "ws") useStore.getState().loadDetail(v.id);

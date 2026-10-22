@@ -19,6 +19,7 @@ import {
   Loader2,
   Orbit,
   PanelTop,
+  SquareArrowOutUpRight,
   Pin,
   Terminal,
   TextSearch,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import type { ToolCall } from "../../lib/types";
 import { useStore } from "../../lib/store";
+import { openInEditor } from "../../lib/open";
 
 // ---------- markdown ----------
 function CodeBlock({ children, ...props }: any) {
@@ -197,7 +199,9 @@ function ms(n: number | null) {
   return n < 1000 ? `${n} ms` : `${(n / 1000).toFixed(1)} s`;
 }
 
-export function ToolCapsule({ block, call }: { block: { id?: string; name?: string; input?: any }; call?: ToolCall }) {
+const FILE_TOOLS = new Set(["read_file", "write_file", "edit_file"]);
+
+export function ToolCapsule({ block, call, wsId }: { block: { id?: string; name?: string; input?: any }; call?: ToolCall; wsId?: string }) {
   const live = useStore((s) => (block.id ? s.shellOut[block.id] : undefined));
   const running = call?.status === "running";
   const [open, setOpen] = useState(false);
@@ -240,6 +244,11 @@ export function ToolCapsule({ block, call }: { block: { id?: string; name?: stri
                 </p>
               )}
               <ToolInput name={block.name ?? ""} input={input} />
+              {FILE_TOOLS.has(block.name ?? "") && input?.path && wsId ? (
+                <button className="btn b-outline sz-s cap-open" onClick={() => openInEditor(wsId, input.path, undefined, input.new_string ?? undefined)}>
+                  <SquareArrowOutUpRight size={14} /> Open in editor
+                </button>
+              ) : null}
               {output ? <pre className="cap-out mono">{output}</pre> : null}
             </div>
           </motion.div>

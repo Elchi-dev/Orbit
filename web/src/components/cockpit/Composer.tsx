@@ -58,6 +58,21 @@ export function Composer({ ws }: { ws: Workspace }) {
   useEffect(() => {
     ta.current?.focus();
   }, [ws.id]);
+
+  // text handed over from the editor or an orbit:// style link lands here, never sent on its own
+  const incoming = useStore((s) => s.drafts[ws.id]);
+  useEffect(() => {
+    if (!incoming) return;
+    setText((t) => (t.trim() ? `${t}\n\n${incoming}` : incoming));
+    useStore.getState().setIncoming(ws.id, null);
+    requestAnimationFrame(() => {
+      const el = ta.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      }
+    });
+  }, [incoming, ws.id]);
   useEffect(() => {
     const el = ta.current;
     if (!el) return;

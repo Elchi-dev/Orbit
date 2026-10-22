@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertCircle, EyeOff, Folder, Pencil, Sparkles } from "lucide-react";
+import { AlertCircle, EyeOff, Folder, Pencil, Sparkles, SquareArrowOutUpRight } from "lucide-react";
 import { useStore } from "../../lib/store";
+import { openInEditor } from "../../lib/open";
 import { shortPath, tokens } from "../../lib/format";
 import { Logo } from "../Logo";
 import { Stream } from "./Stream";
@@ -111,6 +112,11 @@ export function Cockpit({ id }: { id: string }) {
           <button className="btn b-ghost sz-s cwd-btn" onClick={() => useStore.getState().setDrawer("workspace")} data-tip="Change folder" data-tip-side="bottom">
             <Folder size={14} /> <span>{shortPath(ws.cwd, server?.home)}</span>
           </button>
+          {server?.config.integrations.editor !== "none" && (
+            <button className="btn b-ghost icon-btn sm open-folder" onClick={() => openInEditor(ws.id)} aria-label="Open the folder in your editor" data-tip="Open in editor" data-tip-side="bottom">
+              <SquareArrowOutUpRight size={15} />
+            </button>
+          )}
         </nav>
         <div className="cockpit-actions">
           <ModeSwitch value={ws.mode} onChange={(mode) => patch(ws.id, { mode })} compact />

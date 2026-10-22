@@ -77,7 +77,7 @@ function UserTurn({ turn, onRetry }: { turn: Turn; onRetry: (text: string) => vo
   );
 }
 
-function AssistantBlocks({ blocks, detail, streaming }: { blocks: (Block | StreamBlock)[]; detail: Detail; streaming?: boolean }) {
+function AssistantBlocks({ blocks, detail, streaming, wsId }: { blocks: (Block | StreamBlock)[]; detail: Detail; streaming?: boolean; wsId: string }) {
   return (
     <>
       {blocks.map((b, i) => {
@@ -103,7 +103,7 @@ function AssistantBlocks({ blocks, detail, streaming }: { blocks: (Block | Strea
           const input = (b as Block).input;
           if (b.name === "ui_show" && input && call?.status !== "denied") return <UiPanel key={i} input={input} />;
           if (b.name === "ui_widget" && input && call?.status !== "denied") return <Widget key={i} input={input} />;
-          return <ToolCapsule key={b.id ?? i} block={b as any} call={call} />;
+          return <ToolCapsule key={b.id ?? i} block={b as any} call={call} wsId={wsId} />;
         }
         return null;
       })}
@@ -111,7 +111,7 @@ function AssistantBlocks({ blocks, detail, streaming }: { blocks: (Block | Strea
   );
 }
 
-function AssistantTurn({ turn, detail }: { turn: Turn; detail: Detail }) {
+function AssistantTurn({ turn, detail, wsId }: { turn: Turn; detail: Detail; wsId: string }) {
   const text = turn.blocks
     .filter((b) => b.type === "text")
     .map((b) => b.text)
@@ -120,7 +120,7 @@ function AssistantTurn({ turn, detail }: { turn: Turn; detail: Detail }) {
     <div className="turn claude">
       <span className="acts">{text && <CopyBtn text={text} />}</span>
       <div className="turn-body">
-        <AssistantBlocks blocks={turn.blocks} detail={detail} />
+        <AssistantBlocks blocks={turn.blocks} detail={detail} wsId={wsId} />
       </div>
     </div>
   );
@@ -173,7 +173,7 @@ export function Stream({ ws, detail }: { ws: Workspace; detail: Detail }) {
               {t.role === "user" ? (
                 <UserTurn turn={t} onRetry={(text) => send({ type: "send", workspaceId: ws.id, text })} />
               ) : (
-                <AssistantTurn turn={t} detail={detail} />
+                <AssistantTurn turn={t} detail={detail} wsId={ws.id} />
               )}
             </motion.div>
           ))}
@@ -182,7 +182,7 @@ export function Stream({ ws, detail }: { ws: Workspace; detail: Detail }) {
           <div className="turn claude live" aria-live="polite">
             <div className="turn-body">
               {stream?.blocks.length ? (
-                <AssistantBlocks blocks={stream.blocks.filter(Boolean)} detail={detail} streaming />
+                <AssistantBlocks blocks={stream.blocks.filter(Boolean)} detail={detail} streaming wsId={ws.id} />
               ) : (
                 <ThoughtTrail text="" live />
               )}

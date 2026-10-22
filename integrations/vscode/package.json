@@ -1,0 +1,42 @@
+{
+  "name": "orbit",
+  "displayName": "Orbit",
+  "description": "Send code, files and folders from your editor to Orbit, your local Claude workspace.",
+  "version": "0.2.0",
+  "publisher": "elchi",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/Elchi-dev/orbit" },
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["AI", "Other"],
+  "keywords": ["claude", "anthropic", "agent", "orbit"],
+  "icon": "icon.png",
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      { "command": "orbit.openFolder", "title": "Open this folder in Orbit", "category": "Orbit" },
+      { "command": "orbit.sendSelection", "title": "Send selection to Orbit", "category": "Orbit" },
+      { "command": "orbit.sendFile", "title": "Ask Orbit about this file", "category": "Orbit" }
+    ],
+    "keybindings": [
+      { "command": "orbit.sendSelection", "key": "ctrl+alt+o", "mac": "cmd+alt+o", "when": "editorTextFocus" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "command": "orbit.sendSelection", "when": "editorHasSelection", "group": "9_orbit" },
+        { "command": "orbit.sendFile", "when": "!editorHasSelection", "group": "9_orbit" }
+      ],
+      "explorer/context": [
+        { "command": "orbit.openFolder", "when": "explorerResourceIsFolder", "group": "9_orbit" },
+        { "command": "orbit.sendFile", "when": "!explorerResourceIsFolder", "group": "9_orbit" }
+      ]
+    },
+    "configuration": {
+      "title": "Orbit",
+      "properties": {
+        "orbit.port": { "type": "number", "default": 7777, "description": "The port Orbit runs on." },
+        "orbit.command": { "type": "string", "default": "orbit", "description": "How to start Orbit when it isn't running." }
+      }
+    }
+  }
+}

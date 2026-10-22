@@ -28,6 +28,11 @@ jobs:
       - run: bun test
       - name: Binaries for Linux, macOS and Windows
         run: bun run build
+      - name: Editor extension
+        working-directory: integrations/vscode
+        run: |
+          node test.js
+          npx --yes @vscode/vsce@3 package --no-dependencies -o ../../release/orbit-vscode.vsix
       - name: Checksums
         working-directory: release
         run: sha256sum orbit-* > SHA256SUMS && cat SHA256SUMS

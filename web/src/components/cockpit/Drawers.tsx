@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, FileDiff, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X } from "lucide-react";
+import { Archive, FileDiff, OctagonX, Pin, Plus, Settings2, Terminal, Trash2, Undo2, X, SquareArrowOutUpRight } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
+import { openInEditor } from "../../lib/open";
 import type { Detail, Workspace } from "../../lib/types";
 import { ago, shortPath } from "../../lib/format";
 import { FolderPicker } from "../FolderPicker";
@@ -148,6 +149,9 @@ function FilesDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
               {shortPath(s.path, home)}
             </span>
             <span className="muted small">{s.restored ? "undone" : s.existed ? "edited" : "created"}</span>
+            <button className="btn b-ghost icon-btn sm file-open" aria-label="Open in editor" data-tip="Open in editor" onClick={() => openInEditor(ws.id, s.path)}>
+              <SquareArrowOutUpRight size={14} />
+            </button>
           </li>
         ))}
       </ul>

@@ -130,6 +130,7 @@ export interface Config {
   safety: { undo_journal: boolean; undo_max_bytes: number; command_timeout_s: number };
   workspaces: { home: string };
   profile: { about: string; instructions: string };
+  integrations: { editor: string; briefing: boolean };
   pricing: Record<string, { input: number; output: number; cache_write: number; cache_read: number; context: number }>;
 }
 
@@ -158,4 +159,22 @@ export interface ServerState {
   rate: { tokens_remaining?: number; tokens_limit?: number; requests_remaining?: number };
   running: string[];
   approvals: Approval[];
+}
+
+export interface IntegrationApp {
+  id: string;
+  name: string;
+  cat: string;
+  bin: string;
+  path: string | null;
+  readonly: number;
+  guard: number;
+  hint: string | null;
+  editor: boolean;
+}
+export interface Integrations {
+  editor: string;
+  resolvedEditor: string | null;
+  apps: IntegrationApp[];
+  editors: { id: string; name: string; found: boolean }[];
 }
