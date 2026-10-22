@@ -1,5 +1,7 @@
 # Permissions
 
+<p align="center"><img src="images/ori/needs.svg" width="120" alt="Ori waving a flag: an approval is waiting"></p>
+
 Every action Claude proposes passes the same gate before anything happens on
 your machine. This page is the whole gate, in the order it is checked. The
 code is `server/gate.ts`; the tests that hold it to this page are

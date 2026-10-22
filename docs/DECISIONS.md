@@ -1,5 +1,7 @@
 # Decisions
 
+<p align="center"><img src="images/ori/thinking.svg" width="120" alt="Ori thinking"></p>
+
 Newest first. Each one says what was decided and why, and what was given up.
 
 ## Rule wildcards stop at shell operators (2026-10-22)

@@ -1,19 +1,16 @@
-```
- ██████╗ ██████╗ ██████╗ ██╗████████╗
-██╔═══██╗██╔══██╗██╔══██╗██║╚══██╔══╝
-██║   ██║██████╔╝██████╔╝██║   ██║
-██║   ██║██╔══██╗██╔══██╗██║   ██║
-╚██████╔╝██║  ██║██████╔╝██║   ██║
- ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝   ╚═╝
-```
+<p align="center"><img src="docs/images/ori/hi.svg" width="220" alt="Ori, Orbit's mascot, a small star with a ring, waving hi"></p>
 
-**Claude with a real shell, and a sky to keep it in :3**
+<h1 align="center">orbit</h1>
 
-[![CI](https://github.com/Elchi-dev/Orbit/actions/workflows/ci.yml/badge.svg)](https://github.com/Elchi-dev/Orbit/actions/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-alpha-orange)](#status)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Bun-3178C6?logo=typescript&logoColor=white)](https://bun.sh)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Made by Elchi](https://img.shields.io/badge/made%20by-Elchi-8A2BE2)](https://github.com/Elchi-dev)
+<p align="center"><b>Claude with a real shell, and a sky to keep it in :3</b></p>
+
+<p align="center">
+<a href="https://github.com/Elchi-dev/Orbit/actions/workflows/ci.yml"><img src="https://github.com/Elchi-dev/Orbit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="#status"><img src="https://img.shields.io/badge/status-alpha-orange" alt="Status: alpha"></a>
+<a href="https://bun.sh"><img src="https://img.shields.io/badge/TypeScript-Bun-3178C6?logo=typescript&amp;logoColor=white" alt="TypeScript on Bun"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+<a href="https://github.com/Elchi-dev"><img src="https://img.shields.io/badge/made%20by-Elchi-8A2BE2" alt="Made by Elchi"></a>
+</p>
 
 ![The Orrery: every workspace is a planet around the sun](docs/images/orrery.webp)
 
@@ -40,6 +37,34 @@ means it is waiting for you.
 > Orbit is alpha. The agent loop, the gate, the judge and the interface are
 > built and tested; long sessions against the live API have not been run yet.
 > See [Status](#status) for what that means.
+
+---
+
+## Meet Ori
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/ori/hi.svg" width="110" alt=""><br><sub>hi</sub></td>
+<td align="center"><img src="docs/images/ori/working.svg" width="110" alt=""><br><sub>running a command</sub></td>
+<td align="center"><img src="docs/images/ori/searching.svg" width="110" alt=""><br><sub>on the web</sub></td>
+<td align="center"><img src="docs/images/ori/needs.svg" width="110" alt=""><br><sub>needs you</sub></td>
+<td align="center"><img src="docs/images/ori/done.svg" width="110" alt=""><br><sub>done</sub></td>
+</tr>
+</table>
+
+Ori is the small star the workspaces orbit, with a ring of its own and two
+mitten hands. It shows what Claude is doing (thinking, a pose for each kind of
+tool, waiting for you, done), keeps you company in empty places, and explains
+Orbit when you ask:
+
+- **Setup with Ori.** The first start is a short wizard: your key, how you
+  like to work, and who approves.
+- **Ask Ori.** The button in the corner, or <kbd>?</kbd>: the sky, the gate,
+  profiles, helpers, the panel, missions and shortcuts, each in a few lines.
+- **Tours.** Ori walks you around the sky or a workspace with a spotlight.
+  The first visit to each offers it once.
+
+All fifteen poses, and how to use them: [docs/ORI.md](docs/ORI.md).
 
 ---
 
@@ -348,6 +373,8 @@ and at 390 pixels.
 | Document | What |
 | --- | --- |
 | [docs/PERMISSIONS.md](docs/PERMISSIONS.md) | The gate in detail: read-only list, rule syntax, modes, the judge, unattended runs |
+| [docs/ORI.md](docs/ORI.md) | Ori: every pose, where it shows up, using it in code |
+| [docs/MOTION.md](docs/MOTION.md) | How everything moves: appearing, leaving, hover, press, touch, idle |
 | [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | The 100 programs, what Orbit knows about each, the editor links |
 | [integrations/vscode](integrations/vscode) | The extension for VS Code, Cursor, Windsurf and VSCodium |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the server, the agent loop and the interface fit together |

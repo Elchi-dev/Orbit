@@ -1,5 +1,7 @@
 # Security
 
+<p align="center"><img src="docs/images/ori/reading.svg" width="120" alt="Ori looking closely through a magnifying glass"></p>
+
 Orbit gives a language model a shell on your computer. This page says what
 stands between the two, what does not, and how to report a problem.
 

@@ -1,5 +1,7 @@
 # Roadmap
 
+<p align="center"><img src="images/ori/searching.svg" width="120" alt="Ori looking through a telescope"></p>
+
 What comes next, in order, with the reason for the order. Each step ships on
 its own.
 

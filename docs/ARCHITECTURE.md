@@ -1,5 +1,7 @@
 # Architecture
 
+<p align="center"><img src="images/ori/working.svg" width="120" alt="Ori typing on a laptop"></p>
+
 Orbit is one process. It serves the interface, holds the API key, runs the
 agent loop and every tool, and stores everything in one SQLite file. The
 browser only ever talks to it.

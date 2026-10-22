@@ -1,5 +1,7 @@
 # Contributing
 
+<p align="center"><img src="docs/images/ori/hi.svg" width="120" alt="Ori waving hi"></p>
+
 Issues and pull requests are welcome. For anything bigger than a fix, open an
 issue first so we can agree on the shape before you build it.
 
@@ -25,7 +27,9 @@ Or start with a sky full of example workspaces, in a throwaway data folder
 bun scripts/demo.ts            # then open http://localhost:7777
 ```
 
-The screenshots in `docs/images` are taken from this demo.
+The screenshots in `docs/images` are taken from this demo. Ori's pictures in
+`docs/images/ori` come from the component itself (`bun scripts/ori-svgs.ts`);
+`#/ori` shows every pose, and `?flat` shows the sky drawn without WebGL.
 
 ## Before a pull request
 
