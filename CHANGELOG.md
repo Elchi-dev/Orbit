@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.4.1 (2026-10-22)
+
+A design release: Orbit gets a mascot, a guide and motion that says what
+happened.
+
+### Added
+
+- **Ori.** A small star with a ring and two mitten hands, in fifteen poses:
+  hi, idle, thinking, working on a laptop, reading, searching with a
+  telescope, writing, planning, drawing, camera, needs you, done, sleeping,
+  oops and helpers. In the workspace header Ori shows what Claude is doing
+  right now; toasts, approvals and empty places use the matching pose. The
+  browser tab shows a small Ori with a dot when something needs you.
+- **Setup wizard.** The first start walks through the key, how you like to
+  work and who approves. It can be run again from Ask Ori or `#/welcome`.
+- **Ask Ori.** A button in the corner of the sky and of a workspace, or the
+  `?` key: short answers about the sky, the gate, profiles, helpers, the
+  panel, missions and shortcuts.
+- **Tours.** A spotlight walk around the sky and around a workspace, offered
+  once on the first visit.
+- **Galaxy buttons.** Launch, Send and Get started open onto a turning galaxy
+  on hover and lift off when pressed.
+- `docs/ORI.md` and `docs/MOTION.md`, and every pose as an SVG in
+  `docs/images/ori`.
+
+### Changed
+
+- Motion follows one set of timings everywhere: presses, popovers, drawers,
+  tabs, toasts, the approval eclipse, the conversation and the jump into a
+  workspace from where you clicked. Reduced motion and Motion: Off stop all
+  of it; Calm slows the loops.
+- The flat sky (no WebGL, or `?flat`) now looks like the 3D one: nebula,
+  stars, the belt, the sun's corona, planet surfaces, rings and moons.
+- Firefox matches Chromium: scrollbars and number fields look the same.
+- The workspace header sits above the dock, so the telemetry popover is never
+  covered.
+- The legend under the sky is gone; Ask Ori explains the sky instead.
+
 ## 0.4.0 (2026-10-22)
 
 Claude works with helpers, and you talk about the work where it is: on the

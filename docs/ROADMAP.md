@@ -24,7 +24,8 @@ they are written, and screenshots for you and for Claude.
 
 Steering a running task, helpers (subagents) that run in parallel with their
 own worktrees, comments on any element in the preview, docs shared by Claude
-and you, and the whiteboard.
+and you, and the whiteboard. In 0.4.1: Ori, a setup wizard, Ask Ori and tours,
+motion throughout, and a flat sky that matches the 3D one.
 
 ## 0.5: use it every day
 

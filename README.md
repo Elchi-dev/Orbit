@@ -356,7 +356,8 @@ Not yet: long sessions against the live API (everything above was driven by
 the mock model, test servers and unit tests), helpers run by a real model on
 a real project, web search and MCP against real
 services, the extension inside a real editor, dictation with a real
-microphone, the 3D sky in Firefox (checked with the flat fallback only),
+microphone, Firefox on a real GPU (the 3D sky was checked with software
+WebGL, the flat sky by itself),
 Windows beyond building the binary.
 
 The test bar: 141 tests named after what they protect, including the rule
