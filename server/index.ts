@@ -34,6 +34,8 @@ import { byHook, createMission, deleteMission, launch, listMissions, startSchedu
 import { findCommands, findSkills, projectInstructions } from "./context";
 import { builtinKnowledge, builtinSkills, deleteEntry, findKnowledge, normaliseKnowledge, normaliseSkill, readKnowledge, saveEntry, templates, NAME_RE, type LibKind } from "./library";
 import { generate, stopGeneration } from "./libgen";
+import { alertDevices, pairingLink, reconnect as reconnectRelay, removeDevice, setBridge, setRelay, startRemote, status as remoteStatus } from "./remote";
+import { clearFcm, setFcmAccount } from "./fcm";
 import { getProfile, listProfiles } from "./profiles";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
@@ -677,6 +679,46 @@ async function api(req: Request, url: URL): Promise<Response> {
     }
   }
 
+  // ---------- remote: the relay, paired phones, alerts ----------
+  if (p === "/api/remote" && m === "GET") return json(remoteStatus());
+  if (p === "/api/remote" && m === "PUT") {
+    const b = await body();
+    try {
+      await setRelay(String(b.relay_url ?? ""), typeof b.token === "string" && b.token.trim() ? b.token : undefined);
+      return json(remoteStatus());
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if (p === "/api/remote/reconnect" && m === "POST") {
+    reconnectRelay();
+    return json(remoteStatus());
+  }
+  if (p === "/api/remote/pair" && m === "POST") {
+    try {
+      return json(pairingLink());
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if ((match = p.match(/^\/api\/remote\/devices\/([\w-]+)$/)) && m === "DELETE") {
+    removeDevice(match[1]);
+    return json(remoteStatus());
+  }
+  if (p === "/api/remote/fcm" && m === "PUT") {
+    try {
+      const project = setFcmAccount(String((await body()).json ?? ""));
+      return json({ ...remoteStatus(), project });
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if (p === "/api/remote/fcm" && m === "DELETE") {
+    clearFcm();
+    return json(remoteStatus());
+  }
+  if (p === "/api/remote/test" && m === "POST") return json(await alertDevices({ t: "test", title: "Test from Orbit", at: now() }));
+
   // ---------- the library: skills and knowledge ----------
   if (p === "/api/library" && m === "GET") {
     const cwd = getWorkspace(url.searchParams.get("workspace") ?? "")?.cwd;
@@ -868,6 +910,9 @@ try {
   console.error(`\n  Orbit could not start on ${HOST}:${PORT}: ${(e as Error).message}\n  Set PORT=7778 to use another port.\n`);
   process.exit(1);
 }
+
+setBridge({ api, onMessage: onSocketMessage, hello: stateSummary });
+startRemote();
 
 const PREVIEW_PORT = startPreviewServer(Number(process.env.ORBIT_PREVIEW_PORT) || (server.port ?? PORT) + 1);
 const url = `http://${HOST === "0.0.0.0" ? "localhost" : HOST === "127.0.0.1" ? "localhost" : HOST}:${server.port}`;

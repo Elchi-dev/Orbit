@@ -86,6 +86,16 @@ CREATE TABLE IF NOT EXISTS pins (
   text TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS devices (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  pub TEXT NOT NULL,
+  app TEXT NOT NULL DEFAULT '',
+  push_kind TEXT NOT NULL DEFAULT 'relay',
+  push_token TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  last_seen INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS secrets (
   name TEXT PRIMARY KEY,
   iv BLOB NOT NULL,

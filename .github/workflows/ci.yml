@@ -31,5 +31,7 @@ jobs:
         run: bun scripts/gen-compat.ts --check
       - name: Built-in library matches server/library
         run: bun scripts/gen-library.ts --check
+      - name: Remote protocol vectors unchanged
+        run: bun scripts/gen-remote-vectors.ts --check
       - name: Editor extension
         run: node integrations/vscode/test.js
