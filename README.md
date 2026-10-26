@@ -262,6 +262,8 @@ home network. On the phone: the sky, every workspace and conversation, a new
 task, approvals, and an alert when Claude needs you, through the relay or
 Firebase, which carries it without being able to read it.
 
+![The Android app: the sky, a workspace, an approval, and everything waiting for you](docs/images/android.webp)
+
 ![Settings, Your phone: the relay online, a paired phone, and a pairing code](docs/images/phone-settings.webp)
 
 ---

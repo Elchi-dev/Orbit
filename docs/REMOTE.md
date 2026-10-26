@@ -13,7 +13,7 @@ Nothing opens on your home network. Orbit connects out to the relay, the phone
 connects to the relay, and the relay joins the two.
 
 This page is for people setting it up and for people writing a client. The
-in-app guide (Settings, Remote) walks through the same steps.
+in-app guide (Settings, Your phone) walks through the same steps.
 
 ## Setting up a relay
 
@@ -29,7 +29,7 @@ domain or subdomain pointing at it.
    It installs `orbit-relay` as a system service under its own user, gets a
    certificate from Let's Encrypt (ports 80 and 443 must be reachable) and
    prints a **relay token**.
-3. In Orbit, Settings, Remote: paste the relay address and the token. Orbit
+3. In Orbit, Settings, Your phone: paste the relay address and the token. Orbit
    connects and shows the relay as online.
 4. Pair your phone: open the Orbit app, tap Pair, scan the QR code Orbit shows.
 
@@ -48,7 +48,7 @@ closed. Two ways, chosen in the app:
   notification while it does.
 - **Firebase** (for builds of the app that include a Firebase project): Orbit
   sends the alert through Firebase Cloud Messaging with the project's service
-  account key, which you paste into Settings, Remote, and which stays
+  account key, which you paste into Settings, Your phone, and which stays
   encrypted on your computer. No background connection.
 
 Either way an alert carries no content: it says that something needs you, and

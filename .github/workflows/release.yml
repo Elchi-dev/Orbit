@@ -47,6 +47,40 @@ jobs:
           for arch in amd64 arm64; do
             CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.version=${TAG}" -o ../release/orbit-relay-linux-$arch .
           done
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - name: Android app
+        working-directory: android
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          ORBIT_KEYSTORE_BASE64: ${{ secrets.ORBIT_KEYSTORE_BASE64 }}
+          ORBIT_KEYSTORE_PASSWORD: ${{ secrets.ORBIT_KEYSTORE_PASSWORD }}
+          ORBIT_KEY_ALIAS: ${{ secrets.ORBIT_KEY_ALIAS }}
+          ORBIT_KEY_PASSWORD: ${{ secrets.ORBIT_KEY_PASSWORD }}
+        run: |
+          # the app's version follows the release tag
+          v="${TAG#v}"; v="${v%%-*}"
+          IFS=. read -r major minor patch <<< "$v"
+          printf 'versionCode=%d\nversionName=%s\n' "$((major * 10000 + minor * 100 + patch))" "$v" > version.properties
+          # with a signing key it is signed with it; without, with the debug key
+          if [ -n "$ORBIT_KEYSTORE_BASE64" ]; then
+            echo "$ORBIT_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/orbit.keystore"
+            export ORBIT_KEYSTORE="$RUNNER_TEMP/orbit.keystore"
+          fi
+          # the plain app: alerts through the relay, no Google
+          ./gradlew --no-daemon :app:assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../release/orbit-android.apk
+          # with the project's Firebase file, a second build that can use Firebase too
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            ./gradlew --no-daemon :app:assembleRelease
+            cp app/build/outputs/apk/release/app-release.apk ../release/orbit-android-firebase.apk
+            rm app/google-services.json
+          fi
       - name: Checksums
         working-directory: release
         run: sha256sum orbit-* > SHA256SUMS && cat SHA256SUMS
