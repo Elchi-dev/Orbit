@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.7.0 (2026-10-26)
+
+Orbit on your phone, plugins in any language, and everything 0.5 and 0.6
+planned. The roadmap's 0.5, 0.6 and 0.7 ship together here.
+
+### Added
+
+- **The Android app** (`dev.elchi.orbit`): the sky, every workspace and
+  conversation, starting a task, steering, and approvals, from anywhere. It
+  pairs by QR code and talks to Orbit through a relay you run, end to end
+  encrypted (X25519, HKDF-SHA256, AES-256-GCM; the protocol and test vectors
+  are in `docs/REMOTE.md`). Alerts when Claude needs you, through the relay or
+  Firebase, sealed so neither can read them.
+- **orbit-relay**, a small Go server with a one-line installer for Ubuntu and
+  Debian (systemd, Let's Encrypt or behind your own proxy). It forwards sealed
+  messages and stores nothing. Settings, Your phone sets it up step by step.
+- **Plugins**: a folder with `orbit-plugin.json` and a program in any language,
+  over JSON-RPC on stdin and stdout. Tools for Claude, slash commands, panels
+  beside the conversation, HTTP routes, settings with encrypted secrets, skills
+  and knowledge, a check before every action, every event, and Orbit itself:
+  workspaces, Claude runs, model calls under the budget, approvals, storage.
+  A plugin never sees the API key. TypeScript runs on Orbit's own runtime;
+  SDKs for TypeScript and Python ship inside Orbit. Settings, Plugins installs
+  from git or a folder, makes new ones from a template, or hands a new plugin
+  to Claude to build. Two examples in `examples/plugins`. `docs/PLUGINS.md`.
+- **The library**: eighteen built-in skills and Orbit's own manual, your own
+  and your projects' skills and knowledge, each a switch, templates, and Ori
+  writing new ones from a description with a model that may only search the web.
+- **Knowledge folders**: a folder of docs in a workspace, indexed locally and
+  searched by the `knowledge` tool (BM25 by passage) instead of pasted in.
+- **Automatic memory**: after some work, suggested facts you keep, edit or
+  dismiss; kept ones go in front of Claude everywhere, and answers show which
+  they used. Settings, Memory.
+- **Replay**: a finished run on a timeline, helpers side by side, every command
+  and file change, at up to eight times speed.
+- **Speed and accessibility check** beside the preview and as `page_check`:
+  largest paint, layout shift, blocking time, bytes by kind, and the WCAG 2.2
+  AA problems a page shows by itself.
+- **Review one change at a time**: keep or undo each hunk.
+- **Docs as files**: keep a doc as a Markdown file in the workspace folder, and
+  open any Markdown file there as a doc.
+- `orbit check` (from 0.4.2) is listed in the README.
+
+### Changed
+
+- MCP server tokens live in the encrypted store; `orbit.toml` keeps a marker.
+  Values written there by hand move over at start.
+- Ask Ori knows the phone, plugins, memory and replay.
+
+### Fixed
+
+- The built-in `release` skill was missing from the repository because the
+  ignore rule for the build folder matched it too.
+
 ## 0.4.2 (2026-10-23)
 
 ### Added
