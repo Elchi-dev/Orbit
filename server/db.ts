@@ -86,6 +86,12 @@ CREATE TABLE IF NOT EXISTS pins (
   text TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS review_base (
+  workspace_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  content BLOB NOT NULL,
+  PRIMARY KEY (workspace_id, path)
+);
 CREATE TABLE IF NOT EXISTS devices (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
