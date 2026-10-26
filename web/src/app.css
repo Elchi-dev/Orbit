@@ -1279,3 +1279,16 @@ mark.doc-mark::after { content: attr(data-n); display: inline-grid; place-items:
 .ck-console { margin: 0; padding: 8px 10px; border-radius: var(--r); background: rgba(0, 0, 0, 0.3); font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap; color: var(--star-2); max-height: 140px; overflow: auto; }
 .ck-note { margin-top: 12px !important; }
 .ck-foot { padding: 10px 12px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; }
+
+/* memory */
+.mem-used { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; color: var(--lav-soft); }
+.mem-chip { color: var(--lav-soft); background: rgba(184, 166, 255, 0.08); }
+.mem-suggest { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--r-l); background: rgba(184, 166, 255, 0.06); border: 1px solid rgba(184, 166, 255, 0.18); margin-bottom: 12px; }
+.mem-suggest-head { display: flex; align-items: center; gap: 10px; }
+.mem-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.mem-row { display: flex; align-items: center; gap: 10px; padding: 6px 4px 6px 10px; border-radius: var(--r); transition: background var(--t-quick) var(--ease-out); }
+.mem-row:hover { background: var(--hover); }
+.mem-text { flex: 1; font-size: 14px; line-height: 1.45; }
+.mem-acts { display: flex; gap: 4px; flex: none; }
+.mem-edit { flex: 1; display: flex; gap: 6px; align-items: center; }
+.mem-edit .field { flex: 1; }

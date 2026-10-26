@@ -99,3 +99,27 @@ describe("Ori writes one", () => {
     delete process.env.ORBIT_MOCK;
   });
 });
+
+describe("knowledge folders", () => {
+  test("a folder of docs is searched by passage, with the file and heading it came from", async () => {
+    const { searchAll, workspaceFolders, readFromFolders } = await import("./library");
+    const cwd = mkdtempSync(join(tmpdir(), "orbit-kfold-"));
+    mkdirSync(join(cwd, "docs", "ops"), { recursive: true });
+    writeFileSync(join(cwd, "docs", "ops", "deploy.md"), "# Deploying\n\n## Rollback\n\nTo roll back, run make rollback with the previous tag. Never delete the old image.\n\n## Secrets\n\nSecrets live in the vault.\n");
+    writeFileSync(join(cwd, "docs", "intro.md"), "# Intro\n\nWelcome to the project. It sells tea online.\n");
+    mkdirSync(join(cwd, "docs", "node_modules"), { recursive: true });
+    writeFileSync(join(cwd, "docs", "node_modules", "junk.md"), "rollback rollback rollback");
+    const folders = workspaceFolders(cwd, JSON.stringify(["docs", "../outside"]));
+    expect(folders).toEqual([join(cwd, "docs")]);
+    const hits = searchAll(cwd, folders, "how do I roll back a deploy");
+    expect(hits[0].source).toBe("docs/ops/deploy.md # Rollback");
+    expect(hits[0].text).toContain("make rollback");
+    expect(hits.some((h) => h.source.includes("node_modules"))).toBe(false);
+    expect(readFromFolders(folders, "intro.md")).toContain("sells tea");
+    expect(readFromFolders(folders, "../package.json")).toBeNull();
+    // a changed file is picked up on the next search
+    await Bun.sleep(20);
+    writeFileSync(join(cwd, "docs", "intro.md"), "# Intro\n\nIt sells coffee now.\n");
+    expect(searchAll(cwd, folders, "coffee")[0].source).toBe("docs/intro.md # Intro");
+  });
+});

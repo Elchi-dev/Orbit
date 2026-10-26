@@ -1,8 +1,9 @@
 import { OriEmpty } from "../ori/OriEmpty";
+import { MemorySuggestions } from "../memory/Memory";
 import { useTabs } from "./SidePanel";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, BookOpen, CalendarClock, Check, FileDiff, FileText, GitBranch, Loader2, MonitorPlay, OctagonX, Pin, Plus, Settings2, SquareArrowOutUpRight, Terminal, Trash2, Undo2, X } from "lucide-react";
+import { Archive, BookOpen, FolderSearch, CalendarClock, Check, FileDiff, FileText, GitBranch, Loader2, MonitorPlay, OctagonX, Pin, Plus, Settings2, SquareArrowOutUpRight, Terminal, Trash2, Undo2, X } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
 import { openInEditor } from "../../lib/open";
@@ -41,11 +42,12 @@ export function Dock({ ws, detail }: { ws: Workspace; detail?: Detail }) {
       .then((s) => setGitCount((s.staged?.length ?? 0) + (s.changes?.length ?? 0)))
       .catch(() => setGitCount(0));
   }, [ws.id, ws.running, drawer]);
+  const memorySuggested = useStore((st) => st.memorySuggested);
   const badges: Record<string, number | boolean> = {
     git: gitCount,
     shell: calls.some((c) => c.name === "bash" && c.status === "running"),
     files: (detail?.snapshots ?? []).filter((s) => !s.restored).length,
-    memory: detail?.pins.length ?? 0,
+    memory: memorySuggested > 0 ? true : (detail?.pins.length ?? 0),
   };
   return (
     <nav className="dock glass-soft" aria-label="Panels">
@@ -346,7 +348,14 @@ function MemoryDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
   };
   return (
     <>
-      <p className="muted small">Pinned facts are sent with every message in this workspace. Claude can pin things too.</p>
+      <MemorySuggestions />
+      <p className="muted small">
+        Pinned facts are sent with every message in this workspace. Claude can pin things too. What Claude remembers everywhere is in{" "}
+        <button className="lnk" onClick={() => useStore.getState().openSettings("memory")}>
+          Settings, Memory
+        </button>
+        .
+      </p>
       <form className="field" onSubmit={add}>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Something Claude should always know here" aria-label="New pin" />
         <button className="btn b-ghost icon-btn sm" aria-label="Add pin" data-tip="Pin">
@@ -379,14 +388,21 @@ function MemoryDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
 interface ContextInfo {
   files: { path: string; chars: number; cut: boolean }[];
   skills: { name: string; description: string; source: string; dir: string }[];
+  folders?: { path: string; files: number; passages: number }[];
 }
 
 /** What Claude reads from the folder besides your messages: instruction files and skills. */
 function ContextList({ ws }: { ws: Workspace }) {
   const [info, setInfo] = useState<ContextInfo | null>(null);
+  const [folder, setFolder] = useState("");
+  const load = () => api.get<ContextInfo>(`/api/workspaces/${ws.id}/context`).then(setInfo).catch(() => {});
   useEffect(() => {
-    api.get<ContextInfo>(`/api/workspaces/${ws.id}/context`).then(setInfo).catch(() => {});
+    load();
   }, [ws.id, ws.cwd]);
+  const setFolders = async (list: string[]) => {
+    await api.patch(`/api/workspaces/${ws.id}`, { knowledge_dirs: list });
+    await load();
+  };
   if (!info) return null;
   return (
     <div className="ctx-list">
@@ -407,6 +423,36 @@ function ContextList({ ws }: { ws: Workspace }) {
           ))}
         </ul>
       )}
+      <span className="form-label">Knowledge folders</span>
+      <p className="muted small">Folders of docs Claude searches when it needs to, instead of reading them all every time. Markdown, text and HTML.</p>
+      {(info.folders ?? []).length > 0 && (
+        <ul className="file-list">
+          {info.folders!.map((f) => (
+            <li key={f.path} className="row-react">
+              <FolderSearch size={15} />
+              <span className="mono file-path">{f.path}/</span>
+              <span className="muted small num">
+                {f.files} {f.files === 1 ? "file" : "files"}
+              </span>
+              <button className="btn b-ghost icon-btn sm" aria-label={`Stop searching ${f.path}`} data-tip="Stop searching it" onClick={() => setFolders((info.folders ?? []).filter((x) => x.path !== f.path).map((x) => x.path))}>
+                <X size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="field"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (folder.trim()) setFolders([...(info.folders ?? []).map((x) => x.path), folder.trim().replace(/\/+$/, "")]).then(() => setFolder(""));
+        }}
+      >
+        <input value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="docs, or wiki/handbook" aria-label="Folder to search" spellCheck={false} />
+        <button className="btn b-ghost icon-btn sm" aria-label="Add folder" data-tip="Search this folder">
+          <Plus size={16} />
+        </button>
+      </form>
       <span className="form-label">Skills</span>
       {info.skills.length === 0 ? (
         <p className="muted small">None found in .claude/skills, ~/.orbit/skills or ~/.claude/skills.</p>

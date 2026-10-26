@@ -1,6 +1,7 @@
 // The agent loop: stream a reply, gate and run its tool calls, feed results back, repeat until done.
-import { knowledgePrompt } from "./library";
+import { knowledgePrompt, workspaceFolders } from "./library";
 import { afterTool } from "./plugins";
+import { memoryPrompt, noteUsed, suggestFrom } from "./memory";
 import { noticeServer, openPreview, previewState } from "./preview";
 import { getProfile } from "./profiles";
 import { findSkills, projectInstructions } from "./context";
@@ -135,8 +136,12 @@ function systemPrompt(ws: WorkspaceRow) {
         .join("\n")}`,
     );
   if (c.knowledge?.enabled !== false) {
-    const k = knowledgePrompt(ws.cwd);
+    const k = knowledgePrompt(ws.cwd, workspaceFolders(ws.cwd, ws.knowledge_dirs));
     if (k) parts.push(k);
+  }
+  if (!ws.incognito) {
+    const mem = memoryPrompt();
+    if (mem) parts.push(mem);
   }
   if (pins.length) parts.push(`Memory shelf (facts pinned in this workspace):\n${pins.map((p) => `- ${p.text}`).join("\n")}`);
   if (ws.summary.trim()) parts.push(`Summary of earlier work in this workspace (older messages were folded into it):\n${ws.summary.trim()}`);
@@ -341,6 +346,7 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
 
       const assistantId = insertMessage(wsId, "assistant", result.content);
       const cost = recordUsage(wsId, assistantId, "pilot", model, result.usage, result.ttft_ms, result.tps);
+      noteUsed(result.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n"));
       const ctxUsed = result.usage.input + result.usage.cache_read + result.usage.cache_write + result.usage.output;
       broadcast("message", {
         workspaceId: wsId,
@@ -482,7 +488,10 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
     broadcast("turn_end", { workspaceId: wsId, reason: endReason });
   }
   const ws = getWorkspace(wsId);
-  if (ws && endReason === "done") autoTitle(ws);
+  if (ws && endReason === "done") {
+    autoTitle(ws);
+    suggestFrom(ws.id).catch(() => {});
+  }
   return endReason;
 }
 

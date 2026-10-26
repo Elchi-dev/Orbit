@@ -57,6 +57,7 @@ export interface Config {
   knowledge: { enabled: boolean; disabled: string[]; always_max_chars: number };
   library: { generator_model: string; max_searches: number };
   remote: { relay_url: string; name: string; alert_delay_ms: number };
+  memory: { enabled: boolean; suggest: boolean };
   plugins: { enabled: Record<string, boolean>; settings: Record<string, Record<string, unknown>>; dirs: string[] };
   /** changes to the built-in profiles, and new ones, by id */
   profiles: Record<string, Record<string, unknown>>;
@@ -95,6 +96,7 @@ export const DEFAULT_CONFIG: Config = {
   knowledge: { enabled: true, disabled: [], always_max_chars: 8000 },
   library: { generator_model: "claude-haiku-5-5", max_searches: 5 },
   remote: { relay_url: "", name: "", alert_delay_ms: 4000 },
+  memory: { enabled: true, suggest: true },
   plugins: { enabled: {}, settings: {}, dirs: [] },
   profiles: {},
   helpers: { enabled: true, max_parallel: 4, max_depth: 1 },

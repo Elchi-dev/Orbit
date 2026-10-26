@@ -132,6 +132,7 @@ for (const sql of [
   "ALTER TABLE workspaces ADD COLUMN plan TEXT NOT NULL DEFAULT '[]'",
   // helpers (subagents) are workspaces with a parent
   "ALTER TABLE workspaces ADD COLUMN parent_id TEXT",
+  "ALTER TABLE workspaces ADD COLUMN knowledge_dirs TEXT NOT NULL DEFAULT '[]'",
   "ALTER TABLE workspaces ADD COLUMN agent TEXT NOT NULL DEFAULT ''",
   "ALTER TABLE workspaces ADD COLUMN scope TEXT NOT NULL DEFAULT '[]'",
   "ALTER TABLE workspaces ADD COLUMN tools TEXT NOT NULL DEFAULT '[]'",
@@ -165,6 +166,8 @@ export interface WorkspaceRow {
   profile: string;
   plan: string;
   parent_id: string | null;
+  /** folders in the workspace searched by the knowledge tool, relative to cwd */
+  knowledge_dirs: string;
   agent: string;
   scope: string;
   tools: string;

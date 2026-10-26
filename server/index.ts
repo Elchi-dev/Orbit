@@ -2,7 +2,7 @@ import { addComment, createDoc, deleteDoc, docView, getDoc, linkFile, listDocs, 
 import { apply as applyBoard, assetPath, getBoard, isImagePath, saveAsset } from "./board";
 import { discardHelper, helpersOf, helperView, listAgents, mergeHelper } from "./helpers";
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
-import { join, resolve, dirname, extname, sep } from "node:path";
+import { join, resolve, dirname, extname, relative, sep } from "node:path";
 import { homedir } from "node:os";
 import { loadConfig, config, saveConfig, deepMerge, CONFIG_PATH, ORBIT_DIR, type Config } from "./config";
 import { db, now, uid, getWorkspace, listMessages, workspaceStats, costSince, startOfDay, startOfMonth, type WorkspaceRow } from "./db";
@@ -33,13 +33,15 @@ import { closePreview, openPreview, previewState, resolveTarget, startPreviewSer
 import { keep, keepHunk, reviewList, revert, revertAll, undoHunk } from "./review";
 import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
-import { builtinKnowledge, builtinSkills, deleteEntry, findKnowledge, normaliseKnowledge, normaliseSkill, readKnowledge, saveEntry, templates, NAME_RE, type LibKind } from "./library";
+import { workspaceFolders, builtinKnowledge, builtinSkills, deleteEntry, findKnowledge, normaliseKnowledge, normaliseSkill, readKnowledge, saveEntry, templates, NAME_RE, type LibKind } from "./library";
 import { generate, stopGeneration } from "./libgen";
 import { alertDevices, pairingLink, reconnect as reconnectRelay, settled as settledRelay, removeDevice, setBridge, setRelay, startRemote, status as remoteStatus } from "./remote";
 import { clearFcm, setFcmAccount } from "./fcm";
 import { getPlugin, listPlugins, loadPlugins, panelFile, pluginCommands, pluginHttp, pluginsDir, runCommand, savePluginSettings, setEnabled, setPluginBridge, startPlugins } from "./plugins";
 import { installPlugin, removePlugin, scaffoldPlugin } from "./plugin-install";
 import { PANEL_JS } from "./plugin-panel";
+import { folderStats } from "./kindex";
+import { addMemory, deleteMemory, listMemories, updateMemory } from "./memory";
 import { complete as completeModel } from "./anthropic";
 import { recordUsage } from "./usage";
 import { getProfile, listProfiles } from "./profiles";
@@ -161,6 +163,7 @@ function stateSummary() {
   const month = costSince(startOfMonth());
   return {
     version: VERSION,
+    memorySuggested: listMemories("suggested").length,
     mock: isMock(),
     hasKey: !!apiKey(),
     configPath: CONFIG_PATH,
@@ -391,6 +394,7 @@ async function api(req: Request, url: URL): Promise<Response> {
     if (m === "PATCH") {
       const b = await body();
       const allowed = ["title", "cwd", "model", "mode", "system_prompt", "judge_notes", "archived", "profile"] as const;
+      if (Array.isArray(b.knowledge_dirs)) db.run("UPDATE workspaces SET knowledge_dirs = ? WHERE id = ?", [JSON.stringify(b.knowledge_dirs.map(String).slice(0, 20)), id]);
       for (const k of allowed) if (k in b) db.run(`UPDATE workspaces SET ${k} = ? WHERE id = ?`, [b[k], id]);
       if ("style" in b) db.run("UPDATE workspaces SET style = ? WHERE id = ?", [JSON.stringify(b.style), id]);
       if ("title" in b) db.run("UPDATE workspaces SET titled = 1 WHERE id = ?", [id]);
@@ -467,6 +471,7 @@ async function api(req: Request, url: URL): Promise<Response> {
       skills: findSkills(w.cwd).map((s) => ({ name: s.name, description: s.description, source: s.source, dir: s.dir })),
       commands: findCommands(w.cwd),
       plugins: pluginCommands().map((c) => ({ plugin: c.plugin, pluginName: c.pluginName, name: c.name, description: c.description })),
+      folders: workspaceFolders(w.cwd, w.knowledge_dirs).map((f) => ({ path: relative(w.cwd, f) || ".", ...folderStats(f) })),
     });
   }
 
@@ -730,6 +735,28 @@ async function api(req: Request, url: URL): Promise<Response> {
     onSocketMessage(JSON.stringify({ type: "send", workspaceId: String(b.workspace), text: String(b.text ?? "") }));
     return json({ ok: true });
   }
+  // ---------- memory ----------
+  if (p === "/api/memories" && m === "GET") return json(listMemories());
+  if (p === "/api/memories" && m === "POST") {
+    const t = String((await body()).text ?? "").trim();
+    if (!t) return bad("Write something to remember");
+    return json(addMemory(t, "kept"));
+  }
+  if ((match = p.match(/^\/api\/memories\/(m_\w+)$/))) {
+    try {
+      if (m === "PUT") {
+        const b = await body();
+        return json(updateMemory(match[1], { text: typeof b.text === "string" ? b.text : undefined, status: ["kept", "suggested", "dismissed"].includes(b.status) ? b.status : undefined }));
+      }
+      if (m === "DELETE") {
+        deleteMemory(match[1]);
+        return json({ ok: true });
+      }
+    } catch (e) {
+      return bad((e as Error).message, 404);
+    }
+  }
+
   // ---------- plugins ----------
   if (p === "/api/plugins" && m === "GET") return json({ plugins: listPlugins(), dir: pluginsDir(), commands: pluginCommands() });
   if (p === "/api/plugins/reload" && m === "POST") {

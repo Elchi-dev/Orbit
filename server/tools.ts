@@ -6,7 +6,7 @@ import { isLocalUrl, screenshot } from "./screenshot";
 import { checkPage, reportText } from "./pagecheck";
 import { profileAllows, type Profile } from "./profiles";
 import { loadSkill } from "./context";
-import { findKnowledge, readKnowledge, searchKnowledge } from "./library";
+import { findKnowledge, readFromFolders, readKnowledge, searchAll, workspaceFolders } from "./library";
 import { callMcp, mcpSubject, mcpTools } from "./mcp";
 import { callPluginTool, pluginTools } from "./plugins";
 import { catalogReadOnly, catalogUnsafe } from "./catalog";
@@ -272,21 +272,22 @@ const TOOLS: ToolDef[] = [
     name: "knowledge",
     parallel: true,
     description:
-      "Read the user's knowledge files (listed in the system prompt): pass name to read one whole, or query to search all of them for the passages that match.",
-    input_schema: obj({ name: str("A knowledge file's name"), query: str("Words to search for across all knowledge files") }, []),
+      "Look things up in what the user keeps for you: knowledge files (listed in the system prompt) and this workspace's knowledge folders. Pass query to search all of them for the passages that match, or name to read one whole (a knowledge file's name, or a file's path in a knowledge folder).",
+    input_schema: obj({ name: str("A knowledge file's name, or a path in a knowledge folder"), query: str("Words to search for") }, []),
     readOnly: true,
     async run(input, ctx) {
       const name = String(input?.name ?? "").trim();
       const query = String(input?.query ?? "").trim();
+      const folders = workspaceFolders(ctx.ws.cwd, ctx.ws.knowledge_dirs);
       if (name) {
-        const text = readKnowledge(ctx.ws.cwd, name);
+        const text = readKnowledge(ctx.ws.cwd, name) ?? readFromFolders(folders, name) ?? readFromFolders([ctx.ws.cwd], name);
         if (text != null) return { content: text };
-        return { content: `No knowledge file called "${name}". Available: ${findKnowledge(ctx.ws.cwd).map((k) => k.name).join(", ") || "none"}.`, isError: true };
+        return { content: `Nothing called "${name}". Knowledge files: ${findKnowledge(ctx.ws.cwd).map((k) => k.name).join(", ") || "none"}.`, isError: true };
       }
       if (!query) return { content: "Pass a name or a query.", isError: true };
-      const hits = searchKnowledge(ctx.ws.cwd, query);
-      if (!hits.length) return { content: `Nothing in the knowledge files matches "${query}".` };
-      return { content: hits.map((h) => `[${h.name}]\n${h.text}`).join("\n\n---\n\n") };
+      const hits = searchAll(ctx.ws.cwd, folders, query);
+      if (!hits.length) return { content: `Nothing in the knowledge files${folders.length ? " or folders" : ""} matches "${query}".` };
+      return { content: hits.map((h) => `[${h.source}]\n${h.text}`).join("\n\n---\n\n") };
     },
   },
   {

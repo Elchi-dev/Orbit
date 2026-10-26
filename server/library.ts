@@ -4,11 +4,12 @@
 // The first one found under a name wins: project, then yours, then built-in.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { ORBIT_DIR, config } from "./config";
 import { frontmatter } from "./context";
 import { LIBRARY } from "./library-data";
 import { pluginContentDirs } from "./plugins";
+import { chunksOfText, folderStats, readFromFolders, searchFolders } from "./kindex";
 
 export type LibKind = "skill" | "knowledge";
 export type LibSource = "project" | "orbit" | "claude" | "builtin" | "plugin";
@@ -121,10 +122,27 @@ export function readKnowledge(cwd: string | undefined, name: string): string | n
 
 const MAX_ALWAYS = 8000;
 
+/** A workspace's knowledge folders as full paths, only those inside its folder. */
+export function workspaceFolders(cwd: string, dirsJson?: string | null): string[] {
+  let dirs: string[] = [];
+  try {
+    dirs = JSON.parse(dirsJson || "[]");
+  } catch {}
+  return dirs.map((d) => resolve(cwd, d)).filter((d) => d === resolve(cwd) || d.startsWith(resolve(cwd) + sep));
+}
+
 /** The part of the system prompt about knowledge: an index, plus the files marked "always". */
-export function knowledgePrompt(cwd: string): string {
+export function knowledgePrompt(cwd: string, folders: string[] = []): string {
   const list = findKnowledge(cwd);
-  if (!list.length) return "";
+  const folderLine = folders.length
+    ? `Knowledge folders in this workspace, searched by the knowledge tool with a query (read a whole file with name set to its path): ${folders
+        .map((f) => {
+          const st = folderStats(f);
+          return `${relative(cwd, f) || "."}/ (${st.files} files)`;
+        })
+        .join(", ")}. Search them before answering questions they may cover, and say which file an answer came from.`
+    : "";
+  if (!list.length) return folderLine;
   const always: string[] = [];
   let room = config().knowledge?.always_max_chars ?? MAX_ALWAYS;
   for (const e of list.filter((x) => x.always)) {
@@ -142,8 +160,20 @@ export function knowledgePrompt(cwd: string): string {
         .map((e) => `- ${e.name}: ${e.description || e.title}`)
         .join("\n")}`,
     );
+  if (folderLine) parts.push(folderLine);
   return parts.join("\n\n");
 }
+
+/** Knowledge files and the workspace's folders together, ranked as one: the best passages with where they came from. */
+export function searchAll(cwd: string, folders: string[], query: string, limit = 8) {
+  const extra = findKnowledge(cwd).map((e) => ({ source: e.name, chunks: chunksOfText(e.name, stripFront(readKnowledge(cwd, e.name) ?? "")) }));
+  return searchFolders(folders, query, limit, extra).map((h) => ({
+    source: h.folder ? `${relative(cwd, join(h.folder, h.file))}${h.heading ? ` # ${h.heading}` : ""}` : `${h.file}${h.heading ? ` # ${h.heading}` : ""}`,
+    text: h.text.slice(0, 1500),
+    score: h.score,
+  }));
+}
+export { readFromFolders };
 
 /** A plain term search over every knowledge file: the best few passages with their file. */
 export function searchKnowledge(cwd: string, query: string, limit = 6) {

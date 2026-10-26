@@ -164,6 +164,7 @@ export interface Config {
   skills: { enabled: boolean; dirs: string[]; disabled: string[] };
   knowledge: { enabled: boolean; disabled: string[]; always_max_chars: number };
   library: { generator_model: string; max_searches: number };
+  memory: { enabled: boolean; suggest: boolean };
   profiles: Record<string, Partial<Profile>>;
   pricing: Record<string, { input: number; output: number; cache_write: number; cache_read: number; context: number }>;
 }
