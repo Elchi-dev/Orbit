@@ -1,5 +1,6 @@
 // The agent loop: stream a reply, gate and run its tool calls, feed results back, repeat until done.
 import { knowledgePrompt } from "./library";
+import { afterTool } from "./plugins";
 import { noticeServer, openPreview, previewState } from "./preview";
 import { getProfile } from "./profiles";
 import { findSkills, projectInstructions } from "./context";
@@ -436,6 +437,7 @@ export async function runTurn(wsId: string, userContent: any[], opts: TurnOption
           call.id,
         ]);
         broadcast("tool_call", { workspaceId: wsId, call: toolCallRow(call.id) });
+        afterTool(ws, { id: call.id, name: call.name, input: call.input, status: out.isError ? "error" : "done", output: out.content });
         results[i] = { type: "tool_result", tool_use_id: call.id, content: out.blocks ?? out.content, ...(out.isError ? { is_error: true } : {}) };
         // an HTML page written in a preview profile shows up by itself
         if (profile.preview && !out.isError && call.name === "write_file" && /\.html?$/i.test(String(call.input?.path ?? "")) && !previewState(wsId)) {

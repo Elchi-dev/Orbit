@@ -7,6 +7,7 @@ import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { ORBIT_DIR, config } from "./config";
 import { builtinSkills } from "./library";
+import { pluginContentDirs } from "./plugins";
 
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md", "CLAUDE.local.md", ".cursorrules", ".windsurfrules", ".github/copilot-instructions.md"];
 const MAX_FILE = 20_000;
@@ -48,7 +49,7 @@ export interface Skill {
   name: string;
   description: string;
   dir: string;
-  source: "project" | "orbit" | "claude" | "builtin";
+  source: "project" | "orbit" | "claude" | "builtin" | "plugin";
   enabled: boolean;
 }
 
@@ -77,6 +78,7 @@ export function skillDirs(cwd?: string): { dir: string; source: Skill["source"] 
   dirs.push({ dir: join(ORBIT_DIR, "skills"), source: "orbit" });
   dirs.push({ dir: join(homedir(), ".claude", "skills"), source: "claude" });
   for (const d of config().skills?.dirs ?? []) dirs.push({ dir: d.replace(/^~(?=$|[\\/])/, homedir()), source: "orbit" });
+  for (const p of pluginContentDirs("skills")) dirs.push({ dir: p.dir, source: "plugin" });
   return dirs;
 }
 

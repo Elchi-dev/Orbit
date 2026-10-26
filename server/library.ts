@@ -8,9 +8,10 @@ import { join } from "node:path";
 import { ORBIT_DIR, config } from "./config";
 import { frontmatter } from "./context";
 import { LIBRARY } from "./library-data";
+import { pluginContentDirs } from "./plugins";
 
 export type LibKind = "skill" | "knowledge";
-export type LibSource = "project" | "orbit" | "claude" | "builtin";
+export type LibSource = "project" | "orbit" | "claude" | "builtin" | "plugin";
 
 export interface KnowledgeEntry {
   name: string;
@@ -71,6 +72,7 @@ export function knowledgeDirs(cwd?: string): { dir: string; source: LibSource }[
   const dirs: { dir: string; source: LibSource }[] = [];
   if (cwd) dirs.push({ dir: join(cwd, ".orbit", "knowledge"), source: "project" });
   dirs.push({ dir: join(ORBIT_DIR, "knowledge"), source: "orbit" });
+  for (const p of pluginContentDirs("knowledge")) dirs.push({ dir: p.dir, source: "plugin" });
   return dirs;
 }
 

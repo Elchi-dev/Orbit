@@ -1,4 +1,5 @@
 // The permission gate. Order: built-in UI tools → read-only skip → your rules → mode (manual / auto judge / rules-only).
+import { beforeTool } from "./plugins";
 import { catalogGuard, groupHasGuard } from "./catalog";
 import { dirname } from "node:path";
 import { config, type Mode, type Verdict } from "./config";
@@ -9,7 +10,7 @@ import { isReadOnly, isUiTool, resolvePath } from "./tools";
 import { isInScope } from "./helpers";
 import { recordUsage } from "./usage";
 
-export type DecidedBy = "builtin" | "readonly" | "rule" | "judge" | "user" | "mode" | "full" | "scope";
+export type DecidedBy = "builtin" | "readonly" | "rule" | "judge" | "user" | "mode" | "full" | "scope" | "plugin";
 export interface Decision {
   allow: boolean;
   decidedBy: DecidedBy;
@@ -251,7 +252,16 @@ export async function decide(ws: WorkspaceRow, call: PendingCall, ctx: JudgeCont
   // a helper given its own folders writes there and nowhere else, whatever the mode
   if ((call.name === "write_file" || call.name === "edit_file") && !isInScope(ws, resolvePath(ws.cwd, String(call.input?.path ?? ""))))
     return { allow: false, decidedBy: "scope", reason: `Outside the folders this helper was given (${JSON.parse(ws.scope || "[]").join(", ")})` };
+  // a plugin with a before_tool hook may block anything, ask, or allow like a rule
+  const hooked = await beforeTool(ws, call);
+  if (hooked?.decision === "deny") return { allow: false, decidedBy: "plugin", reason: hooked.reason };
+  if (hooked?.decision === "ask") {
+    if (opts.unattended) return { allow: false, decidedBy: "plugin", reason: `${hooked.reason}, and this run is unattended` };
+    const u = await askUser(ws, call, { verdict: "ask", reason: hooked.reason });
+    return { allow: u.allow, decidedBy: "user", reason: u.note ?? (u.allow ? "You allowed it" : "You denied it") };
+  }
   if (c.permissions.skip_readonly && isReadOnly(call.name, call.input)) return { allow: true, decidedBy: "readonly" };
+  if (hooked?.decision === "allow") return { allow: true, decidedBy: "plugin", reason: hooked.reason };
 
   const rule = matchRule(ws.id, call.subject);
   if (rule && rule.verdict !== "ask")

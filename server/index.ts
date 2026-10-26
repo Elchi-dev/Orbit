@@ -36,6 +36,11 @@ import { builtinKnowledge, builtinSkills, deleteEntry, findKnowledge, normaliseK
 import { generate, stopGeneration } from "./libgen";
 import { alertDevices, pairingLink, reconnect as reconnectRelay, settled as settledRelay, removeDevice, setBridge, setRelay, startRemote, status as remoteStatus } from "./remote";
 import { clearFcm, setFcmAccount } from "./fcm";
+import { getPlugin, listPlugins, loadPlugins, panelFile, pluginCommands, pluginHttp, pluginsDir, runCommand, savePluginSettings, setEnabled, setPluginBridge, startPlugins } from "./plugins";
+import { installPlugin, removePlugin, scaffoldPlugin } from "./plugin-install";
+import { PANEL_JS } from "./plugin-panel";
+import { complete as completeModel } from "./anthropic";
+import { recordUsage } from "./usage";
 import { getProfile, listProfiles } from "./profiles";
 import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
@@ -679,6 +684,68 @@ async function api(req: Request, url: URL): Promise<Response> {
     }
   }
 
+  if (p === "/api/plugin-send" && m === "POST") {
+    const b = await body();
+    if (!getWorkspace(String(b.workspace ?? ""))) return bad("No such workspace", 404);
+    onSocketMessage(JSON.stringify({ type: "send", workspaceId: String(b.workspace), text: String(b.text ?? "") }));
+    return json({ ok: true });
+  }
+  // ---------- plugins ----------
+  if (p === "/api/plugins" && m === "GET") return json({ plugins: listPlugins(), dir: pluginsDir(), commands: pluginCommands() });
+  if (p === "/api/plugins/reload" && m === "POST") {
+    loadPlugins();
+    return json({ plugins: listPlugins() });
+  }
+  if (p === "/api/plugins/install" && m === "POST") {
+    try {
+      const id = await installPlugin(String((await body()).source ?? ""));
+      loadPlugins();
+      return json({ id, plugins: listPlugins() });
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if (p === "/api/plugins/new" && m === "POST") {
+    try {
+      const b = await body();
+      const dir = scaffoldPlugin({ id: String(b.id ?? ""), name: String(b.name ?? ""), language: String(b.language ?? "typescript"), description: String(b.description ?? "") });
+      loadPlugins();
+      return json({ dir, plugins: listPlugins() });
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if ((match = p.match(/^\/api\/plugins\/([a-z0-9-]+)(?:\/(settings|restart|logs|command))?$/))) {
+    const plugin = getPlugin(match[1]);
+    if (!plugin && !(m === "DELETE" && !match[2])) return bad("No such plugin", 404);
+    try {
+      if (!match[2] && m === "PUT") {
+        await setEnabled(match[1], !!(await body()).enabled);
+        return json({ plugins: listPlugins() });
+      }
+      if (!match[2] && m === "DELETE") {
+        removePlugin(match[1]);
+        loadPlugins();
+        return json({ plugins: listPlugins() });
+      }
+      if (match[2] === "settings" && m === "PUT") {
+        savePluginSettings(match[1], (await body()) ?? {});
+        return json({ plugins: listPlugins() });
+      }
+      if (match[2] === "restart" && m === "POST") {
+        await plugin!.restart();
+        return json({ plugins: listPlugins() });
+      }
+      if (match[2] === "logs" && m === "GET") return json({ logs: plugin!.logs });
+      if (match[2] === "command" && m === "POST") {
+        const b = await body();
+        return json(await runCommand(match[1], String(b.name ?? ""), String(b.args ?? ""), b.workspace ? String(b.workspace) : null));
+      }
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+
   // ---------- remote: the relay, paired phones, alerts ----------
   if (p === "/api/remote" && m === "GET") return json(remoteStatus());
   if (p === "/api/remote" && m === "PUT") {
@@ -874,6 +941,38 @@ try {
         launch(mission.id, "hook", extra.slice(0, 20_000)).catch(() => {});
         return json({ started: true, mission: mission.title || mission.id }, 202);
       }
+      const plug = url.pathname.match(/^\/plugins\/([a-z0-9-]+)\/(api\/.*|.*)$/);
+      if (plug) {
+        if (!authed(req) && !(req.method === "GET" && cookieToken(req) === TOKEN)) return new Response("Unauthorized", { status: 401 });
+        if (plug[2].startsWith("api/")) {
+          let parsed: unknown = null;
+          const raw = req.method === "GET" || req.method === "HEAD" ? "" : await req.text();
+          try {
+            parsed = raw ? JSON.parse(raw) : null;
+          } catch {
+            parsed = raw;
+          }
+          try {
+            const r: any = await pluginHttp(plug[1], { method: req.method, path: "/" + plug[2].slice(4), query: Object.fromEntries(url.searchParams), headers: Object.fromEntries(req.headers), body: parsed });
+            const status = Number(r?.status) || 200;
+            const headers = { "content-type": "application/json; charset=utf-8", ...(r?.headers ?? {}) };
+            const out = typeof r?.body === "string" && !String(headers["content-type"]).includes("json") ? r.body : JSON.stringify(r?.body ?? r ?? null);
+            return new Response(out, { status, headers });
+          } catch (e) {
+            return bad((e as Error).message, 502);
+          }
+        }
+        const file = panelFile(plug[1], plug[2] || "index.html");
+        if (!file) return new Response("Not found", { status: 404 });
+        const f = Bun.file(file);
+        const headers: Record<string, string> = { "content-type": f.type || "application/octet-stream", "cache-control": "no-store" };
+        if (/\.html?$/.test(file)) {
+          const html = (await f.text()).replace(/<head([^>]*)>/i, `<head$1><script src="/plugin-panel.js" data-plugin="${plug[1]}"></script>`);
+          return new Response(html, { headers });
+        }
+        return new Response(f, { headers });
+      }
+      if (url.pathname === "/plugin-panel.js") return new Response(PANEL_JS, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store" } });
       if (url.pathname.startsWith("/api/")) {
         if (!authed(req)) return bad("Unauthorized: reload the page", 401);
         try {
@@ -914,6 +1013,51 @@ try {
 
 setBridge({ api, onMessage: onSocketMessage, hello: stateSummary });
 startRemote();
+
+// what plugins reach: Orbit's own API, Claude runs, model calls, approvals
+const internalApi = async (method: string, path: string, b?: unknown) => {
+  const u = new URL(`http://orbit.local${path}`);
+  const res = await api(new Request(u, { method, body: method === "GET" || method === "HEAD" || b == null ? undefined : JSON.stringify(b), headers: { "content-type": "application/json" } }), u);
+  const text = await res.text();
+  let parsed: unknown = text;
+  try {
+    parsed = JSON.parse(text);
+  } catch {}
+  return { status: res.status, body: parsed as any };
+};
+setPluginBridge({
+  api: internalApi,
+  approvals: () => pendingApprovals(),
+  answerApproval: (id, decision) => resolveApproval(id, decision as "allow" | "deny" | "always"),
+  sendMessage: (workspace, text) => onSocketMessage(JSON.stringify({ type: "send", workspaceId: workspace, text })),
+  async runAgent(o) {
+    let wsId = o.workspace;
+    if (!wsId) wsId = createWorkspace({ title: o.title ?? `From ${getPlugin(o.plugin)?.manifest.name ?? o.plugin}`, cwd: o.cwd, profile: o.profile }).id;
+    if (!getWorkspace(wsId)) throw new Error("No such workspace");
+    const run = runTurn(wsId, [{ type: "text", text: o.prompt }], {});
+    if (o.wait === false) {
+      run.catch(() => {});
+      return { workspace: wsId, started: true };
+    }
+    const timeout = new Promise<string>((r) => setTimeout(() => r("timeout"), (o.timeout_s ?? 1800) * 1000));
+    const reason = await Promise.race([run, timeout]);
+    const d = workspaceDetail(wsId)!;
+    const last = [...d.messages].reverse().find((x: any) => x.role === "assistant");
+    const text = (last?.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
+    const spent = db.query<{ cost: number }, [string]>("SELECT COALESCE(SUM(cost),0) AS cost FROM usage WHERE workspace_id = ?").get(wsId)?.cost ?? 0;
+    return { workspace: wsId, reason, text, cost: spent };
+  },
+  async complete(o) {
+    const c = config();
+    if (c.budget.daily_usd > 0 && costSince(startOfDay()).cost >= c.budget.daily_usd) throw new Error("Today's budget is used up.");
+    const model = o.model && c.pricing[o.model] ? o.model : c.models.scribe;
+    const messages = o.messages ?? [{ role: "user", content: [{ type: "text", text: String(o.prompt ?? "") }] }];
+    const r = await completeModel({ model, system: String(o.system ?? ""), messages, max_tokens: Math.min(Number(o.max_tokens) || 2000, 32000) });
+    const cost = recordUsage(null, null, "plugin", model, r.usage);
+    return { text: r.text, model, usage: r.usage, cost };
+  },
+});
+startPlugins();
 
 const PREVIEW_PORT = startPreviewServer(Number(process.env.ORBIT_PREVIEW_PORT) || (server.port ?? PORT) + 1);
 const url = `http://${HOST === "0.0.0.0" ? "localhost" : HOST === "127.0.0.1" ? "localhost" : HOST}:${server.port}`;

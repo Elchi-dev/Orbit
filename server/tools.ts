@@ -7,6 +7,7 @@ import { profileAllows, type Profile } from "./profiles";
 import { loadSkill } from "./context";
 import { findKnowledge, readKnowledge, searchKnowledge } from "./library";
 import { callMcp, mcpSubject, mcpTools } from "./mcp";
+import { callPluginTool, pluginTools } from "./plugins";
 import { catalogReadOnly, catalogUnsafe } from "./catalog";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -700,7 +701,15 @@ export function enabledTools(): ToolDef[] {
     readOnly: t.readOnly,
     run: (input) => callMcp(t.name, input),
   }));
-  return [...TOOLS.filter((t) => !t.ui || flags[t.ui]), ...mcp];
+  const fromPlugins: ToolDef[] = pluginTools().map((t) => ({
+    name: t.name,
+    description: t.description,
+    input_schema: t.input_schema,
+    readOnly: t.readOnly,
+    parallel: t.readOnly,
+    run: (input, ctx) => callPluginTool(t.plugin, t.tool, input, { workspace: ctx.ws.id, cwd: ctx.ws.cwd, call: ctx.toolCallId }),
+  }));
+  return [...TOOLS.filter((t) => !t.ui || flags[t.ui]), ...mcp, ...fromPlugins];
 }
 /** The tools Claude is offered: everything switched on, narrowed by the workspace's profile. */
 export function toolDefs(profile?: Profile, ws?: WorkspaceRow) {

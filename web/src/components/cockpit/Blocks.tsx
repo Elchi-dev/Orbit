@@ -245,6 +245,8 @@ const VERDICT: Record<string, { label: string; tone: string }> = {
   builtin: { label: "interface", tone: "quiet" },
   mode: { label: "blocked", tone: "bad" },
   full: { label: "full autonomy", tone: "quiet" },
+  scope: { label: "outside its folders", tone: "bad" },
+  plugin: { label: "plugin", tone: "lav" },
 };
 
 function Verdict({ call }: { call?: ToolCall }) {

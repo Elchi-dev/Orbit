@@ -14,7 +14,7 @@ export function costOf(model: string, u: Usage) {
 export function recordUsage(
   wsId: string | null,
   messageId: string | null,
-  kind: "pilot" | "judge" | "scribe" | "library",
+  kind: "pilot" | "judge" | "scribe" | "library" | "plugin",
   model: string,
   u: Usage,
   ttft_ms: number | null = null,
