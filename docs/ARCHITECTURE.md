@@ -42,7 +42,7 @@ browser only ever talks to it.
 | `server/context.ts` | `AGENTS.md`, `CLAUDE.md` and editor rules from the workspace folder; skills; saved prompts as slash commands |
 | `server/mcp.ts` | The MCP client: stdio and streamable HTTP servers, their tools as Claude's tools |
 | `server/git.ts` | The git panel: status, diffs, stage, commit, branches, push and pull, commit messages from the scribe |
-| `server/review.ts`, `server/diff.ts` | Reviewing Claude's changes per file, and the line diff behind it |
+| `server/review.ts`, `server/diff.ts` | Reviewing Claude's changes per file or per hunk, the review baseline, and the line diff behind it |
 | `server/missions.ts` | Missions: schedules, webhooks and unattended runs |
 | `server/profiles.ts` | The built-in profiles and the ones from `orbit.toml` |
 | `server/preview.ts` | The preview server on its own port: workspace files under a random token, reload events, dev server detection |
@@ -52,6 +52,18 @@ browser only ever talks to it.
 | `server/annotate.ts` | The comment script every previewed page gets, and the proxy that puts it into dev server pages |
 | `server/docs.ts` | Docs shared by Claude and you: versions, comment threads, what changed since Claude's last read |
 | `server/board.ts` | The whiteboard: items, arrows, batched changes, placement, uploaded images |
+| `server/library.ts`, `server/library-data.ts` | Skills and knowledge: built-ins bundled from `server/library` by `scripts/gen-library.ts`, yours and a project's, switches, templates |
+| `server/libgen.ts` | Ori writing a skill or knowledge file: a model limited to web search and reading public pages |
+| `server/kindex.ts` | Knowledge folders: passages indexed per file, BM25 search with the knowledge files |
+| `server/memory.ts` | Memories suggested after runs and kept by you, the memory part of the system prompt |
+| `server/pagecheck.ts` | The speed and accessibility check, over the DevTools protocol |
+| `server/replay.ts` | A workspace and its helpers as one timeline |
+| `server/remote.ts`, `server/e2e.ts`, `server/fcm.ts` | Phones through the relay: pairing, encrypted sessions, the API and events over them, sealed alerts through the relay or Firebase. The protocol is [REMOTE.md](REMOTE.md) |
+| `server/plugins.ts`, `server/plugin-install.ts`, `server/plugin-panel.ts` | Plugins: manifests, processes and JSON-RPC, what they may call, hooks, panels, installing and templates. See [PLUGINS.md](PLUGINS.md) |
+| `server/check.ts` | `orbit check`: real work against the API in a throwaway Orbit |
+
+Beside the server: `relay/` is the relay in Go, `android/` the Android app in
+Kotlin, `sdk/` the plugin SDKs that ship inside Orbit.
 
 ### One turn
 
