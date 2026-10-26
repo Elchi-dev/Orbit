@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
-const ROOTS = ["server", "web/src", "sdk", "relay", "android/app/src", "android/core/src", "android/README.md", "scripts", "docs", "integrations", ".github", "README.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "install.sh", "install.ps1", "orbit.example.toml"];
+const ROOTS = ["server", "web/src", "sdk", "examples", "relay", "android/app/src", "android/core/src", "android/README.md", "scripts", "docs", "integrations", ".github", "README.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "install.sh", "install.ps1", "orbit.example.toml"];
 const EXT = new Set([".ts", ".tsx", ".css", ".md", ".sh", ".ps1", ".yml", ".toml", ".html", ".go", ".py", ".kt", ".kts", ".xml", ".json"]);
 const BAD = new RegExp(`[${String.fromCharCode(0x2013)}${String.fromCharCode(0x2014)}]`);
 

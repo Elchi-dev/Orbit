@@ -154,3 +154,43 @@ plugin.start();
     expect(config().plugins.enabled.envy).toBe(false);
   });
 });
+
+describe("the example plugins", () => {
+  test("env-guard asks about secrets and nothing else; standup reads the git log", async () => {
+    const { installPlugin } = await import("./plugin-install");
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    for (const id of ["env-guard", "standup"]) {
+      expect(await installPlugin(join(import.meta.dir, "..", "examples", "plugins", id))).toBe(id);
+    }
+    loadPlugins();
+    await setEnabled("env-guard", true);
+    await setEnabled("standup", true);
+    await until(() => getPlugin("env-guard")?.state === "running" && getPlugin("standup")?.state === "running");
+    const ws = { id: "w", title: "t", cwd: "/tmp" };
+    expect(await beforeTool(ws, { id: "c", name: "bash", input: {}, subject: "cat .env.local" })).toMatchObject({ decision: "ask" });
+    expect(await beforeTool(ws, { id: "c", name: "read_file", input: {}, subject: "read /home/me/.ssh/id_ed25519" })).toMatchObject({ decision: "ask" });
+    expect(await beforeTool(ws, { id: "c", name: "bash", input: {}, subject: "ls -la src" })).toBeNull();
+    savePluginSettings("env-guard", { block: true });
+    await Bun.sleep(150);
+    expect(await beforeTool(ws, { id: "c", name: "bash", input: {}, subject: "cat .env" })).toMatchObject({ decision: "deny" });
+
+    const repo = mkdtempSync(join(tmpdir(), "orbit-standup-"));
+    const git = (...a: string[]) => Bun.spawnSync(["git", ...a], { cwd: repo, env: { ...process.env, GIT_AUTHOR_NAME: "T", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "T", GIT_COMMITTER_EMAIL: "t@t" } });
+    git("init", "-q");
+    Bun.write(join(repo, "a.txt"), "x");
+    git("add", ".");
+    git("commit", "-qm", "Add the tea page");
+    const t = pluginTools().find((x) => x.name === "standup__commits_since")!;
+    expect((await callPluginTool(t.plugin, t.tool, {}, { workspace: "w", cwd: repo, call: "c" })).content).toContain("Add the tea page");
+    expect(await runCommand("standup", "standup", "", "w")).toMatchObject({ send: expect.stringContaining("standup__commits_since") });
+    await setEnabled("env-guard", false);
+    await setEnabled("standup", false);
+  });
+});
+
+test("the examples carry the current SDKs", async () => {
+  const read = (p: string) => Bun.file(join(import.meta.dir, "..", p)).text();
+  expect(await read("examples/plugins/env-guard/orbit-plugin.ts")).toBe(await read("sdk/typescript/orbit-plugin.ts"));
+  expect(await read("examples/plugins/standup/orbit_plugin.py")).toBe(await read("sdk/python/orbit_plugin.py"));
+});

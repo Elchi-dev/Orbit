@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Elchi-dev/Orbit/main/sdk/orbit-plugin.schema.json",
+  "id": "env-guard",
+  "name": "Env guard",
+  "version": "1.0.0",
+  "description": "Asks you before anything touches .env files, SSH keys or cloud credentials, in every mode.",
+  "author": "Elchi",
+  "run": "bun index.ts",
+  "permissions": ["approvals"],
+  "contributes": {
+    "hooks": ["before_tool"],
+    "settings": [
+      { "key": "block", "label": "Block instead of asking", "type": "boolean", "default": false, "help": "Refuse these actions outright, even when you're there." },
+      { "key": "extra", "label": "More patterns", "type": "string", "default": "", "help": "Comma separated, like secrets/, *.pem" }
+    ]
+  }
+}

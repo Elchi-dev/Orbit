@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Elchi-dev/Orbit/main/sdk/orbit-plugin.schema.json",
+  "id": "standup",
+  "name": "Standup",
+  "version": "1.0.0",
+  "description": "/standup writes your standup from the commits in the workspace since yesterday.",
+  "author": "Elchi",
+  "run": "python3 main.py",
+  "permissions": [],
+  "contributes": {
+    "settings": [
+      { "key": "since", "label": "Look back", "type": "select", "options": ["yesterday", "last friday", "1 week ago"], "default": "yesterday" },
+      { "key": "author", "label": "Only commits by", "type": "string", "default": "", "help": "Your git name or email; empty for everyone" }
+    ]
+  }
+}

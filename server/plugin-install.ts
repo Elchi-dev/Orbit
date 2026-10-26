@@ -31,8 +31,20 @@ export async function installPlugin(source: string): Promise<string> {
       if (!existsSync(join(local, MANIFEST))) throw new Error(`No ${MANIFEST} in that folder.`);
       cpSync(local, staging, { recursive: true, filter: (p) => !/[\\/](node_modules|\.git)([\\/]|$)/.test(p.slice(local.length)) });
     } else if (/^(https:\/\/|git@|ssh:\/\/)/.test(src)) {
-      const [url, branch] = src.split("#");
-      await run(["git", "clone", "--depth", "1", ...(branch ? ["--branch", branch] : []), url, staging]);
+      // url, url#branch, or url#branch:folder/in/the/repo
+      const [url, ref = ""] = src.split("#");
+      const [branch, sub] = ref.split(":");
+      const clone = sub ? `${staging}-repo` : staging;
+      try {
+        await run(["git", "clone", "--depth", "1", ...(branch ? ["--branch", branch] : []), url, clone]);
+        if (sub) {
+          const from = resolve(clone, sub);
+          if (!from.startsWith(resolve(clone)) || !existsSync(join(from, MANIFEST))) throw new Error(`No ${MANIFEST} in ${sub} of that repository.`);
+          cpSync(from, staging, { recursive: true });
+        }
+      } finally {
+        if (sub) rmSync(clone, { recursive: true, force: true });
+      }
       rmSync(join(staging, ".git"), { recursive: true, force: true });
     } else throw new Error("That is neither a folder here nor a git address (https://... or git@...).");
     const file = join(staging, MANIFEST);

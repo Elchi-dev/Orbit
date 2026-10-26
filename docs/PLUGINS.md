@@ -86,6 +86,14 @@ def weather(city, ctx):
 plugin.start()
 ```
 
+## Examples
+
+[examples/plugins](../examples/plugins): **env-guard** (TypeScript, a
+`before_tool` hook that sends anything touching secrets files to you) and
+**standup** (Python, a tool and a command that hands a task to Claude).
+Install one with its address, like
+`https://github.com/Elchi-dev/Orbit#main:examples/plugins/env-guard`.
+
 ## Where plugins live
 
 - `~/.orbit/plugins/<id>/`: yours. Install, New plugin and Remove work here.
@@ -95,7 +103,8 @@ plugin.start()
 
 A new or installed plugin is **off** until you switch it on, after seeing what
 it may do. **Install** takes a git address (`https://...`, `git@...`, with
-`#branch` if needed) or a folder. JavaScript dependencies in `package.json` are
+`#branch` if needed, and `#branch:folder` for a plugin inside a larger
+repository) or a folder. JavaScript dependencies in `package.json` are
 installed with Orbit's own runtime.
 
 ## The manifest
