@@ -262,6 +262,8 @@ home network. On the phone: the sky, every workspace and conversation, a new
 task, approvals, and an alert when Claude needs you, through the relay or
 Firebase, which carries it without being able to read it.
 
+![Settings, Your phone: the relay online, a paired phone, and a pairing code](docs/images/phone-settings.webp)
+
 ---
 
 ## Make it yours: plugins
@@ -277,6 +279,8 @@ Python and anything else work too. A plugin never sees your API key.
 In Settings, Plugins, **New plugin**, describe what it should do and press
 **Let Claude build it**. [docs/PLUGINS.md](docs/PLUGINS.md) has the manifest,
 the protocol and a whole plugin in TypeScript, Python and Go.
+
+![Settings, Plugins: the env-guard example, what it may do, its settings](docs/images/plugins.webp)
 
 ---
 
@@ -294,6 +298,10 @@ the protocol and a whole plugin in TypeScript, Python and Go.
   everywhere, like how you like answers or what a project runs on. Nothing is
   kept until you say yes, and answers show which memories they used.
 
+| | |
+| --- | --- |
+| ![The library: built-in skills, each a switch](docs/images/library.webp) | ![Memory: two suggestions waiting, and what is kept](docs/images/memory.webp) |
+
 ---
 
 ## Watch it again
@@ -304,6 +312,8 @@ side, at up to eight times speed with the waiting squeezed out. **Review**
 keeps or undoes one change at a time, not just whole files. In the preview, a
 **check** measures speed and finds the accessibility problems a page shows by
 itself, and hands them to Claude to fix.
+
+![Replay of a finished run, the steps on the left and the selected one on the right](docs/images/replay.webp)
 
 ---
 
