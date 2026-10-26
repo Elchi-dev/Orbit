@@ -297,5 +297,31 @@ workspace({ title: "Landing page copy", dir: "landing", style: { color: "#8FB3C6
 
 db.run("INSERT INTO pins (workspace_id, text, created_at) SELECT id, 'The API package is published to npm as @acme/api; never change exported types without a major version.', ? FROM workspaces WHERE title = 'Fix tests after zod 4'", [t0]);
 
+// 9. memory, a knowledge folder, and the example plugins
+{
+  await import("../server/memory");
+  const mem = (text: string, status: string, used = 0) =>
+    db.run("INSERT OR IGNORE INTO memories (id, text, status, used, created_at, updated_at) VALUES (?,?,?,?,?,?)", [`m_demo${text.length}${status[0]}`, text, status, used, t0 - 3 * 86400_000, t0 - used * MIN]);
+  mem("Prefers pnpm over npm, and short answers with the code first.", "kept", 14);
+  mem("Deploys the shop to a Hetzner box with Docker Compose; backups go to Backblaze B2.", "kept", 6);
+  mem("Writes commit messages in English, imperative, with the reason in the body.", "kept", 9);
+  mem("The thesis is about energy use of LLM inference; the deadline is 15 January.", "suggested");
+  mem("Wants Swiss hosting where the price difference is under 20 percent.", "suggested");
+  const shop = db.query<{ id: string; cwd: string }, []>("SELECT id, cwd FROM workspaces WHERE title = 'Fix tests after zod 4'").get()!;
+  const docs = join(shop.cwd, "docs");
+  mkdirSync(join(docs, "ops"), { recursive: true });
+  await Bun.write(join(docs, "ops", "release.md"), "# Releasing the API\n\n## Versions\n\nThe package follows semver. Exported types are part of the public API: changing one is a major version.\n\n## Steps\n\n1. pnpm test and pnpm build in packages/api.\n2. Bump the version, write the changelog.\n3. pnpm publish from CI, never from a laptop.\n");
+  await Bun.write(join(docs, "architecture.md"), "# Architecture\n\nThe API is a Hono app on Bun. Validation is zod, the database Postgres through Drizzle.\n");
+  db.run("UPDATE workspaces SET knowledge_dirs = ? WHERE id = ?", [JSON.stringify(["docs"]), shop.id]);
+  const { installPlugin } = await import("../server/plugin-install");
+  for (const ex of ["env-guard", "standup"]) {
+    try {
+      await installPlugin(join(import.meta.dir, "..", "examples", "plugins", ex));
+    } catch {}
+  }
+  const cfg = config();
+  saveConfig({ ...cfg, plugins: { ...cfg.plugins, enabled: { "env-guard": true, standup: true } } });
+}
+
 console.log(`demo data in ${home}`);
 await import("../server/index");
