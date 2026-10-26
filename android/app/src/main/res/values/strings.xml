@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Orbit</string>
+    <string name="channel_needs">Needs you</string>
+    <string name="channel_needs_desc">When Claude waits for your approval</string>
+    <string name="channel_done">Finished runs</string>
+    <string name="channel_done_desc">When a run you started from the phone finishes</string>
+    <string name="channel_service">Connection</string>
+    <string name="channel_service_desc">The quiet notification while Orbit listens for alerts through the relay</string>
+    <string name="fgs_subtype">Keeps one connection to the user\'s own Orbit relay open so approval alerts arrive while the app is closed</string>
+</resources>

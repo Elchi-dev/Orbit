@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ori's star for the launcher, drawn from the same paths as web/src/components/ori/Ori.tsx -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="400" android:viewportHeight="400">
+    <group android:scaleX="0.78" android:scaleY="0.78" android:translateX="44.0" android:translateY="44.0">
+        <path android:pathData="M50,200 a150,150 0 1,0 300,0 a150,150 0 1,0 -300,0Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="radial" android:centerX="200" android:centerY="200" android:gradientRadius="150"
+                    android:startColor="#47FFE6AE" android:endColor="#00FFE6AE" />
+            </aapt:attr>
+        </path>
+        <path android:pathData="M44.7 273.1 A170 36 -24 0 1 355.3 134.9" android:strokeColor="#B8A6FF" android:strokeWidth="9" android:strokeLineCap="round" />
+        <path android:pathData="M305.6,129.1 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0Z" android:fillColor="#FFE6AE" />
+        <group>
+            <clip-path android:pathData="M209.0 99.1 Q213.9 105.7 218.7 112.4 Q227.0 123.6 240.5 119.7 Q249.6 117.1 258.7 114.4 Q283.6 107.1 279.0 132.7 Q277.3 142.0 275.6 151.4 Q273.1 165.1 285.1 172.4 Q291.4 176.3 297.7 180.1 Q319.8 193.7 299.2 209.5 Q293.3 214.0 287.5 218.5 Q276.4 227.0 280.2 240.5 Q282.6 249.2 285.1 258.0 Q292.1 283.0 266.5 278.6 Q257.6 277.0 248.7 275.5 Q234.9 273.1 227.4 285.0 Q223.7 290.9 220.0 296.8 Q206.2 318.8 190.2 298.4 Q185.9 292.9 181.6 287.4 Q173.0 276.4 159.5 280.0 Q151.1 282.3 142.8 284.6 Q117.7 291.4 121.9 265.7 Q123.3 257.2 124.6 248.7 Q126.9 234.9 114.9 227.7 Q108.2 223.7 101.5 219.7 Q79.2 206.3 100.0 190.7 Q106.2 186.0 112.4 181.4 Q123.6 173.0 119.8 159.5 Q117.4 150.8 114.9 142.0 Q107.9 117.0 133.5 121.4 Q142.4 123.0 151.3 124.5 Q165.1 126.9 172.2 114.8 Q176.3 107.7 180.5 100.6 Q193.6 78.2 209.0 99.1Z" />
+            <path android:pathData="M209.0 99.1 Q213.9 105.7 218.7 112.4 Q227.0 123.6 240.5 119.7 Q249.6 117.1 258.7 114.4 Q283.6 107.1 279.0 132.7 Q277.3 142.0 275.6 151.4 Q273.1 165.1 285.1 172.4 Q291.4 176.3 297.7 180.1 Q319.8 193.7 299.2 209.5 Q293.3 214.0 287.5 218.5 Q276.4 227.0 280.2 240.5 Q282.6 249.2 285.1 258.0 Q292.1 283.0 266.5 278.6 Q257.6 277.0 248.7 275.5 Q234.9 273.1 227.4 285.0 Q223.7 290.9 220.0 296.8 Q206.2 318.8 190.2 298.4 Q185.9 292.9 181.6 287.4 Q173.0 276.4 159.5 280.0 Q151.1 282.3 142.8 284.6 Q117.7 291.4 121.9 265.7 Q123.3 257.2 124.6 248.7 Q126.9 234.9 114.9 227.7 Q108.2 223.7 101.5 219.7 Q79.2 206.3 100.0 190.7 Q106.2 186.0 112.4 181.4 Q123.6 173.0 119.8 159.5 Q117.4 150.8 114.9 142.0 Q107.9 117.0 133.5 121.4 Q142.4 123.0 151.3 124.5 Q165.1 126.9 172.2 114.8 Q176.3 107.7 180.5 100.6 Q193.6 78.2 209.0 99.1Z" android:fillColor="#F5C98C" />
+            <group android:translateX="-13" android:translateY="-15">
+                <path android:pathData="M209.0 99.1 Q213.9 105.7 218.7 112.4 Q227.0 123.6 240.5 119.7 Q249.6 117.1 258.7 114.4 Q283.6 107.1 279.0 132.7 Q277.3 142.0 275.6 151.4 Q273.1 165.1 285.1 172.4 Q291.4 176.3 297.7 180.1 Q319.8 193.7 299.2 209.5 Q293.3 214.0 287.5 218.5 Q276.4 227.0 280.2 240.5 Q282.6 249.2 285.1 258.0 Q292.1 283.0 266.5 278.6 Q257.6 277.0 248.7 275.5 Q234.9 273.1 227.4 285.0 Q223.7 290.9 220.0 296.8 Q206.2 318.8 190.2 298.4 Q185.9 292.9 181.6 287.4 Q173.0 276.4 159.5 280.0 Q151.1 282.3 142.8 284.6 Q117.7 291.4 121.9 265.7 Q123.3 257.2 124.6 248.7 Q126.9 234.9 114.9 227.7 Q108.2 223.7 101.5 219.7 Q79.2 206.3 100.0 190.7 Q106.2 186.0 112.4 181.4 Q123.6 173.0 119.8 159.5 Q117.4 150.8 114.9 142.0 Q107.9 117.0 133.5 121.4 Q142.4 123.0 151.3 124.5 Q165.1 126.9 172.2 114.8 Q176.3 107.7 180.5 100.6 Q193.6 78.2 209.0 99.1Z" android:fillColor="#FFE6AE" />
+            </group>
+        </group>
+        <path android:pathData="M158,193 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0ZM217,187 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0Z" android:fillColor="#1A1430" />
+        <path android:pathData="M188 205 Q201 218 214 201" android:strokeColor="#1A1430" android:strokeWidth="6" android:strokeLineCap="round" />
+        <path android:pathData="M355.3 134.9 A170 36 -24 0 1 44.7 273.1" android:strokeColor="#B8A6FF" android:strokeWidth="9" android:strokeLineCap="round" />
+        <path android:pathData="M79.3,278.4 a9.5,9.5 0 1,0 19.0,0 a9.5,9.5 0 1,0 -19.0,0Z" android:fillColor="#B8A6FF" />
+        <path android:pathData="M251.60000000000002,210.3 a17,17 0 1,0 34,0 a17,17 0 1,0 -34,0Z" android:fillColor="#0A0A16" />
+        <path android:pathData="M255.60000000000002,210.3 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0Z" android:fillColor="#FFB199" />
+    </group>
+</vector>

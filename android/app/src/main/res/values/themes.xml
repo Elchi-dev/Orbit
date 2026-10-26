@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window behind Compose: Orbit's void, so nothing flashes white on start -->
+    <style name="Theme.Orbit" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/void_</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">@color/peach</item>
+    </style>
+</resources>
