@@ -1,7 +1,7 @@
 import { OriEmpty } from "../ori/OriEmpty";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, Check, CheckCheck, Eye, FilePlus2, FileText, Loader2, MessageSquare, MessageSquarePlus, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, Eye, FileCode2, FilePlus2, FileText, Loader2, MessageSquare, MessageSquarePlus, Pencil, RotateCcw, Send, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { panelLocks, useStore } from "../../lib/store";
 import { ago } from "../../lib/format";
@@ -91,6 +91,93 @@ function Thread({ doc, thread, replies, n, active, onFocus }: { doc: Doc; thread
         </form>
       )}
     </li>
+  );
+}
+
+/** Keep a doc as a Markdown file in the workspace folder, so it can live in git. */
+function FileLink({ doc }: { doc: Doc }) {
+  const toast = useStore((s) => s.toast);
+  const [open, setOpen] = useState(false);
+  const [path, setPath] = useState(doc.file ?? `docs/${doc.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "doc"}.md`);
+  const [clash, setClash] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function link(use?: "doc" | "file") {
+    setBusy(true);
+    try {
+      await api.post(`/api/docs/${doc.id}/file`, { path, use });
+      setOpen(false);
+      setClash("");
+      toast({ title: `Kept as ${path}`, body: "Saving the doc writes the file; editing the file updates the doc.", tone: "good" });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (/already exists/.test(msg)) setClash(msg);
+      else toast({ title: "That didn't work", body: msg, tone: "warn" });
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (doc.file && !open)
+    return (
+      <button className="btn b-ghost sz-s doc-file on" onClick={() => setOpen(true)} data-tip="Also a file in the workspace folder" data-tip-side="bottom">
+        <FileCode2 size={13} /> {doc.file}
+      </button>
+    );
+  return (
+    <span className="doc-file-wrap">
+      {!open ? (
+        <button className="btn b-ghost icon-btn sm" onClick={() => setOpen(true)} aria-label="Keep as a file" data-tip="Keep as a file in the folder" data-tip-side="bottom">
+          <FileCode2 size={14} />
+        </button>
+      ) : (
+        <motion.div className="doc-file-pop glass panel" initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} style={{ transformOrigin: "top right" }}>
+          <b className="small">Keep it as a file</b>
+          <span className="muted small">A Markdown file in the workspace folder, so it can go into git. Edits on either side show up in both.</span>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              link();
+            }}
+          >
+            <div className="field">
+              <input value={path} onChange={(e) => (setPath(e.target.value), setClash(""))} spellCheck={false} aria-label="File" autoFocus />
+            </div>
+          </form>
+          {clash ? (
+            <>
+              <span className="small warn-text">{clash}</span>
+              <div className="lib-actions">
+                <button className="btn b-outline sz-s" disabled={busy} onClick={() => link("file")}>
+                  Read the file in
+                </button>
+                <button className="btn b-danger sz-s" disabled={busy} onClick={() => link("doc")}>
+                  Write the doc over it
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="lib-actions">
+              <button className="btn b-lav sz-s" disabled={busy || !path.trim()} onClick={() => link()}>
+                <Check size={13} /> {doc.file ? "Move" : "Keep as file"}
+              </button>
+              {doc.file && (
+                <button
+                  className="btn b-ghost sz-s"
+                  onClick={async () => {
+                    await api.post(`/api/docs/${doc.id}/file`, { path: null });
+                    setOpen(false);
+                  }}
+                >
+                  Stop
+                </button>
+              )}
+              <button className="btn b-ghost sz-s" onClick={() => (setOpen(false), setClash(""))}>
+                Cancel
+              </button>
+            </div>
+          )}
+        </motion.div>
+      )}
+    </span>
   );
 }
 
@@ -211,6 +298,7 @@ function DocView({ ws, id }: { ws: Workspace; id: string }) {
           </>
         ) : (
           <>
+            <FileLink doc={doc} />
             <button className="btn b-ghost icon-btn sm" onClick={startEdit} aria-label="Edit" data-tip="Edit the Markdown" data-tip-side="bottom">
               <Pencil size={14} />
             </button>
@@ -352,9 +440,23 @@ export function DocsPane({ ws }: { ws: Workspace }) {
   const loadDocs = useStore((s) => s.loadDocs);
   const selectDoc = useStore((s) => s.selectDoc);
   const [creating, setCreating] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [openPath, setOpenPath] = useState("");
+  const toast = useStore((s) => s.toast);
   useEffect(() => {
     loadDocs(ws.id).catch(() => {});
   }, [ws.id]);
+  async function openFile(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      const d = await api.post<Doc>(`/api/workspaces/${ws.id}/docs/open`, { path: openPath });
+      await loadDocs(ws.id);
+      selectDoc(ws.id, d.id);
+      setOpening(false);
+    } catch (err) {
+      toast({ title: "Couldn't open it", body: (err as Error).message, tone: "warn" });
+    }
+  }
 
   if (sel) return <DocView ws={ws} id={sel} />;
   async function create() {
@@ -370,10 +472,24 @@ export function DocsPane({ ws }: { ws: Workspace }) {
     <div className="docs">
       <div className="docs-head">
         <span className="eyebrow">Docs in this workspace</span>
+        <span className="grow" />
+        <button className="btn b-ghost sz-s" onClick={() => setOpening((o) => !o)} aria-expanded={opening} data-tip="Open a Markdown file from the folder as a doc">
+          <FileCode2 size={14} /> Open a file
+        </button>
         <button className="btn b-outline sz-s" onClick={create} disabled={creating}>
           <FilePlus2 size={14} /> New doc
         </button>
       </div>
+      {opening && (
+        <form className="docs-open" onSubmit={openFile}>
+          <div className="field">
+            <input value={openPath} onChange={(e) => setOpenPath(e.target.value)} placeholder="README.md or docs/plan.md" spellCheck={false} autoFocus aria-label="Markdown file in the folder" />
+          </div>
+          <button className="btn b-lav sz-s" disabled={!openPath.trim()}>
+            Open
+          </button>
+        </form>
+      )}
       {!docs ? (
         <div className="loading">Loading…</div>
       ) : docs.length === 0 ? (
@@ -391,6 +507,7 @@ export function DocsPane({ ws }: { ws: Workspace }) {
                   <span className="doc-row-sub">
                     {d.updated_by === "agent" ? "Claude" : "You"}, {ago(d.updated_at)}
                     {d.body ? ` · ${d.body.split(/\s+/).filter(Boolean).length} words` : ""}
+                    {d.file ? ` · ${d.file}` : ""}
                   </span>
                 </span>
                 {(d.open ?? 0) > 0 && (

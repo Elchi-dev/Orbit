@@ -3,7 +3,10 @@
 // Claude reads a doc again it sees what the user changed since its last read, as a diff,
 // and the comments still open, so nothing said on the page gets lost.
 
-import { db, now, uid } from "./db";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { db, getWorkspace, now, uid } from "./db";
 import { broadcast } from "./hub";
 import { unifiedDiff } from "./diff";
 
@@ -33,6 +36,11 @@ CREATE TABLE IF NOT EXISTS doc_comments (
 );
 CREATE INDEX IF NOT EXISTS doc_comments_doc ON doc_comments(doc_id, created_at);
 `);
+// a doc can be kept as a Markdown file in the workspace folder, so it can live in git
+for (const col of ["file TEXT", "file_hash TEXT"])
+  try {
+    db.exec(`ALTER TABLE docs ADD COLUMN ${col}`);
+  } catch {}
 
 export interface Doc {
   id: string;
@@ -43,6 +51,9 @@ export interface Doc {
   updated_by: "agent" | "user";
   /** the text as Claude last saw it, to tell it what the user changed since */
   agent_body: string;
+  /** relative to the workspace folder, when the doc is also a file there */
+  file: string | null;
+  file_hash: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -60,13 +71,103 @@ export interface DocComment {
 
 const MAX_BODY = 400_000;
 
-export const getDoc = (id: string) => db.query<Doc, [string]>("SELECT * FROM docs WHERE id = ?").get(id);
+const hash = (t: string) => createHash("sha1").update(t).digest("hex");
+
+/** The file's full path, refusing anything outside the workspace folder. */
+function filePath(wsId: string, rel: string): string {
+  const ws = getWorkspace(wsId);
+  if (!ws) throw new Error("No such workspace");
+  const full = resolve(ws.cwd, rel);
+  const r = relative(ws.cwd, full);
+  if (!r || r.startsWith("..") || isAbsolute(r)) throw new Error("The file has to be inside the workspace folder.");
+  if (!/\.(md|markdown|mdx|txt)$/i.test(full)) throw new Error("Use a Markdown file name, like docs/plan.md.");
+  return full;
+}
+
+/** A file edited outside Orbit comes back into the doc, as the user's edit. */
+function synced<T extends Doc | null | undefined>(d: T): T {
+  if (!d?.file) return d;
+  let text: string;
+  try {
+    const full = filePath(d.workspace_id, d.file);
+    if (!existsSync(full)) return d;
+    text = readFileSync(full, "utf8").slice(0, MAX_BODY);
+  } catch {
+    return d;
+  }
+  const h = hash(text);
+  if (h === d.file_hash || text === d.body) return d;
+  db.run("UPDATE docs SET body = ?, version = version + 1, updated_by = 'user', file_hash = ?, updated_at = ? WHERE id = ?", [text, h, now(), d.id]);
+  const fresh = db.query<Doc, [string]>("SELECT * FROM docs WHERE id = ?").get(d.id)!;
+  broadcast("doc", { workspaceId: fresh.workspace_id, doc: docView(fresh), by: "user" });
+  return fresh as T;
+}
+
+function writeOut(d: Doc) {
+  if (!d.file) return;
+  const full = filePath(d.workspace_id, d.file);
+  mkdirSync(dirname(full), { recursive: true });
+  writeFileSync(full, d.body);
+  db.run("UPDATE docs SET file_hash = ? WHERE id = ?", [hash(d.body), d.id]);
+}
+
+export const getDoc = (id: string) => synced(db.query<Doc, [string]>("SELECT * FROM docs WHERE id = ?").get(id));
 export const listDocs = (wsId: string) =>
   db
     .query<Doc & { open: number }, [string]>(
       "SELECT d.*, (SELECT COUNT(*) FROM doc_comments c WHERE c.doc_id = d.id AND c.resolved = 0 AND c.parent_id IS NULL) AS open FROM docs d WHERE workspace_id = ? ORDER BY updated_at DESC",
     )
-    .all(wsId);
+    .all(wsId)
+    .map((d) => ({ ...synced(d), open: d.open }));
+
+/**
+ * Keep a doc as a file (or stop, with null). When the file already exists and says
+ * something else, `use` decides: "doc" writes the doc over it, "file" reads the file in.
+ */
+export function linkFile(d: Doc, rel: string | null, use?: "doc" | "file"): Doc {
+  if (!rel) {
+    db.run("UPDATE docs SET file = NULL, file_hash = NULL WHERE id = ?", [d.id]);
+    changed(getDoc(d.id)!, "user");
+    return getDoc(d.id)!;
+  }
+  const full = filePath(d.workspace_id, rel);
+  const clean = relative(getWorkspace(d.workspace_id)!.cwd, full).split("\\").join("/");
+  const other = db.query<{ id: string }, [string, string, string]>("SELECT id FROM docs WHERE workspace_id = ? AND file = ? AND id != ?").get(d.workspace_id, clean, d.id);
+  if (other) throw new Error("Another doc is already kept in that file.");
+  if (existsSync(full)) {
+    const text = readFileSync(full, "utf8");
+    if (text !== d.body && !use) {
+      const e = new Error("That file already exists and says something else. Write the doc over it, or read the file into the doc?") as Error & { code?: string };
+      e.code = "exists";
+      throw e;
+    }
+    if (use === "file") {
+      db.run("UPDATE docs SET file = ?, file_hash = ?, body = ?, version = version + 1, updated_by = 'user', updated_at = ? WHERE id = ?", [clean, hash(text), text.slice(0, MAX_BODY), now(), d.id]);
+      const fresh = getDoc(d.id)!;
+      changed(fresh, "user");
+      return fresh;
+    }
+  }
+  db.run("UPDATE docs SET file = ? WHERE id = ?", [clean, d.id]);
+  writeOut(getDoc(d.id)!);
+  const fresh = getDoc(d.id)!;
+  changed(fresh, "user");
+  return fresh;
+}
+
+/** A Markdown file in the workspace becomes a doc that stays in that file. */
+export function openFileAsDoc(wsId: string, rel: string): Doc {
+  const full = filePath(wsId, rel);
+  if (!existsSync(full)) throw new Error("No such file");
+  const clean = relative(getWorkspace(wsId)!.cwd, full).split("\\").join("/");
+  const had = db.query<Doc, [string, string]>("SELECT * FROM docs WHERE workspace_id = ? AND file = ?").get(wsId, clean);
+  if (had) return synced(had);
+  const text = readFileSync(full, "utf8");
+  const title = text.match(/^#\s+(.+)$/m)?.[1]?.trim() || clean.split("/").pop()!.replace(/\.\w+$/, "");
+  const d = createDoc(wsId, title, text, "user");
+  db.run("UPDATE docs SET file = ?, file_hash = ? WHERE id = ?", [clean, hash(text), d.id]);
+  return getDoc(d.id)!;
+}
 export const commentsOf = (docId: string) => db.query<DocComment, [string]>("SELECT * FROM doc_comments WHERE doc_id = ? ORDER BY created_at").all(docId);
 
 function changed(d: Doc, by: "agent" | "user") {
@@ -119,6 +220,7 @@ export function saveDoc(d: Doc, patch: { title?: string; body?: string }, by: "a
     d.id,
   ]);
   const fresh = getDoc(d.id)!;
+  writeOut(fresh);
   changed(fresh, by);
   return fresh;
 }

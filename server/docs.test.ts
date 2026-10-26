@@ -97,3 +97,40 @@ describe("whiteboard", () => {
     expect(b.edges).toHaveLength(0);
   });
 });
+
+describe("docs kept as files", () => {
+  test("saving writes the file, an edit on disk comes back as the user's, and the path stays inside the folder", async () => {
+    const { linkFile, openFileAsDoc, listDocs } = await import("./docs");
+    const { readFileSync } = await import("node:fs");
+    const cwd = mkdtempSync(join(tmpdir(), "orbit-docfile-"));
+    const ws = workspace(cwd);
+    const d = createDoc(ws, "Plan", "# Plan\n\none\n", "agent");
+    linkFile(d, "docs/plan.md");
+    expect(readFileSync(join(cwd, "docs/plan.md"), "utf8")).toBe("# Plan\n\none\n");
+    saveDoc(getDoc(d.id)!, { body: "# Plan\n\none\ntwo\n" }, "agent");
+    expect(readFileSync(join(cwd, "docs/plan.md"), "utf8")).toBe("# Plan\n\none\ntwo\n");
+    // edited in an editor or by git: Orbit picks it up as the user's edit, Claude sees the diff
+    writeFileSync(join(cwd, "docs/plan.md"), "# Plan\n\none\ntwo\nthree\n");
+    const fresh = getDoc(d.id)!;
+    expect(fresh.body).toContain("three");
+    expect(fresh.updated_by).toBe("user");
+    expect(readForAgent(fresh)).toContain("+three");
+    expect(listDocs(ws)[0].body).toContain("three");
+    // never outside the workspace, never a non-text file
+    expect(() => linkFile(fresh, "../escape.md")).toThrow(/inside the workspace/);
+    expect(() => linkFile(fresh, "x.sh")).toThrow(/Markdown/);
+    // an existing different file needs a choice
+    writeFileSync(join(cwd, "notes.md"), "other\n");
+    const e = createDoc(ws, "Notes", "mine\n", "user");
+    expect(() => linkFile(e, "notes.md")).toThrow(/already exists/);
+    expect(linkFile(e, "notes.md", "file").body).toBe("other\n");
+    // and a Markdown file opens as a doc
+    writeFileSync(join(cwd, "README.md"), "# Hello\n\nworld\n");
+    const r = openFileAsDoc(ws, "README.md");
+    expect(r.title).toBe("Hello");
+    expect(openFileAsDoc(ws, "README.md").id).toBe(r.id);
+    // stop keeping it as a file: the file stays, the doc stops writing to it
+    const off = linkFile(getDoc(d.id)!, null);
+    expect(off.file).toBeNull();
+  });
+});

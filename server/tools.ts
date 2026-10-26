@@ -1,8 +1,9 @@
 import { canDelegate, delegate } from "./helpers";
-import { addComment, createDoc, docsBrief, editPassage, findDoc, readForAgent, resolveComment, saveDoc } from "./docs";
+import { addComment, createDoc, docsBrief, editPassage, findDoc, linkFile, readForAgent, resolveComment, saveDoc } from "./docs";
 import { apply, COLORS, KINDS, readForAgent as readBoard } from "./board";
 import { openPreview, previewState, resolveTarget } from "./preview";
 import { isLocalUrl, screenshot } from "./screenshot";
+import { checkPage, reportText } from "./pagecheck";
 import { profileAllows, type Profile } from "./profiles";
 import { loadSkill } from "./context";
 import { findKnowledge, readKnowledge, searchKnowledge } from "./library";
@@ -234,6 +235,27 @@ const TOOLS: ToolDef[] = [
       const consoleText = consoleLines.length ? `Console:\n${consoleLines.join("\n")}` : "Console: nothing logged.";
       blocks.push({ type: "text", text: consoleText });
       return { content: `Screenshots of ${target} at ${widths.join(", ")} px\n[shots: ${names.join(" ")}]\n${consoleText}`, blocks };
+    },
+  },
+  {
+    name: "page_check",
+    description:
+      "Check a page for performance (largest contentful paint, layout shift, blocking time, bytes by kind) and accessibility problems it shows by itself (WCAG 2.2 AA: names, labels, alt text, contrast, language, zoom, headings, target size). Same targets as screenshot. Use it before calling frontend work done, then fix what it finds.",
+    input_schema: obj({ target: str("A path in the workspace or a http://localhost URL; empty for the current preview"), width: int("CSS width in pixels; default 390, a phone") }, []),
+    readOnly: (i) => !/^https?:\/\//.test(String(i?.target ?? "")) || isLocalUrl(String(i.target)),
+    async run(input, ctx) {
+      const cur = previewState(ctx.ws.id);
+      const target = String(input?.target || cur?.target || "").trim();
+      if (!target) return { content: "Nothing to check: give a target or open the preview first.", isError: true };
+      const remote = /^https?:\/\//.test(target) && !isLocalUrl(target);
+      try {
+        const url = remote ? target : resolveTarget(ctx.ws.id, target).url;
+        const r = await checkPage(url, Number(input?.width) || 390, { remote });
+        broadcast("page_check", { workspaceId: ctx.ws.id, report: { ...r, target } });
+        return { content: reportText({ ...r, url: target }) };
+      } catch (e) {
+        return { content: (e as Error).message, isError: true };
+      }
     },
   },
   {
@@ -516,19 +538,31 @@ const TOOLS: ToolDef[] = [
     name: "doc_write",
     description:
       "Create a Markdown doc the user reads, edits and comments on in the Docs tab next to the conversation, or replace a whole doc. Use docs for anything worth keeping and discussing: plans, specs, research notes, decisions, drafts. Leave id out to create one. For changes to part of a doc use doc_edit.",
-    input_schema: obj({ title: str("The doc's title"), content: str("The whole doc, in Markdown"), id: str("An existing doc's id, to replace it") }, ["content"]),
-    readOnly: true,
+    input_schema: obj(
+      {
+        title: str("The doc's title"),
+        content: str("The whole doc, in Markdown"),
+        id: str("An existing doc's id, to replace it"),
+        file: str("Also keep it as this Markdown file in the workspace folder, like docs/plan.md, so it can go into git. Only when the user wants the doc in the project."),
+      },
+      ["content"],
+    ),
+    readOnly: (i) => !i?.file,
     ui: "docs",
     async run(input, ctx) {
       const content = String(input?.content ?? "");
-      if (input?.id) {
-        const d = findDoc(ctx.ws.id, input.id);
-        if (!d) return { content: `No doc ${input.id} here.`, isError: true };
-        const fresh = saveDoc(d, { body: content, title: input.title }, "agent");
-        return { content: `Replaced "${fresh.title}" (${fresh.id}), version ${fresh.version}.` };
+      let d = input?.id ? findDoc(ctx.ws.id, input.id) : null;
+      if (input?.id && !d) return { content: `No doc ${input.id} here.`, isError: true };
+      if (d) d = saveDoc(d, { body: content, title: input.title }, "agent");
+      else d = createDoc(ctx.ws.id, String(input?.title ?? content.match(/^#\s+(.+)/m)?.[1] ?? "Untitled"), content, "agent");
+      if (input?.file) {
+        try {
+          d = linkFile(d, String(input.file), "doc");
+        } catch (e) {
+          return { content: `The doc is saved (${d.id}) but not as a file: ${(e as Error).message}`, isError: true };
+        }
       }
-      const d = createDoc(ctx.ws.id, String(input?.title ?? content.match(/^#\s+(.+)/m)?.[1] ?? "Untitled"), content, "agent");
-      return { content: `Created "${d.title}" (${d.id}). The user sees it in the Docs tab.` };
+      return { content: `${input?.id ? "Replaced" : "Created"} "${d.title}" (${d.id}), version ${d.version}.${d.file ? ` Kept as ${d.file} too.` : " The user sees it in the Docs tab."}` };
     },
   },
   {
@@ -733,7 +767,7 @@ export function allowedBy(profile: Profile, name: string, ws?: WorkspaceRow) {
   if (PREVIEW_TOOLS.has(name)) return profile.preview;
   return profileAllows(profile, name);
 }
-const PREVIEW_TOOLS = new Set(["preview_open", "screenshot"]);
+const PREVIEW_TOOLS = new Set(["preview_open", "screenshot", "page_check"]);
 export function findTool(name: string) {
   return enabledTools().find((t) => t.name === name);
 }
@@ -755,6 +789,9 @@ export function subjectOf(name: string, input: any, cwd: string): string {
     case "write_file":
     case "edit_file":
       return `write ${resolvePath(cwd, input?.path ?? "")}`;
+    case "doc_write":
+      if (input?.file) return `write ${resolvePath(cwd, input.file)}`;
+      return `${name} ${JSON.stringify(input ?? {})}`;
     case "read_file":
     case "list_dir":
       return `read ${resolvePath(cwd, input?.path ?? ".")}`;

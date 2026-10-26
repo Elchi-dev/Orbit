@@ -277,6 +277,8 @@ export interface Doc {
   updated_at: number;
   comments?: DocComment[];
   open?: number;
+  /** kept as this Markdown file in the workspace folder too */
+  file?: string | null;
 }
 export type BoardKind = "note" | "text" | "checklist" | "image" | "link" | "file" | "frame";
 export interface BoardItem {
