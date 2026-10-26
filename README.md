@@ -420,26 +420,32 @@ Alpha, and honest about it.
 Built and tested: the agent loop with streaming, adaptive thinking, tool use
 and web search, the persistent shell, all file tools, the gate with read-only
 detection for the shell and the 100 known programs, rules, three modes and the
-judge, approvals with "Always allow", the undo journal, review and kill switch,
-budgets, compaction, missions, MCP servers, the git panel, skills and project
-instructions, the editor links and extension, profiles and Full mode, the plan,
-the live preview and screenshots, steering, helpers with worktrees, comments on
-the preview (also through a real Vite dev server with hot reload), docs, the
-whiteboard, the whole interface, single binaries for five
+judge, approvals with "Always allow", the undo journal, review per file and per
+change, the kill switch, budgets, compaction, missions, MCP servers with their
+tokens encrypted, the git panel, the library, knowledge folders, memory,
+project instructions, the editor links and extension, profiles and Full mode,
+the plan, the live preview, screenshots and the page check, steering, helpers
+with worktrees, comments on the preview (also through a real Vite dev server
+with hot reload), docs as files, the whiteboard, replay, plugins in TypeScript
+and Python (also on the compiled binary with no Bun or Node installed), the
+relay with its installer, the phone protocol (checked against a second
+implementation), the Android app's networking against a real Orbit and relay,
+the whole interface in Chromium and Firefox, single binaries for five
 platforms and the installers.
 
 Not yet: long sessions against the live API (everything above was driven by
 the mock model, test servers and unit tests), helpers run by a real model on
-a real project, web search and MCP against real
-services, the extension inside a real editor, dictation with a real
-microphone, Firefox on a real GPU (the 3D sky was checked with software
-WebGL, the flat sky by itself),
-Windows beyond building the binary.
+a real project, web search and MCP against real services, the extension inside
+a real editor, dictation with a real microphone, Firefox on a real GPU, the
+Android app on a real phone (its screens were rendered in tests, its camera,
+notifications and background service never ran on a device), Firebase
+delivery end to end, the relay's Let's Encrypt setup on a real server, Windows
+beyond building the binary.
 
 To try it against the real API yourself: `orbit check`. It runs ten real
 tasks in a throwaway Orbit, usually for $0.30 to $1, and writes a report.
 
-The test bar: 141 tests named after what they protect, including the rule
+The test bar: 179 tests for the server, 15 for the relay and 54 for the app, named after what they protect, including the rule
 that once let an allow rule be stretched with `;`, flags that turn a read-only
 command into a write, a mission that must refuse instead of waiting, a page on
 another local port that must not reach the API, a preview that must not
