@@ -26,7 +26,8 @@ interface Status {
   devices: Device[];
 }
 
-const APK = "https://github.com/Elchi-dev/Orbit/releases/latest/download/orbit-android.apk";
+// the app that matches this Orbit; a development build points at the list of releases
+const apk = (version?: string) => (version && /^\d+\.\d+\.\d+/.test(version) ? `https://github.com/Elchi-dev/Orbit/releases/download/v${version}/orbit-android.apk` : "https://github.com/Elchi-dev/Orbit/releases");
 const INSTALL = (domain: string) => `curl -fsSL https://raw.githubusercontent.com/Elchi-dev/Orbit/main/relay/install.sh | sudo sh -s -- --domain ${domain || "relay.example.com"}`;
 const ago = (t: number) => {
   const s = (Date.now() - t) / 1000;
@@ -114,7 +115,7 @@ export function RemotePage() {
           <h3>
             <Smartphone size={16} /> Phones
           </h3>
-          <a className="lnk small" href={APK} target="_blank" rel="noreferrer">
+          <a className="lnk small" href={apk(useStore.getState().server?.version)} target="_blank" rel="noreferrer">
             Get the Android app <ExternalLink size={12} />
           </a>
         </div>
