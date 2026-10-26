@@ -175,6 +175,29 @@ interface FileReview {
   removed: number;
   diff: string;
   binary: boolean;
+  hunks: { text: string; added: number; removed: number }[];
+  rev: string;
+}
+
+/** One change inside a file, with its own keep and undo. */
+function HunkView({ h, i, busy, running, onKeep, onUndo }: { h: FileReview["hunks"][number]; i: number; busy: boolean; running: boolean; onKeep: () => void; onUndo: () => void }) {
+  return (
+    <div className="rev-hunk rise" style={{ "--i": Math.min(i, 8) } as any}>
+      <div className="rev-hunk-bar">
+        <span className="muted small num">
+          Change {i + 1}: <span className="rev-add">+{h.added}</span> <span className="rev-del">−{h.removed}</span>
+        </span>
+        <span className="grow" />
+        <button className="btn b-ghost sz-s" disabled={busy || running} onClick={onUndo} data-tip="Put just this part back">
+          <Undo2 size={13} /> Undo
+        </button>
+        <button className="btn b-ghost sz-s" disabled={busy} onClick={onKeep} data-tip="Keep just this part">
+          <Check size={13} /> Keep
+        </button>
+      </div>
+      <DiffView text={h.text} />
+    </div>
+  );
 }
 
 /** Every file Claude changed here, against how it was before; keep the change or put the file back. */
@@ -197,13 +220,26 @@ function FilesDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
       toast({ title: "That didn't work", body: (e as Error).message, tone: "warn" });
     }
   };
+  const [busy, setBusy] = useState(false);
+  const hunk = async (what: "keep" | "undo", f: FileReview, i: number, done: string) => {
+    setBusy(true);
+    try {
+      setFiles(await api.post<FileReview[]>(`${base}/${what}`, { path: f.path, hunk: i, rev: f.rev }));
+      toast({ title: done, tone: "good" });
+    } catch (e) {
+      toast({ title: "That didn't work", body: (e as Error).message, tone: "warn" });
+      api.get<FileReview[]>(base).then(setFiles);
+    } finally {
+      setBusy(false);
+    }
+  };
   if (!files) return <Loader2 size={16} className="spin muted" />;
   const short = (p: string) => (p.startsWith(ws.cwd) ? p.slice(ws.cwd.length).replace(/^[\\/]/, "") : shortPath(p, home));
   return (
     <>
       <p className="muted small">
-        Each file Claude changed, compared with how it was before its first change. Keep the change, or put the file back. Every version stays in the
-        undo journal.
+        Each file Claude changed, compared with how it was before its first change. Keep the change or put the file back, the whole file or one change at a
+        time. Every version stays in the undo journal.
       </p>
       {files.length === 0 ? (
         <OriEmpty pose="done" title="Nothing to review" size={96}>
@@ -268,7 +304,25 @@ function FilesDrawer({ ws, detail }: { ws: Workspace; detail?: Detail }) {
                   <AnimatePresence initial={false}>
                     {isOpen && (
                       <motion.div className="git-diff-wrap" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                        {f.binary ? <p className="muted small">A binary file; open it to compare.</p> : <DiffView text={f.diff} />}
+                        {f.binary ? (
+                          <p className="muted small">A binary file; open it to compare.</p>
+                        ) : f.hunks.length > 1 ? (
+                          <div className="rev-hunks">
+                            {f.hunks.map((h, i) => (
+                              <HunkView
+                                key={`${f.rev}-${i}`}
+                                h={h}
+                                i={i}
+                                busy={busy}
+                                running={ws.running}
+                                onKeep={() => hunk("keep", f, i, `Kept change ${i + 1}`)}
+                                onUndo={() => hunk("undo", f, i, `Change ${i + 1} is back`)}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <DiffView text={f.diff} />
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
