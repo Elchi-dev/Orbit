@@ -1,0 +1,13 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+captures/
+# written by CI from a secret, never committed
+app/google-services.json
+*.jks
+*.keystore
+# rendered by the tests (./gradlew test); a few are in docs/images
+screenshots/
