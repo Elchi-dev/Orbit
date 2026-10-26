@@ -2,8 +2,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
-const ROOTS = ["server", "web/src", "scripts", "docs", "integrations", ".github", "README.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "install.sh", "install.ps1", "orbit.example.toml"];
-const EXT = new Set([".ts", ".tsx", ".css", ".md", ".sh", ".ps1", ".yml", ".toml", ".html"]);
+const ROOTS = ["server", "web/src", "relay", "android/app/src", "android/core/src", "android/README.md", "scripts", "docs", "integrations", ".github", "README.md", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "install.sh", "install.ps1", "orbit.example.toml"];
+const EXT = new Set([".ts", ".tsx", ".css", ".md", ".sh", ".ps1", ".yml", ".toml", ".html", ".go", ".kt", ".kts", ".xml", ".json"]);
 const BAD = new RegExp(`[${String.fromCharCode(0x2013)}${String.fromCharCode(0x2014)}]`);
 
 function files(p: string): string[] {
@@ -12,7 +12,9 @@ function files(p: string): string[] {
   } catch {
     return [];
   }
-  return readdirSync(p).flatMap((n) => files(join(p, n)));
+  return readdirSync(p)
+    .filter((n) => n !== "build" && n !== "node_modules" && !n.startsWith("."))
+    .flatMap((n) => files(join(p, n)));
 }
 
 let found = 0;
