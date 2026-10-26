@@ -114,6 +114,60 @@ export const TOPICS: Topic[] = [
     ),
   },
   {
+    id: "phone",
+    title: "Orbit on your phone",
+    pose: "searching",
+    body: (
+      <>
+        <p>The Orbit app for Android reaches this computer from anywhere, through a small relay you run on a server. Everything between the two is encrypted end to end; the relay can't read it.</p>
+        <p>Settings, Your phone walks you through it: one line installs the relay, then you scan a QR code. When Claude needs you, the phone gets an alert.</p>
+      </>
+    ),
+  },
+  {
+    id: "plugins",
+    title: "Plugins",
+    pose: "helpers",
+    body: (
+      <>
+        <p>Plugins add tools for Claude, slash commands, panels beside the conversation and checks before anything runs. They're written in any language.</p>
+        <p>
+          Settings, Plugins, New plugin: describe what it should do and press <b>Let Claude build it</b>. A plugin never sees your API key.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "memory",
+    title: "Memory and knowledge",
+    pose: "reading",
+    body: (
+      <>
+        <p>
+          <b>Memory</b>: after some work I suggest what might be worth remembering everywhere. Nothing is kept until you say yes. Answers show which memories they used.
+        </p>
+        <p>
+          <b>Knowledge</b>: reference files in the Library, and folders of docs a workspace searches when it needs to, set in the workspace settings.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "replay",
+    title: "Replay and checks",
+    pose: "camera",
+    body: (
+      <>
+        <p>
+          <b>Replay</b> (the clapperboard in the dock, or <code>/replay</code>) plays a finished run again: every message, command and file change, helpers side by side.
+        </p>
+        <p>
+          In the preview, the clipboard button checks a page for speed and accessibility. In review, you can keep or undo one change at a time.
+        </p>
+      </>
+    ),
+  },
+  {
     id: "keys",
     title: "Shortcuts",
     pose: "working",

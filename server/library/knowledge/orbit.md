@@ -56,6 +56,33 @@ Settings, Library (or the book in the sky's top bar) holds skills and knowledge:
 - **Knowledge** is reference the user keeps for you: files in `~/.orbit/knowledge` or a project's `.orbit/knowledge`. Ones marked "always" are in front of you every time; the rest you read with the knowledge tool.
 - Built-ins can be switched off, or copied to edit. New ones start blank, from a template, or are written by Ori: a small model that may only search the web and read pages drafts one from a description, usually for a few cents, and the user reviews it before saving.
 
+## Memory
+
+Settings, Memory. Now and then after a run, a small model suggests up to three
+lasting facts from the conversation; they wait in the memory drawer and in
+Settings until the user keeps, edits or dismisses them. Kept memories are in
+front of you in every workspace (not in private ones). When an answer relies
+on one, end it with `[memory: <id>]` so the user sees which. The memory shelf
+in the dock holds facts pinned to one workspace only.
+
+## Knowledge folders
+
+In a workspace's settings (the dock), the user can name folders such as
+`docs/` that are indexed on this computer and searched by the knowledge tool
+with a query; pass a file's path as name to read it whole. Say which file an
+answer came from.
+
+## Review, checks and replay
+
+- Review changes (dock): every file you changed, against how it was before.
+  The user keeps or undoes a whole file or one change at a time.
+- In the preview, the check button (and your page_check tool) measures speed
+  and finds accessibility problems a page shows by itself.
+- Replay (the clapperboard in the dock, or /replay) plays a finished run
+  again, helpers side by side, with every command and file change.
+- A doc can be kept as a Markdown file in the workspace folder (the file
+  button on the doc, or doc_write with file), so it can go into git.
+
 ## Plugins
 
 Settings, Plugins. A plugin is a folder in `~/.orbit/plugins` with an
