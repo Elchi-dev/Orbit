@@ -3,7 +3,7 @@ import { MemorySuggestions } from "../memory/Memory";
 import { useTabs } from "./SidePanel";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, BookOpen, FolderSearch, CalendarClock, Check, FileDiff, FileText, GitBranch, Loader2, MonitorPlay, OctagonX, Pin, Plus, Settings2, SquareArrowOutUpRight, Terminal, Trash2, Undo2, X } from "lucide-react";
+import { Archive, BookOpen, Clapperboard, FolderSearch, CalendarClock, Check, FileDiff, FileText, GitBranch, Loader2, MonitorPlay, OctagonX, Pin, Plus, Settings2, SquareArrowOutUpRight, Terminal, Trash2, Undo2, X } from "lucide-react";
 import { useStore, type Drawer } from "../../lib/store";
 import { api } from "../../lib/api";
 import { openInEditor } from "../../lib/open";
@@ -66,6 +66,9 @@ export function Dock({ ws, detail }: { ws: Workspace; detail?: Detail }) {
           {typeof badges[id] === "number" && (badges[id] as number) > 0 && <span className="badge">{badges[id] as number}</span>}
         </button>
       ))}
+      <button className="btn b-ghost icon-btn dock-btn" onClick={() => useStore.getState().setOverlay("replay")} aria-label="Replay" data-tip="Replay: watch the run again" data-tip-side="left" disabled={!(detail?.messages.length ?? 0)}>
+        <Clapperboard size={19} />
+      </button>
       <span className="dock-sep" aria-hidden="true" />
       {tabs.map(({ id, label, Icon }) => {
         const on = previewShown && (panelTab ?? "preview") === id;

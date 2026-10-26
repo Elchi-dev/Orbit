@@ -1,3 +1,4 @@
+import { Replay } from "./components/replay/Replay";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { WifiOff } from "lucide-react";
@@ -182,6 +183,7 @@ export function App() {
       <AnimatePresence>
         {overlay === "settings" && <Settings key="settings" />}
         {overlay === "palette" && <Palette key="palette" />}
+        {overlay === "replay" && view.kind === "ws" && <Replay key="replay" wsId={view.id} onClose={() => useStore.getState().setOverlay(null)} />}
       </AnimatePresence>
       <Toasts />
       <Tour />

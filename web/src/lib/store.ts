@@ -24,7 +24,7 @@ interface Store {
   toasts: Toast[];
   view: View;
   drawer: Drawer;
-  overlay: null | "settings" | "palette";
+  overlay: null | "settings" | "palette" | "replay";
   /** which settings section opens next */
   settingsTab: string | null;
   openSettings: (tab?: string) => void;

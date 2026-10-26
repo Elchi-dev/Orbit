@@ -42,6 +42,7 @@ export const BUILTINS: SlashItem[] = [
   { name: "shot", hint: "Screenshot a site or a page into the message", args: "url or path, then a width", kind: "action" },
   { name: "share", hint: "Save this workspace as one HTML page you can send", kind: "action" },
   { name: "export", hint: "Download this workspace as Markdown", kind: "action" },
+  { name: "replay", hint: "Watch this workspace's run again", kind: "action" },
   { name: "settings", hint: "Open Settings", kind: "action" },
 ];
 
@@ -51,6 +52,9 @@ export async function runSlash(name: string, args: string, ctx: SlashCtx): Promi
   const { ws } = ctx;
   const say = (title: string, tone: "good" | "info" | "warn" = "good", body?: string) => st.toast({ title, tone, body });
   switch (name) {
+    case "replay":
+      st.setOverlay("replay");
+      return;
     case "compact": {
       say("Compacting", "info", "The scribe is writing the summary.");
       try {

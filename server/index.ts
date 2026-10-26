@@ -41,6 +41,7 @@ import { getPlugin, listPlugins, loadPlugins, panelFile, pluginCommands, pluginH
 import { installPlugin, removePlugin, scaffoldPlugin } from "./plugin-install";
 import { PANEL_JS } from "./plugin-panel";
 import { folderStats } from "./kindex";
+import { buildReplay } from "./replay";
 import { addMemory, deleteMemory, listMemories, updateMemory } from "./memory";
 import { complete as completeModel } from "./anthropic";
 import { recordUsage } from "./usage";
@@ -547,6 +548,10 @@ async function api(req: Request, url: URL): Promise<Response> {
       deleteDoc(d);
       return json({ ok: true });
     }
+  }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/replay$/)) && m === "GET") {
+    const r = buildReplay(match[1]);
+    return r ? json(r) : bad("No such workspace", 404);
   }
   if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/check$/)) && m === "POST") {
     const w = getWorkspace(match[1]);
