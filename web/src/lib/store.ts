@@ -47,7 +47,9 @@ interface Store {
   docById: Record<string, import("./types").Doc>;
   docSel: Record<string, string | null>;
   boards: Record<string, import("./types").Board>;
-  fresh: Record<string, { docs?: boolean; board?: boolean; preview?: boolean }>;
+  fresh: Record<string, Record<string, boolean | undefined>>;
+  plugins: import("./types").PluginInfo[];
+  loadPlugins: () => Promise<void>;
   openPanel: (wsId: string, tab: import("./types").PanelTab | null) => void;
   selectDoc: (wsId: string, id: string | null) => void;
   loadDocs: (wsId: string) => Promise<void>;
@@ -99,6 +101,11 @@ export const useStore = create<Store>((set, get) => ({
   docSel: {},
   boards: {},
   fresh: {},
+  plugins: [],
+  loadPlugins: async () => {
+    const r = await api.get<{ plugins: import("./types").PluginInfo[] }>("/api/plugins").catch(() => null);
+    if (r) set({ plugins: r.plugins });
+  },
   openPanel: (wsId, tab) => {
     if (!tab) return set({ previewOpen: { ...get().previewOpen, [wsId]: false } });
     set({
@@ -369,6 +376,12 @@ export const useStore = create<Store>((set, get) => ({
         break;
       case "remote":
         window.dispatchEvent(new CustomEvent("orbit:remote", { detail: e.status }));
+        break;
+      case "plugins":
+        set({ plugins: e.plugins });
+        break;
+      case "plugin_log":
+        window.dispatchEvent(new CustomEvent("orbit:plugin_log", { detail: e }));
         break;
       case "libgen":
         window.dispatchEvent(new CustomEvent("orbit:libgen", { detail: e }));

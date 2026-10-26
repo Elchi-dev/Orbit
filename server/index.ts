@@ -462,6 +462,7 @@ async function api(req: Request, url: URL): Promise<Response> {
       files: c.context.project_files ? projectInstructions(w.cwd).map((f) => ({ path: f.path, chars: f.text.length, cut: f.cut })) : [],
       skills: findSkills(w.cwd).map((s) => ({ name: s.name, description: s.description, source: s.source, dir: s.dir })),
       commands: findCommands(w.cwd),
+      plugins: pluginCommands().map((c) => ({ plugin: c.plugin, pluginName: c.pluginName, name: c.name, description: c.description })),
     });
   }
 
@@ -715,7 +716,7 @@ async function api(req: Request, url: URL): Promise<Response> {
       return bad((e as Error).message);
     }
   }
-  if ((match = p.match(/^\/api\/plugins\/([a-z0-9-]+)(?:\/(settings|restart|logs|command))?$/))) {
+  if ((match = p.match(/^\/api\/plugins\/([a-z0-9-]+)(?:\/(settings|restart|logs|command|open))?$/))) {
     const plugin = getPlugin(match[1]);
     if (!plugin && !(m === "DELETE" && !match[2])) return bad("No such plugin", 404);
     try {
@@ -737,6 +738,10 @@ async function api(req: Request, url: URL): Promise<Response> {
         return json({ plugins: listPlugins() });
       }
       if (match[2] === "logs" && m === "GET") return json({ logs: plugin!.logs });
+      if (match[2] === "open" && m === "POST") {
+        const r = openInEditor(plugin!.dir, ".");
+        return r.ok ? json(r) : bad(r.error ?? "Couldn't open it");
+      }
       if (match[2] === "command" && m === "POST") {
         const b = await body();
         return json(await runCommand(match[1], String(b.name ?? ""), String(b.args ?? ""), b.workspace ? String(b.workspace) : null));

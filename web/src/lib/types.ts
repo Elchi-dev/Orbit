@@ -308,4 +308,32 @@ export interface Board {
   edges: BoardEdge[];
   version: number;
 }
-export type PanelTab = "preview" | "docs" | "board";
+export type PanelTab = "preview" | "docs" | "board" | `plugin:${string}`;
+
+export interface PluginInfo {
+  id: string;
+  dir: string;
+  manifest: {
+    id: string;
+    name: string;
+    version: string;
+    description: string;
+    author?: string;
+    homepage?: string;
+    run?: string | string[];
+    permissions: string[];
+    contributes: {
+      tools: { name: string; description: string }[];
+      commands: { name: string; description: string }[];
+      panels: { id: string; title: string; icon?: string; entry: string }[];
+      settings: { key: string; label: string; type: string; default?: unknown; options?: string[]; help?: string }[];
+      hooks: string[];
+    };
+  } | null;
+  enabled: boolean;
+  state: "off" | "starting" | "running" | "crashed" | "stopped" | "broken";
+  error: string;
+  tools: string[];
+  commands: { name: string; description: string }[];
+  settings: Record<string, unknown>;
+}

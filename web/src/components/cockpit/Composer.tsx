@@ -119,9 +119,10 @@ export function Composer({ ws }: { ws: Workspace }) {
   const [pick, setPick] = useState(0);
   useEffect(() => {
     api
-      .get<{ commands: { name: string; description: string; body: string }[]; skills: { name: string; description: string }[] }>(`/api/workspaces/${ws.id}/context`)
+      .get<{ commands: { name: string; description: string; body: string }[]; skills: { name: string; description: string }[]; plugins?: { plugin: string; pluginName: string; name: string; description: string }[] }>(`/api/workspaces/${ws.id}/context`)
       .then((c) =>
         setCustom([
+          ...(c.plugins ?? []).map((x) => ({ name: x.name, hint: x.description, kind: "plugin" as const, plugin: x.plugin, pluginName: x.pluginName })),
           ...c.commands.map((x) => ({ name: x.name, hint: x.description, kind: "prompt" as const, body: x.body })),
           ...c.skills.map((x) => ({ name: x.name, hint: `Skill: ${x.description}`, kind: "skill" as const })),
         ]),
@@ -144,6 +145,18 @@ export function Composer({ ws }: { ws: Workspace }) {
     }
     if (item.kind === "skill") {
       setText(`Use the ${item.name} skill${args ? `: ${args}` : "."}`);
+      return;
+    }
+    if (item.kind === "plugin") {
+      setText("");
+      try {
+        const r = await api.post<{ reply?: string; send?: string; open?: string }>(`/api/plugins/${item.plugin}/command`, { name: item.name, args, workspace: ws.id });
+        if (r.reply) useStore.getState().toast({ title: item.pluginName ?? item.plugin ?? "Plugin", body: r.reply, tone: "info" });
+        if (r.send) useStore.getState().send({ type: "send", workspaceId: ws.id, text: r.send });
+        if (r.open) useStore.getState().openPanel(ws.id, r.open as any);
+      } catch (e) {
+        useStore.getState().toast({ title: `/${item.name} didn't work`, body: (e as Error).message, tone: "bad" });
+      }
       return;
     }
     if (item.args && !args && !typingArgs) {
@@ -272,7 +285,7 @@ export function Composer({ ws }: { ws: Workspace }) {
                   <span className="slash-name mono">/{m.name}</span>
                   {m.args && <span className="slash-args mono">{m.args}</span>}
                   <span className="slash-hint">{m.hint}</span>
-                  {m.kind !== "action" && <span className="slash-kind">{m.kind === "skill" ? "skill" : "prompt"}</span>}
+                  {m.kind !== "action" && <span className="slash-kind">{m.kind === "skill" ? "skill" : m.kind === "plugin" ? (m.pluginName ?? "plugin") : "prompt"}</span>}
                 </button>
               </li>
             ))}

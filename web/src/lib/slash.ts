@@ -9,8 +9,11 @@ export interface SlashItem {
   /** shown after the name while typing, like "low | medium | high" */
   args?: string;
   /** "action" runs at once; "prompt" puts text into the composer for you to send */
-  kind: "action" | "prompt" | "skill";
+  kind: "action" | "prompt" | "skill" | "plugin";
   body?: string;
+  /** the plugin a "plugin" command belongs to */
+  plugin?: string;
+  pluginName?: string;
 }
 
 export interface SlashCtx {
