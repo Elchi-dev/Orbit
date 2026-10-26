@@ -244,6 +244,69 @@ A panel beside the conversation holds three things, each a click in the dock.
 
 ---
 
+## Orbit on your phone
+
+The Orbit app for Android reaches the Orbit on your computer from anywhere.
+Between the two sits a small relay you run on any cheap server, installed
+with one line:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Elchi-dev/Orbit/main/relay/install.sh | sudo sh -s -- --domain relay.example.com
+```
+
+The relay only passes sealed messages along. Your phone and your computer
+agree on keys when you scan a QR code in Settings, Your phone, and everything
+after that is encrypted end to end (X25519, HKDF and AES-256-GCM, written down
+with test vectors in [docs/REMOTE.md](docs/REMOTE.md)). Nothing opens on your
+home network. On the phone: the sky, every workspace and conversation, a new
+task, approvals, and an alert when Claude needs you, through the relay or
+Firebase, which carries it without being able to read it.
+
+---
+
+## Make it yours: plugins
+
+If Orbit doesn't do something, a plugin can. A plugin is a folder with an
+`orbit-plugin.json` and a program in any language, spoken to over stdin and
+stdout. It can give Claude tools, add slash commands and panels, check every
+action before it runs, follow every event, and use Orbit itself: start Claude
+on a task, call a model under your budget, answer approvals, keep its own
+data. TypeScript runs on Orbit's own runtime, so nothing needs installing;
+Python and anything else work too. A plugin never sees your API key.
+
+In Settings, Plugins, **New plugin**, describe what it should do and press
+**Let Claude build it**. [docs/PLUGINS.md](docs/PLUGINS.md) has the manifest,
+the protocol and a whole plugin in TypeScript, Python and Go.
+
+---
+
+## It learns what you keep
+
+- **The library.** Eighteen built-in skills (debugging, code review, security
+  review, accessibility, release, research reports and more) and Orbit's own
+  manual, each one a switch, plus your own and your projects'. Ori writes a new
+  skill or knowledge file from a description, after searching for current
+  practice, usually for a few cents.
+- **Knowledge folders.** Point a workspace at `docs/` or a wiki export: it is
+  indexed on your computer and searched when needed, not pasted into every
+  request.
+- **Memory.** After some work, Ori suggests a few things worth remembering
+  everywhere, like how you like answers or what a project runs on. Nothing is
+  kept until you say yes, and answers show which memories they used.
+
+---
+
+## Watch it again
+
+**Replay** plays a finished run back: every message, every command with who
+allowed it and its output, every file change with its diff, helpers side by
+side, at up to eight times speed with the waiting squeezed out. **Review**
+keeps or undoes one change at a time, not just whole files. In the preview, a
+**check** measures speed and finds the accessibility problems a page shows by
+itself, and hands them to Claude to fix.
+
+---
+
 ## Install
 
 ```sh
@@ -296,15 +359,19 @@ bun install && bun run build            # binaries in release/
 | **Telemetry** | Speed, first token, context used, cache hits, cost per workspace, per day and for the judge, rate limits. |
 | **Interface tools** | Claude may rename the workspace, restyle its planet, pin facts, show charts and notes, notify you, and build sandboxed widgets. Each one is a switch. |
 | **Composer** | Images, PDFs and text files by drag, paste or click; long pastes become attachments; an effort picker per message; web search; dictation; `/` commands and saved prompts. |
-| **Git and review** | A git panel (branches, diffs, stage, commit, pull, push) and a review of every file Claude changed, kept or put back one by one. |
+| **Git and review** | A git panel (branches, diffs, stage, commit, pull, push) and a review of every file Claude changed, kept or put back a file or a change at a time. |
 | **Missions** | Requests that run on a schedule or from a local webhook, unattended, with a report and a notification. |
 | **Context** | Project instruction files, skills, MCP servers, the 100 known programs, smart compaction of older history. |
 | **Profiles** | Pair, Terminal, Autopilot, Frontend and Research, or your own: approvals, tools, layout, effort and instructions per kind of work. A plan checklist Claude keeps while it works. |
-| **Preview** | Live preview of files and dev servers, the page drawn while it is written, widths from phone to laptop, screenshots for you and for Claude, and comments on any element. |
+| **Preview** | Live preview of files and dev servers, the page drawn while it is written, widths from phone to laptop, screenshots for you and for Claude, comments on any element, and a speed and accessibility check. |
 | **Helpers** | Subagents that run in parallel, each a workspace you can open and talk to, with folder limits, their own worktree and branch, and a report. |
-| **Docs and the whiteboard** | Markdown docs you both edit and comment on, and a canvas for notes, screenshots, checklists, frames and arrows. |
+| **Docs and the whiteboard** | Markdown docs you both edit and comment on, kept as files in the repository if you like, and a canvas for notes, screenshots, checklists, frames and arrows. |
 | **Steering** | Send a message while Claude works and it joins the run at the next step. |
 | **Sharing** | Export to Markdown, or save a workspace as one HTML page that opens anywhere. |
+| **Library and memory** | Built-in and your own skills and knowledge, knowledge folders searched per workspace, memories you keep across workspaces. |
+| **Replay** | A finished run played back on a timeline, helpers side by side. |
+| **Plugins** | Tools, commands, panels, hooks and settings from a folder, in any language, with access to Orbit itself. [docs/PLUGINS.md](docs/PLUGINS.md) |
+| **Your phone** | The Android app and a relay you run, end to end encrypted, with alerts for approvals. [docs/REMOTE.md](docs/REMOTE.md) |
 
 Everything lives in one SQLite file in `~/.orbit`, next to `orbit.toml`. The
 annotated config is [orbit.example.toml](orbit.example.toml).
@@ -314,10 +381,7 @@ annotated config is [orbit.example.toml](orbit.example.toml).
 ## Planned
 
 - Long sessions against the live API, and fixing what they turn up
-- Hunk by hunk review, secrets for MCP servers from the encrypted store
-- Knowledge files per workspace and automatic memory
-- Replay of a finished run, helpers side by side
-- A phone companion with pairing, voice out, other providers
+- Voice out, other providers, JetBrains and Neovim plugins
 
 Reasons and order: [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -381,6 +445,9 @@ and at 390 pixels.
 | Document | What |
 | --- | --- |
 | [docs/PERMISSIONS.md](docs/PERMISSIONS.md) | The gate in detail: read-only list, rule syntax, modes, the judge, unattended runs |
+| [docs/PLUGINS.md](docs/PLUGINS.md) | Plugins: the manifest, permissions, panels, the protocol, the SDKs |
+| [docs/REMOTE.md](docs/REMOTE.md) | Orbit on your phone: setting up a relay, and the encrypted protocol |
+| [relay/README.md](relay/README.md) | Running the relay: the installer, behind nginx or Caddy, updates |
 | [docs/ORI.md](docs/ORI.md) | Ori: every pose, where it shows up, using it in code |
 | [docs/MOTION.md](docs/MOTION.md) | How everything moves: appearing, leaving, hover, press, touch, idle |
 | [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | The 100 programs, what Orbit knows about each, the editor links |

@@ -71,6 +71,25 @@ never waits for an answer. Delete the mission to retire its token.
 workspace's folder, starts the editor's own command as an argument list (never
 through a shell), and only editors from the catalog.
 
+**Your phone and the relay.** Phones reach Orbit only through the relay, over
+a session encrypted end to end with keys agreed when you scanned the pairing
+code (X25519, HKDF-SHA256, AES-256-GCM, a counter per direction so frames
+can't be replayed or reordered). The relay sees which room and how much, never
+what. A phone has to be paired, with a one-time code that expires after ten
+minutes, and can be removed in Settings, Your phone; a phone can't reach the
+key, remote or plugin settings, or change the config. Alerts are sealed the same way, so
+Firebase carries them without being able to read them. The relay token only
+lets Orbit register with your relay; it gives no access to Orbit.
+
+**Plugins.** A plugin never gets the API key: `ANTHROPIC_*` variables are
+removed from its environment and model calls go through Orbit, counted in
+your budget. Its permissions in `orbit-plugin.json` decide which of Orbit's
+calls it may make, it starts switched off when installed, and its secrets
+(settings of type `secret`) are encrypted like the key.
+
+**MCP server tokens.** Values in a server's environment and headers are kept
+in the encrypted store; `orbit.toml` only says they are there.
+
 **AI-built widgets.** They run in a sandboxed frame with a content policy that
 allows no network access and no access to Orbit's page.
 
@@ -81,6 +100,10 @@ allows no network access and no access to Orbit's page.
   but what the server does with them is up to the server. Tools it marks
   read-only skip the gate unless you set `trust_readonly = false` for it.
   Tokens for MCP servers are stored in `orbit.toml` in plain text.
+- **Plugins.** A plugin runs as you, like any program you install; its
+  permissions limit what it may ask Orbit for, not what it can do on your
+  computer. Install only plugins you trust, and read what one asks for before
+  switching it on.
 - **Project instruction files.** `AGENTS.md`, `CLAUDE.md` and editor rules in a
   workspace folder go into Claude's instructions. A repository you cloned from
   someone else can say anything there; switch it off in Settings, Integrations,
@@ -96,8 +119,10 @@ allows no network access and no access to Orbit's page.
   never happen (`deny git push --force*`) and Manual or Rules mode where a
   mistake would be expensive.
 - **Binding to another address.** Setting `host = "0.0.0.0"` exposes the
-  agent to your network, protected only by the session cookie. Don't, until
-  the phone companion ships with pairing.
+  agent to your network, protected only by the session cookie. Don't: for
+  your phone, use the relay, which needs nothing open on your network.
+- **A lost or stolen phone.** It can reach Orbit until you remove it in
+  Settings, Your phone. Use a screen lock.
 
 ## Supported versions
 

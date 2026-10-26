@@ -26,6 +26,15 @@ and `edit_file` anywhere else are refused before rules or modes are looked at,
 in every mode including Full. Shell commands are not confined this way; they
 go through the steps below like any other command.
 
+## 1b. Plugins
+
+A plugin with a `before_tool` hook is asked next, with the action in words
+(see [PLUGINS.md](PLUGINS.md)). Any plugin answering `deny` blocks it; `ask`
+sends it to you (or refuses it in an unattended run); `allow` lets it through
+like one of your rules, after the read-only check. No answer within five
+seconds counts as no opinion. Plugins without the hook, and actions no plugin
+has an opinion on, go on to the steps below.
+
 ## 2. Read-only actions
 
 With `skip_readonly = true` (the default), these run at once, without a rule,

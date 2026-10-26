@@ -27,36 +27,30 @@ own worktrees, comments on any element in the preview, docs shared by Claude
 and you, and the whiteboard. In 0.4.1: Ori, a setup wizard, Ask Ori and tours,
 motion throughout, and a flat sky that matches the 3D one.
 
-## 0.5: use it every day
+## Done in 0.7
+
+What 0.5 to 0.7 planned, shipped together, plus two things that weren't on
+the list:
+
+- **0.5:** a speed and accessibility check beside the preview, docs kept as
+  files in the repository, review one change at a time, MCP tokens in the
+  encrypted store, and `orbit check` for trying it against the live API.
+- **0.6:** the library (built-in skills and knowledge, your own, written by
+  Ori on request), knowledge folders searched per workspace, and automatic
+  memory you approve.
+- **0.7:** replay of a finished run, helpers side by side.
+- **Also:** the Android app with a relay you run, end to end encrypted, and
+  plugins in any language.
+
+## Next: use it every day
 
 - **Long-session hardening.** Run it against the live API for days of real
-  work and fix what breaks. The mock model and the tests cover the paths, not
-  the surprises. This is the most important item on the list.
-- **A performance and accessibility check** next to screenshots in the
-  preview.
-- **Docs in the repository.** Keep a doc as a Markdown file in the workspace
-  folder when you want it in git, not only in Orbit.
-- **Hunk by hunk review.** Review already keeps or undoes whole files; some
-  changes want a finer cut.
-- **Secrets for MCP servers** from Orbit's encrypted store instead of
-  `orbit.toml`.
-
-## 0.6: memory and knowledge
-
-- **Knowledge files per workspace.** A docs folder indexed locally, searched by
-  a tool instead of pasted into every request.
-- **Automatic memory.** Facts from past workspaces offered to the memory shelf,
-  each one editable, with answers saying which memories they used.
-
-## 0.7: watching it work
-
-- **Replay.** Scrub a timeline to watch a finished run happen again, commands
-  and file changes included, helpers side by side.
+  work and fix what breaks. `orbit check` is the start; the mock model and the
+  tests cover the paths, not the surprises. This is the most important item.
+- **The phone app on more phones**, and an iPhone app.
 
 ## Later
 
-- **Phone companion:** approve or deny from the phone on the same network,
-  with a pairing code. Off by default.
 - **Voice out.** Dictation is in; spoken replies are not.
 - **Other providers** (OpenAI, Gemini, local models) behind the same gate and
   telemetry.
