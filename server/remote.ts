@@ -247,8 +247,10 @@ class Session {
     const id = msg.id;
     if (!bridge) return this.send({ t: "res", id, status: 503, body: { error: "Starting" } });
     const path = String(msg.path ?? "");
-    if (!path.startsWith("/api/") || path.startsWith("/api/remote")) return this.send({ t: "res", id, status: 403, body: { error: "Not from a phone" } });
     const method = String(msg.method ?? "GET").toUpperCase();
+    // the key, remote and plugin settings, and config changes stay on the computer
+    if (!path.startsWith("/api/") || /^\/api\/(key|remote|plugins|plugin-send)(\/|\?|$)/.test(path) || (/^\/api\/config(\/|\?|$)/.test(path) && method !== "GET"))
+      return this.send({ t: "res", id, status: 403, body: { error: "Not from a phone" } });
     const url = new URL(`http://orbit.local${path}`);
     const req = new Request(url, { method, body: method === "GET" || method === "HEAD" || msg.body == null ? undefined : JSON.stringify(msg.body), headers: { "content-type": "application/json" } });
     try {

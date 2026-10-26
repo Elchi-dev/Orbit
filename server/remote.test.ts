@@ -105,7 +105,9 @@ describe("remote", () => {
 
     const r = await phone.request("POST", "/api/workspaces", { title: "From the phone" });
     expect(r).toMatchObject({ status: 200, body: { path: "/api/workspaces", body: { title: "From the phone" } } });
-    expect((await phone.request("GET", "/api/remote")).status).toBe(403);
+    for (const [m, path] of [["GET", "/api/remote"], ["POST", "/api/key"], ["DELETE", "/api/key"], ["PUT", "/api/plugins/x"], ["PUT", "/api/config"]] as const)
+      expect((await phone.request(m, path, {})).status, `${m} ${path}`).toBe(403);
+    expect((await phone.request("GET", "/api/config")).status).toBe(200);
 
     const events: any[] = [];
     phone.onEvent = (e) => events.push(e);
