@@ -35,3 +35,17 @@ jobs:
         run: bun scripts/gen-remote-vectors.ts --check
       - name: Editor extension
         run: node integrations/vscode/test.js
+
+  relay:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+      - run: go vet ./...
+      - run: go test -race ./...

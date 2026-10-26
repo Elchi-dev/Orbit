@@ -33,6 +33,20 @@ jobs:
         run: |
           node test.js
           npx --yes @vscode/vsce@3 package --no-dependencies -o ../../release/orbit-vscode.vsix
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+      - name: Relay binaries for Linux
+        working-directory: relay
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          go vet ./...
+          go test ./...
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.version=${TAG}" -o ../release/orbit-relay-linux-$arch .
+          done
       - name: Checksums
         working-directory: release
         run: sha256sum orbit-* > SHA256SUMS && cat SHA256SUMS
