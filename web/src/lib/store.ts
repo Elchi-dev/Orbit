@@ -380,6 +380,9 @@ export const useStore = create<Store>((set, get) => ({
       case "plugins":
         set({ plugins: e.plugins });
         break;
+      case "page_check":
+        window.dispatchEvent(new CustomEvent("orbit:page_check", { detail: e }));
+        break;
       case "plugin_log":
         window.dispatchEvent(new CustomEvent("orbit:plugin_log", { detail: e }));
         break;

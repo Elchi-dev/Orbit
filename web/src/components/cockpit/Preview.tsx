@@ -1,8 +1,9 @@
+import { CheckReportView, type Report } from "./CheckReport";
 import { OriEmpty } from "../ori/OriEmpty";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { create } from "zustand";
-import { Camera, ExternalLink, Laptop, Loader2, MessageSquarePlus, Monitor, RotateCw, Send, Smartphone, Tablet, Trash2, X } from "lucide-react";
+import { Camera, ClipboardCheck, ExternalLink, Laptop, Loader2, MessageSquarePlus, Monitor, RotateCw, Send, Smartphone, Tablet, Trash2, X } from "lucide-react";
 import { api } from "../../lib/api";
 import { useStore } from "../../lib/store";
 import { partialField } from "../../lib/partial";
@@ -98,6 +99,28 @@ export function PreviewPane({ ws }: { ws: Workspace }) {
   const [shownLive, setShownLive] = useState("");
   const [annotating, setAnnotating] = useState(false);
   const [pick, setPick] = useState<Pick | null>(null);
+  const [report, setReport] = useState<Report | null>(null);
+  const [checking, setChecking] = useState(false);
+  // a check Claude ran shows here too
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d.workspaceId === ws.id) setReport(d.report);
+    };
+    window.addEventListener("orbit:page_check", on);
+    return () => window.removeEventListener("orbit:page_check", on);
+  }, [ws.id]);
+  async function runCheck() {
+    setChecking(true);
+    try {
+      const w = VIEWPORTS.find((v) => v.id === viewport)!.width || frameWrap.current?.clientWidth || 1280;
+      setReport(await api.post<Report>(`/api/workspaces/${ws.id}/check`, { target: preview?.target, width: w }));
+    } catch (e) {
+      toast({ title: "The check didn't run", body: (e as Error).message, tone: "warn" });
+    } finally {
+      setChecking(false);
+    }
+  }
   const [draft, setDraft] = useState("");
   const [page, setPage] = useState("");
   const [editing, setEditing] = useState<number | null>(null);
@@ -276,6 +299,9 @@ export function PreviewPane({ ws }: { ws: Workspace }) {
         <button className="btn b-ghost icon-btn sm" onClick={capture} aria-label="Screenshot into the message" data-tip="Screenshot into the message" data-tip-side="bottom" disabled={!preview?.url || capturing}>
           {capturing ? <Loader2 size={15} className="spin" /> : <Camera size={15} />}
         </button>
+        <button className="btn b-ghost icon-btn sm" onClick={runCheck} aria-label="Check speed and accessibility" data-tip="Check speed and accessibility" data-tip-side="bottom" disabled={!preview?.url || checking}>
+          {checking ? <Loader2 size={15} className="spin" /> : <ClipboardCheck size={15} />}
+        </button>
         <a className={`btn b-ghost icon-btn sm ${preview?.url ? "" : "disabled"}`} href={preview?.url || undefined} target="_blank" rel="noreferrer" aria-label="Open in a tab" data-tip="Open in a tab" data-tip-side="bottom">
           <ExternalLink size={15} />
         </a>
@@ -295,6 +321,25 @@ export function PreviewPane({ ws }: { ws: Workspace }) {
         </button>
       </div>
       <div className={`pv-stage ${vp.width ? "framed" : ""} ${annotating ? "annotating" : ""}`} ref={frameWrap}>
+        <AnimatePresence>
+          {report && (
+            <CheckReportView
+              key="ck"
+              r={report}
+              onClose={() => setReport(null)}
+              onFix={() => {
+                send({
+                  type: "send",
+                  workspaceId: ws.id,
+                  text: `A check of ${report.target} at ${report.width} px found these. Fix them, then run page_check again to confirm:\n${report.a11y
+                    .map((i) => `- ${i.title} (WCAG ${i.wcag}), ${i.count}: ${i.examples.map((e) => e.selector + (e.detail ? ` ${e.detail}` : "")).join("; ")}`)
+                    .join("\n")}${report.perf.verdict.lcp !== "good" || report.perf.verdict.tbt !== "good" || report.perf.verdict.cls !== "good" ? `\n- Speed: largest paint ${report.perf.lcp} ms, layout shift ${report.perf.cls}, blocking ${report.perf.tbt} ms` : ""}`,
+                });
+                setReport(null);
+              }}
+            />
+          )}
+        </AnimatePresence>
         <AnimatePresence>
           {showLive && (
             <motion.span className="pv-live" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>

@@ -1,4 +1,4 @@
-import { addComment, createDoc, deleteDoc, docView, getDoc, listDocs, resolveComment, saveDoc } from "./docs";
+import { addComment, createDoc, deleteDoc, docView, getDoc, linkFile, listDocs, openFileAsDoc, resolveComment, saveDoc } from "./docs";
 import { apply as applyBoard, assetPath, getBoard, isImagePath, saveAsset } from "./board";
 import { discardHelper, helpersOf, helperView, listAgents, mergeHelper } from "./helpers";
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
@@ -28,8 +28,9 @@ import {
   init as gitInit,
 } from "./git";
 import { screenshot, shotPath } from "./screenshot";
+import { checkPage } from "./pagecheck";
 import { closePreview, openPreview, previewState, resolveTarget, startPreviewServer } from "./preview";
-import { keep, reviewList, revert, revertAll } from "./review";
+import { keep, keepHunk, reviewList, revert, revertAll, undoHunk } from "./review";
 import { byHook, createMission, deleteMission, launch, listMissions, startScheduler, updateMission } from "./missions";
 import { findCommands, findSkills, projectInstructions } from "./context";
 import { builtinKnowledge, builtinSkills, deleteEntry, findKnowledge, normaliseKnowledge, normaliseSkill, readKnowledge, saveEntry, templates, NAME_RE, type LibKind } from "./library";
@@ -42,7 +43,7 @@ import { PANEL_JS } from "./plugin-panel";
 import { complete as completeModel } from "./anthropic";
 import { recordUsage } from "./usage";
 import { getProfile, listProfiles } from "./profiles";
-import { mcpStatus, reconnect, stopAllMcp, syncMcp } from "./mcp";
+import { mcpStatus, reconnect, sealMcpSecrets, stopAllMcp, syncMcp } from "./mcp";
 import { editorChoices, listIntegrations, openInEditor, probeVersions } from "./integrations";
 import { assets } from "./embedded";
 import { originAllowed } from "./origin";
@@ -334,7 +335,10 @@ async function api(req: Request, url: URL): Promise<Response> {
     const next = deepMerge(structuredClone(config()), patch) as Config;
     if (Array.isArray(patch?.permissions?.rules)) next.permissions.rules = patch.permissions.rules;
     // tables that can lose entries are replaced, not merged
-    if (patch?.mcp?.servers) next.mcp.servers = patch.mcp.servers;
+    if (patch?.mcp?.servers) {
+      next.mcp.servers = patch.mcp.servers;
+      sealMcpSecrets(next.mcp.servers);
+    }
     if (patch?.profiles) next.profiles = patch.profiles;
     saveConfig(next);
     syncMcp();
@@ -472,7 +476,12 @@ async function api(req: Request, url: URL): Promise<Response> {
     try {
       if (!match[2] && m === "GET") return json(reviewList(w.id));
       if (m === "POST") {
-        const { path, all } = await body();
+        const { path, all, hunk, rev } = await body();
+        if (typeof hunk === "number") {
+          if (match[2] === "keep") keepHunk(w.id, String(path ?? ""), hunk, String(rev ?? ""));
+          else undoHunk(w.id, String(path ?? ""), hunk, String(rev ?? ""));
+          return json(reviewList(w.id));
+        }
         if (match[2] === "keep") keep(w.id, all ? undefined : String(path ?? ""));
         else if (all) revertAll(w.id);
         else revert(w.id, String(path ?? ""));
@@ -532,6 +541,36 @@ async function api(req: Request, url: URL): Promise<Response> {
     if (m === "DELETE") {
       deleteDoc(d);
       return json({ ok: true });
+    }
+  }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/check$/)) && m === "POST") {
+    const w = getWorkspace(match[1]);
+    if (!w) return bad("No such workspace", 404);
+    const b = await body();
+    try {
+      const target = String(b.target || previewState(w.id)?.target || "");
+      if (!target) return bad("Open something in the preview first.");
+      const r = await checkPage(resolveTarget(w.id, target).url, Number(b.width) || 390);
+      return json({ ...r, target });
+    } catch (e) {
+      return bad((e as Error).message);
+    }
+  }
+  if ((match = p.match(/^\/api\/docs\/([\w]+)\/file$/)) && m === "POST") {
+    const d = getDoc(match[1]);
+    if (!d) return bad("No such doc", 404);
+    const b = await body();
+    try {
+      return json(docView(linkFile(d, b.path ? String(b.path) : null, b.use === "doc" || b.use === "file" ? b.use : undefined)));
+    } catch (e) {
+      return json({ error: (e as Error).message, code: (e as any).code ?? null }, (e as any).code === "exists" ? 409 : 400);
+    }
+  }
+  if ((match = p.match(/^\/api\/workspaces\/([\w]+)\/docs\/open$/)) && m === "POST") {
+    try {
+      return json(docView(openFileAsDoc(match[1], String((await body()).path ?? ""))));
+    } catch (e) {
+      return bad((e as Error).message);
     }
   }
   if ((match = p.match(/^\/api\/docs\/([\w]+)\/comments(?:\/([\w]+))?$/)) && m === "POST") {

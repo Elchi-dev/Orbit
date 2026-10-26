@@ -1226,3 +1226,56 @@ mark.doc-mark::after { content: attr(data-n); display: inline-grid; place-items:
 .pl-logs { display: flex; flex-direction: column; gap: 6px; }
 .pl-logs .form-label { display: inline-flex; align-items: center; gap: 6px; }
 .pl-logs pre { margin: 0; max-height: 200px; overflow: auto; padding: 10px 12px; border-radius: var(--r); background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--star-2); white-space: pre-wrap; word-break: break-word; }
+
+/* review, one change at a time */
+.rev-hunks { display: flex; flex-direction: column; gap: 10px; }
+.rev-hunk { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.rev-hunk-bar { display: flex; align-items: center; gap: 4px; padding: 4px 6px 4px 10px; background: rgba(255, 255, 255, 0.025); border-bottom: 1px solid var(--line); }
+.rev-hunk .git-diff { margin: 0; border: 0; border-radius: 0; }
+
+/* docs kept as files */
+.doc-file-wrap { position: relative; }
+.doc-file.on { font-family: var(--mono); font-size: 12px; color: var(--lav-soft); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-file-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: 300px; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface); }
+.doc-bar .doc-file.on + .doc-file-pop, .doc-bar > .doc-file-pop { right: 0; }
+.docs-open { display: flex; gap: 8px; align-items: center; padding: 0 0 10px; }
+.docs-open .field { flex: 1; }
+.warn-text { color: var(--peach); }
+
+/* the check report over the preview */
+.pv-stage { position: relative; }
+.ck { position: absolute; z-index: 6; top: 10px; right: 10px; bottom: 10px; width: min(360px, calc(100% - 20px)); display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+.ck-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-bottom: 1px solid var(--line); }
+.ck-head > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ck-head b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck-body { flex: 1; overflow: auto; padding: 4px 14px 14px; }
+.ck-body h4 { display: flex; align-items: center; gap: 7px; margin: 14px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--star-3); }
+.ck-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ck-metric { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: var(--r); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); }
+.ck-metric b { font-size: 16px; }
+.ck-verdict { font-size: 11.5px; text-transform: capitalize; }
+.ck-metric.t-good .ck-verdict { color: var(--good); }
+.ck-metric.t-warn .ck-verdict { color: var(--peach); }
+.ck-metric.t-bad .ck-verdict { color: var(--danger); }
+.ck-metric.t-quiet .ck-verdict { color: var(--star-3); }
+.ck-bytes { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.ck-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; gap: 2px; }
+.ck-bar i { flex-basis: 0; min-width: 3px; }
+.b-js { background: var(--peach); }
+.b-css { background: var(--lav); }
+.b-image { background: #7fb6e8; }
+.b-font { background: var(--good); }
+.b-other { background: var(--star-3); }
+.ck-dot { display: inline-block; width: 7px; height: 7px; border-radius: 2px; vertical-align: 1px; }
+.ck-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ck-issue { border-radius: var(--r); border: 1px solid var(--line); }
+.ck-issue-head { width: 100%; justify-content: flex-start; gap: 9px; padding: 8px 10px; min-height: 0; text-align: left; }
+.ck-issue-title { flex: 1; font-size: 13.5px; }
+.ck-impact { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--star-3); }
+.i-serious .ck-impact { background: var(--danger); }
+.i-moderate .ck-impact { background: var(--peach); }
+.ck-ex { display: flex; flex-direction: column; gap: 4px; padding: 0 10px 10px 27px; }
+.ck-ex code { font-family: var(--mono); font-size: 11.5px; color: var(--star-2); word-break: break-all; }
+.ck-console { margin: 0; padding: 8px 10px; border-radius: var(--r); background: rgba(0, 0, 0, 0.3); font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap; color: var(--star-2); max-height: 140px; overflow: auto; }
+.ck-note { margin-top: 12px !important; }
+.ck-foot { padding: 10px 12px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; }
