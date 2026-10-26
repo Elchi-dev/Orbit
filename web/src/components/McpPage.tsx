@@ -123,13 +123,13 @@ export function McpPage({ draft, setServers }: { draft: Config; setServers: (s: 
                             <span className="mcp-key mono">{k}</span>
                             <input
                               type="password"
-                              value={spec.env![k]}
-                              placeholder="value"
+                              value={spec.env![k] === "<encrypted>" ? "" : spec.env![k]}
+                              placeholder={spec.env![k] === "<encrypted>" ? "Saved; type to replace it" : "value"}
                               onChange={(e) => setServers({ ...servers, [name]: { ...spec, env: { ...spec.env, [k]: e.target.value } } })}
                             />
                           </label>
                         ))}
-                        <span className="muted small">Saved in orbit.toml on this machine, readable by your user account.</span>
+                        <span className="muted small">Kept encrypted on this computer; orbit.toml only says it's there.</span>
                       </div>
                     )}
                     {st?.state === "error" && <p className="bad-text small mcp-err">{st.error}</p>}

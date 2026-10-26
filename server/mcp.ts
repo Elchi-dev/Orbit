@@ -4,7 +4,8 @@
 // speaking the streamable HTTP transport (JSON or an event stream per request).
 
 import type { Subprocess } from "bun";
-import { config, type McpServer } from "./config";
+import { config, saveConfig, type McpServer } from "./config";
+import { deleteSecret, getSecret, setSecret } from "./secrets";
 import { broadcast } from "./hub";
 import { quietEnv } from "./catalog";
 
@@ -229,7 +230,52 @@ function onClosed(name: string, error: string, conn: Connection) {
   emit();
 }
 
+// ---------- secrets for servers ----------
+/** What orbit.toml keeps in place of a value that lives in the encrypted store. */
+export const SEALED = "<encrypted>";
+const secretName = (server: string, where: "env" | "headers", key: string) => `mcp.${server}.${where}.${key}`;
+
+/**
+ * Moves every value in env and headers into the encrypted store and leaves
+ * SEALED in its place. Returns true when something moved. Empty values stay empty.
+ */
+export function sealMcpSecrets(servers: Record<string, McpServer>): boolean {
+  let moved = false;
+  for (const [name, spec] of Object.entries(servers)) {
+    for (const where of ["env", "headers"] as const) {
+      const table = spec[where];
+      if (!table) continue;
+      for (const [k, v] of Object.entries(table)) {
+        if (v === SEALED) continue;
+        if (!v) {
+          deleteSecret(secretName(name, where, k));
+          continue;
+        }
+        setSecret(secretName(name, where, k), String(v));
+        table[k] = SEALED;
+        moved = true;
+      }
+    }
+  }
+  return moved;
+}
+
+/** The server's settings with the real values, only for starting it. */
+export function unseal(name: string, spec: McpServer): McpServer {
+  const open = (where: "env" | "headers") =>
+    spec[where] ? Object.fromEntries(Object.entries(spec[where]!).map(([k, v]) => [k, v === SEALED ? (getSecret(secretName(name, where, k)) ?? "") : v])) : undefined;
+  return { ...spec, env: open("env"), headers: open("headers") };
+}
+
+/** Values written in orbit.toml by hand move into the store at start. */
+export function sealExisting() {
+  const c = config();
+  const servers = structuredClone(c.mcp?.servers ?? {});
+  if (sealMcpSecrets(servers)) saveConfig({ ...c, mcp: { ...c.mcp, servers } });
+}
+
 async function connect(name: string, spec: McpServer): Promise<void> {
+  spec = unseal(name, spec);
   const transport = spec.url ? "http" : "stdio";
   const entry: Entry = servers.get(name) ?? { status: { name, state: "connecting", tools: [], transport }, tools: [] };
   servers.set(name, entry);
@@ -280,6 +326,7 @@ async function refreshTools(name: string) {
 
 /** Bring the running servers in line with the config: start new ones, stop removed or switched off ones. */
 export function syncMcp() {
+  sealExisting();
   const want = config().mcp?.servers ?? {};
   for (const [name, e] of servers) {
     const spec = want[name];

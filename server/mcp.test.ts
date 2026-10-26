@@ -68,3 +68,18 @@ describe("MCP servers", () => {
     expect(mcpSubject("mcp__notes__echo", { text: "a; b" })).toBe('mcp notes echo {"text":"a  b"}');
   });
 });
+
+describe("secrets for MCP servers", () => {
+  test("values move into the encrypted store, orbit.toml keeps a marker, the server still gets them", async () => {
+    const { sealMcpSecrets, unseal, SEALED } = await import("./mcp");
+    const servers: any = { gh: { command: "x", env: { TOKEN: "ghp_secret", EMPTY: "" } }, web: { url: "https://x", headers: { Authorization: "Bearer abc" } } };
+    expect(sealMcpSecrets(servers)).toBe(true);
+    expect(servers.gh.env).toEqual({ TOKEN: SEALED, EMPTY: "" });
+    expect(servers.web.headers.Authorization).toBe(SEALED);
+    expect(JSON.stringify(servers)).not.toContain("ghp_secret");
+    expect(unseal("gh", servers.gh).env).toEqual({ TOKEN: "ghp_secret", EMPTY: "" });
+    expect(unseal("web", servers.web).headers).toEqual({ Authorization: "Bearer abc" });
+    // saving again without touching it changes nothing
+    expect(sealMcpSecrets(servers)).toBe(false);
+  });
+});
