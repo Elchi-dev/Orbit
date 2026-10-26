@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Elchi-dev/Orbit/main/sdk/orbit-plugin.schema.json",
+  "title": "Orbit plugin manifest",
+  "description": "orbit-plugin.json at the top of an Orbit plugin's folder. See docs/PLUGINS.md.",
+  "type": "object",
+  "required": ["id", "name"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,40}$", "description": "Lower case letters, digits and dashes." },
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "description": { "type": "string" },
+    "author": { "type": "string" },
+    "homepage": { "type": "string" },
+    "icon": { "type": "string" },
+    "run": {
+      "description": "The command that starts the plugin, run in its folder. bun and node work without being installed.",
+      "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" }, "minItems": 1 }]
+    },
+    "dev": { "type": "boolean", "description": "Restart when a file in the folder changes." },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["workspaces", "agent", "model", "events", "approvals", "api"] }
+    },
+    "contributes": {
+      "type": "object",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,40}$" },
+              "description": { "type": "string" },
+              "input_schema": { "type": "object", "description": "A JSON schema, or short: {\"city\": \"string\", \"days\": \"number?\"}." },
+              "read_only": { "type": "boolean" },
+              "timeout_s": { "type": "number" }
+            }
+          }
+        },
+        "commands": {
+          "type": "array",
+          "items": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "description": { "type": "string" } } }
+        },
+        "panels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "entry"],
+            "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "icon": { "type": "string" }, "entry": { "type": "string" } }
+          }
+        },
+        "settings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "label", "type"],
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "type": { "enum": ["string", "secret", "number", "boolean", "select"] },
+              "default": {},
+              "options": { "type": "array", "items": { "type": "string" } },
+              "help": { "type": "string" }
+            }
+          }
+        },
+        "hooks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["before_tool", "after_tool", "turn_start", "turn_end", "message", "approval"] }
+        }
+      }
+    }
+  }
+}

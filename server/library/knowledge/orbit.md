@@ -56,6 +56,22 @@ Settings, Library (or the book in the sky's top bar) holds skills and knowledge:
 - **Knowledge** is reference the user keeps for you: files in `~/.orbit/knowledge` or a project's `.orbit/knowledge`. Ones marked "always" are in front of you every time; the rest you read with the knowledge tool.
 - Built-ins can be switched off, or copied to edit. New ones start blank, from a template, or are written by Ori: a small model that may only search the web and read pages drafts one from a description, usually for a few cents, and the user reviews it before saving.
 
+## Plugins
+
+Settings, Plugins. A plugin is a folder in `~/.orbit/plugins` with an
+`orbit-plugin.json`, written in any language. It can add tools, slash
+commands, panels, checks before every action, settings, skills and knowledge,
+and use Orbit itself. New plugins start off. "New plugin" makes one from a
+template, and "Let Claude build it" opens a workspace in its folder where you
+write it with the orbit-plugins skill. A plugin never gets the API key.
+
+## Your phone
+
+Settings, Your phone. The Orbit app for Android reaches this computer from
+anywhere through a relay the user runs on a small server (a one-line install),
+end to end encrypted. Pair the phone by scanning the QR code there. Approvals
+reach the phone as alerts, through the relay or Firebase.
+
 ## Settings (Ctrl ,)
 
 The API key (encrypted on this computer), models for work, the judge and titles, approvals and rules, budgets (daily and per workspace; Orbit stops before them), profiles, integrations (the programs Orbit found, MCP servers, editors, skills), the library, and the interface (theme, motion: full, calm or off).
