@@ -61,7 +61,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK licenses (the runner has the SDK; the build fetches the platform it needs)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
       - name: Tests (protocol vectors, state, screens) and a debug build
         run: ./gradlew --no-daemon test :app:assembleDebug
