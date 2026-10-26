@@ -464,8 +464,10 @@ async function mockStream(req: MessageRequest, h: StreamHandlers, signal?: Abort
 async function mockComplete(req: MessageRequest) {
   await sleep(250);
   const sys = req.system.toLowerCase();
-  const text = sys.includes("judge")
-    ? JSON.stringify({ verdict: "ask", reason: "It fits the goal of freeing disk space, but no rule covers deletes here and the pattern is wider than the folders named." })
-    : "Mock workspace";
+  const text = sys.includes("long-term memory")
+    ? JSON.stringify({ memories: ["Prefers short answers with the code first."] })
+    : sys.includes("judge")
+      ? JSON.stringify({ verdict: "ask", reason: "It fits the goal of freeing disk space, but no rule covers deletes here and the pattern is wider than the folders named." })
+      : "Mock workspace";
   return { text, usage: { input: 300, output: 30, cache_read: 0, cache_write: 0 } };
 }

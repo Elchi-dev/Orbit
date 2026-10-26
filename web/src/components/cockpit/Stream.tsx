@@ -1,3 +1,4 @@
+import { splitMemories, UsedMemories } from "../memory/Memory";
 import { Ori } from "../ori/Ori";
 import { useGuide } from "../ori/Guide";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -149,13 +150,16 @@ function AssistantBlocks({ blocks, detail, streaming, wsId }: { blocks: (Block |
   return (
     <>
       {items.map((it, k) => {
-        if (it.kind === "text")
+        if (it.kind === "text") {
+          const { text, ids } = splitMemories(it.text);
           return (
             <div key={k} className="assistant-text">
-              <Markdown text={it.text} />
+              <Markdown text={text} />
               {it.live && <span className="caret" aria-hidden="true" />}
+              {!it.live && ids.length > 0 && <UsedMemories ids={ids} />}
             </div>
           );
+        }
         if (it.kind === "helpers") return <HelperLanes key={k} blocks={it.blocks} calls={detail.calls} parentId={wsId} />;
         if (it.kind === "search") return <WebSearchRow key={k} block={it.block} result={it.result} live={it.live} />;
         const b = it.b;

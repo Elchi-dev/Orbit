@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { BookOpen, Puzzle, Smartphone, Bot, Boxes, Info, Layers, Plug, KeyRound, LayoutTemplate, ListChecks, Plus, Save, ShieldCheck, Trash2, UserRound, Wallet, X } from "lucide-react";
+import { BookOpen, Brain, Puzzle, Smartphone, Bot, Boxes, Info, Layers, Plug, KeyRound, LayoutTemplate, ListChecks, Plus, Save, ShieldCheck, Trash2, UserRound, Wallet, X } from "lucide-react";
 import { useStore } from "../lib/store";
 import { api } from "../lib/api";
 import type { Config, Rule } from "../lib/types";
@@ -11,6 +11,7 @@ import { ProfilesPage } from "./profiles/ProfilesPage";
 import { LibraryPage } from "./library/LibraryPage";
 import { RemotePage } from "./remote/RemotePage";
 import { PluginsPage } from "./plugins/PluginsPage";
+import { MemoryPage } from "./memory/Memory";
 
 const TABS = [
   { id: "key", label: "API key", Icon: KeyRound },
@@ -19,6 +20,7 @@ const TABS = [
   { id: "rules", label: "Rules", Icon: ListChecks },
   { id: "profiles", label: "Profiles", Icon: Layers },
   { id: "library", label: "Library", Icon: BookOpen },
+  { id: "memory", label: "Memory", Icon: Brain },
   { id: "remote", label: "Your phone", Icon: Smartphone },
   { id: "plugins", label: "Plugins", Icon: Puzzle },
   { id: "integrations", label: "Integrations", Icon: Plug },
@@ -114,6 +116,7 @@ export function Settings() {
               {tab === "profiles" && <ProfilesPage draft={draft} setDraft={setDraft} />}
               {tab === "library" && <LibraryPage draft={draft} setDraft={setDraft} />}
               {tab === "remote" && <RemotePage />}
+              {tab === "memory" && <MemoryPage />}
               {tab === "plugins" && <PluginsPage />}
               {tab === "mcp" && <McpPage draft={draft} setServers={(servers) => setDraft({ ...draft, mcp: { servers } })} />}
               {tab === "integrations" && <IntegrationsPage draft={draft} set={(v) => set("integrations", v)} setCtx={(v) => set("context", v)} setSkills={(v) => set("skills", v)} />}

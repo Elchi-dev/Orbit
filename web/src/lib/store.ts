@@ -49,6 +49,8 @@ interface Store {
   boards: Record<string, import("./types").Board>;
   fresh: Record<string, Record<string, boolean | undefined>>;
   plugins: import("./types").PluginInfo[];
+  /** memories suggested and waiting for a yes or no */
+  memorySuggested: number;
   loadPlugins: () => Promise<void>;
   openPanel: (wsId: string, tab: import("./types").PanelTab | null) => void;
   selectDoc: (wsId: string, id: string | null) => void;
@@ -102,6 +104,7 @@ export const useStore = create<Store>((set, get) => ({
   boards: {},
   fresh: {},
   plugins: [],
+  memorySuggested: 0,
   loadPlugins: async () => {
     const r = await api.get<{ plugins: import("./types").PluginInfo[] }>("/api/plugins").catch(() => null);
     if (r) set({ plugins: r.plugins });
@@ -149,7 +152,7 @@ export const useStore = create<Store>((set, get) => ({
 
   loadServer: async () => {
     const s = await api.get<ServerState>("/api/state");
-    set({ server: s, approvals: s.approvals });
+    set({ server: s, approvals: s.approvals, memorySuggested: (s as any).memorySuggested ?? 0 });
   },
   loadWorkspaces: async () => {
     const list = await api.get<Workspace[]>("/api/workspaces");
@@ -220,7 +223,7 @@ export const useStore = create<Store>((set, get) => ({
     };
     switch (e.type) {
       case "hello":
-        set({ server: e.state, approvals: e.state.approvals });
+        set({ server: e.state, approvals: e.state.approvals, memorySuggested: e.state.memorySuggested ?? 0 });
         break;
       case "state":
         set({ server: { ...(s.server as ServerState), ...e } });
@@ -379,6 +382,10 @@ export const useStore = create<Store>((set, get) => ({
         break;
       case "plugins":
         set({ plugins: e.plugins });
+        break;
+      case "memories":
+        set({ memorySuggested: e.suggested ?? 0 });
+        window.dispatchEvent(new Event("orbit:memories"));
         break;
       case "page_check":
         window.dispatchEvent(new CustomEvent("orbit:page_check", { detail: e }));
